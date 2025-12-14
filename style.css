@@ -10,6 +10,7 @@
 
 *{ box-sizing:border-box; }
 html,body{ height:100%; }
+
 body{
   margin:0;
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
@@ -20,6 +21,7 @@ body{
   color:var(--text);
 }
 
+/* ---------- HEADER ---------- */
 .top{
   display:flex;
   justify-content:space-between;
@@ -37,18 +39,34 @@ body{
 }
 
 .logo{
-  width:42px;height:42px;
-  display:grid;place-items:center;
+  width:42px;
+  height:42px;
+  display:grid;
+  place-items:center;
   border:1px solid var(--stroke);
   border-radius:12px;
   background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
   box-shadow: var(--shadow);
 }
 
-.title{ font-weight:800; letter-spacing:.3px; }
-.subtitle{ color:var(--muted); font-size:13px; margin-top:2px; }
+.title{
+  font-weight:800;
+  letter-spacing:.3px;
+}
 
-.stats{ display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;}
+.subtitle{
+  color:var(--muted);
+  font-size:13px;
+  margin-top:2px;
+}
+
+.stats{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+
 .pill{
   padding:8px 10px;
   border-radius:999px;
@@ -59,6 +77,7 @@ body{
   box-shadow: 0 10px 25px rgba(0,0,0,.22);
 }
 
+/* ---------- LAYOUT ---------- */
 .wrap{
   max-width:980px;
   margin:0 auto;
@@ -83,6 +102,7 @@ body{
   line-height:1.35;
 }
 
+/* ---------- GAME GRID ---------- */
 .grid{
   width:100%;
   aspect-ratio: 1 / 1;
@@ -96,77 +116,14 @@ body{
   touch-action: manipulation;
 }
 
+/* ---------- TILE (ONE CLEAN BLOCK) ---------- */
 .tile{
+  aspect-ratio: 1 / 1;               /* 🔥 fixes invisible tiles */
   border-radius:14px;
   border:1px solid rgba(255,255,255,.14);
-  box-shadow: 0 10px 18px rgba(0,0,0,.28);
-  transform: translateZ(0);
   position:relative;
   overflow:hidden;
-}
 
-.tile::after{
-  content:"";
-  position:absolute; inset:0;
-  background: radial-gradient(180px 120px at 25% 20%, rgba(255,255,255,.28), transparent 55%);
-  pointer-events:none;
-}
-
-.tile.selected{
-  outline: 3px solid rgba(255,255,255,.70);
-  outline-offset: 2px;
-  filter: brightness(1.08);
-  transform: scale(1.03);
-}
-
-.tile.clearing{
-  animation: pop .14s ease-out;
-  filter: brightness(1.15);
-}
-@keyframes pop{
-  from{ transform: scale(1.03); }
-  to{ transform: scale(.90); opacity:.55; }
-}
-
-.buttons{
-  display:flex;
-  gap:10px;
-  margin-top:12px;
-}
-
-.btn{
-  flex:1;
-  padding:10px 12px;
-  border-radius:14px;
-  border:1px solid rgba(255,255,255,.20);
-  background:linear-gradient(180deg, rgba(255,214,102,.18), rgba(255,214,102,.06));
-  color:var(--text);
-  font-weight:800;
-  cursor:pointer;
-  box-shadow: 0 10px 20px rgba(0,0,0,.22);
-}
-.btn:active{ transform: translateY(1px); }
-
-.btn-ghost{
-  background:rgba(255,255,255,.05);
-}
-
-.tiny{
-  margin-top:10px;
-  font-size:12px;
-  color:rgba(233,240,255,.70);
-}
-
-.footer{
-  max-width:980px;
-  margin:0 auto;
-  padding:8px 16px 18px;
-  color:rgba(233,240,255,.65);
-  font-size:12px;
-  text-align:center;
-}
-.tile{
-  aspect-ratio: 1 / 1;   /* ✅ THIS FIXES “nothing showing” */
   display:flex;
   align-items:center;
   justify-content:center;
@@ -176,5 +133,22 @@ body{
   box-shadow:
     0 6px 0 #cfcfcf,
     0 10px 20px rgba(0,0,0,.25);
+
+  transform: translateZ(0);
+  transition: transform .12s ease, box-shadow .12s ease;
 }
 
+/* Shine overlay */
+.tile::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background: radial-gradient(
+    180px 120px at 25% 20%,
+    rgba(255,255,255,.35),
+    transparent 55%
+  );
+  pointer-events:none;
+}
+
+/* Press effect */
