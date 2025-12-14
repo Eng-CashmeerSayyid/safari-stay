@@ -269,3 +269,29 @@ shuffleBtn.addEventListener("click", async () => {
 // Boot
 buildGrid();
 newGame();
+
+function goToGame() {
+  islandScreen.classList.add("hidden");
+  gameScreen.classList.remove("hidden");
+}
+
+function backToIsland() {
+  islandScreen.classList.remove("hidden");
+  gameScreen.classList.add("hidden");
+  updateIslandUI();
+}
+
+function clearBush() {
+  if (bushCleared) return alert("Bush already cleared!");
+
+  if (coins >= 100) {
+    coins -= 100;
+    bushCleared = true;
+    localStorage.setItem("coins", coins);
+    localStorage.setItem("bushCleared", "true");
+    updateIslandUI();
+  } else {
+    alert("Not enough coins! Play puzzle.");
+  }
+}
+
