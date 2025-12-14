@@ -6,8 +6,7 @@
 const WIDTH = 8;
 const TOTAL = WIDTH * WIDTH;
 
-const COLORS =  ["🍓","🥥","🌴","🐚","⭐","🍍"];
-
+const COLORS = ["🍓","🥥","🌴","🐚","⭐","🍍"];
 
 let board = new Array(TOTAL).fill(null);
 let selectedIndex = null;
@@ -47,31 +46,23 @@ function areNeighbors(a, b) {
 
 /* ---------- UI ---------- */
 function updateIslandUI() {
+  if (!coinsEl || !bushStatus) return; // safety
   coinsEl.textContent = coins;
   bushStatus.textContent = bushCleared
     ? "✅ Bush cleared"
     : "🌿 Bush is blocking the path";
 }
+
 function updateUI() {
   const tiles = gridEl.querySelectorAll(".tile");
   tiles.forEach((t, i) => {
     t.classList.toggle("selected", i === selectedIndex);
-
-    if (board[i]) {
-      t.textContent = board[i];
-      t.style.background =
-        "linear-gradient(145deg, #ffffff, #e6e6e6)";
-    } else {
-      t.textContent = "";
-      t.style.background = "rgba(255,255,255,.08)";
-    }
+    t.textContent = board[i] || "";
   });
 
   scoreEl.textContent = score;
   movesEl.textContent = moves;
 }
-
-
 
 /* ---------- GRID ---------- */
 function buildGrid() {
@@ -80,7 +71,7 @@ function buildGrid() {
     const tile = document.createElement("div");
     tile.className = "tile";
     tile.dataset.index = i;
-    tile.onclick = onTileClick;
+    tile.addEventListener("click", onTileClick);
     gridEl.appendChild(tile);
   }
 }
@@ -94,8 +85,11 @@ function findMatches() {
     for (let c = 0; c < WIDTH - 2; c++) {
       const i = r * WIDTH + c;
       const a = board[i];
-      if (a && a === board[i+1] && a === board[i+2]) {
-        matched.add(i); matched.add(i+1); matched.add(i+2);
+      if (a && a === board[i + 1] && a === board[i + 2]) {
+        matched.add(i); matched.add(i + 1); matched.add(i + 2);
+        // extend run
+        let k = i + 3;
+        while (k < r * WIDTH + WIDTH && board[k] === a) { matched.add(k); k++; }
       }
     }
   }
@@ -105,8 +99,11 @@ function findMatches() {
     for (let r = 0; r < WIDTH - 2; r++) {
       const i = r * WIDTH + c;
       const a = board[i];
-      if (a && a === board[i+WIDTH] && a === board[i+2*WIDTH]) {
-        matched.add(i); matched.add(i+WIDTH); matched.add(i+2*WIDTH);
+      if (a && a === board[i + WIDTH] && a === board[i + 2 * WIDTH]) {
+        matched.add(i); matched.add(i + WIDTH); matched.add(i + 2 * WIDTH);
+        // extend run
+        let k = i + 3 * WIDTH;
+        while (k < TOTAL && board[k] === a) { matched.add(k); k += WIDTH; }
       }
     }
   }
@@ -121,8 +118,8 @@ function clearMatches(matched) {
 
   score += matched.size * 10;
   coins += matched.size * 5;
+  localStorage.setItem("coins", String(coins));
 
-  localStorage.setItem("coins", coins);
   return true;
 }
 
@@ -131,9 +128,10 @@ function applyGravity() {
     let writeRow = WIDTH - 1;
     for (let r = WIDTH - 1; r >= 0; r--) {
       const i = r * WIDTH + c;
-      if (board[i]) {
-        board[writeRow * WIDTH + c] = board[i];
-        if (writeRow !== r) board[i] = null;
+      if (board[i] != null) {
+        const target = writeRow * WIDTH + c;
+        board[target] = board[i];
+        if (target !== i) board[i] = null;
         writeRow--;
       }
     }
@@ -142,7 +140,7 @@ function applyGravity() {
 
 function refill() {
   for (let i = 0; i < TOTAL; i++) {
-    if (!board[i]) board[i] = randColor();
+    if (board[i] == null) board[i] = randColor();
   }
 }
 
@@ -150,12 +148,15 @@ async function resolveBoard() {
   while (true) {
     const matches = findMatches();
     if (matches.size === 0) break;
+
     clearMatches(matches);
     updateUI();
     await sleep(120);
+
     applyGravity();
     updateUI();
     await sleep(120);
+
     refill();
     updateUI();
     await sleep(120);
@@ -166,10 +167,16 @@ async function resolveBoard() {
 async function onTileClick(e) {
   if (isBusy || moves <= 0) return;
 
-  const idx = Number(e.target.dataset.index);
+  const idx = Number(e.currentTarget.dataset.index);
 
   if (selectedIndex === null) {
     selectedIndex = idx;
+    updateUI();
+    return;
+  }
+
+  if (selectedIndex === idx) {
+    selectedIndex = null;
     updateUI();
     return;
   }
@@ -181,46 +188,56 @@ async function onTileClick(e) {
   }
 
   isBusy = true;
-  [board[selectedIndex], board[idx]] = [board[idx], board[selectedIndex]];
+  const a = selectedIndex;
+  const b = idx;
+
+  // swap
+  [board[a], board[b]] = [board[b], board[a]];
   selectedIndex = null;
   updateUI();
   await sleep(80);
 
+  // validate move (must create a match)
   const matches = findMatches();
   if (matches.size === 0) {
-    [board[selectedIndex], board[idx]] = [board[idx], board[selectedIndex]];
+    // swap back
+    [board[a], board[b]] = [board[b], board[a]];
     updateUI();
     isBusy = false;
     return;
   }
 
   moves--;
+  updateUI();
+
   await resolveBoard();
+  updateIslandUI();
+
   isBusy = false;
 }
 
 /* ---------- ISLAND ---------- */
-function goToGame() {
+window.goToGame = function goToGame() {
   islandScreen.classList.add("hidden");
   gameScreen.classList.remove("hidden");
-}
+};
 
-function backToIsland() {
+window.backToIsland = function backToIsland() {
   gameScreen.classList.add("hidden");
   islandScreen.classList.remove("hidden");
   updateIslandUI();
-}
+};
 
-function clearBush() {
+window.clearBush = function clearBush() {
   if (bushCleared) return alert("Bush already cleared");
   if (coins < 100) return alert("Not enough coins. Play puzzle!");
 
   coins -= 100;
   bushCleared = true;
-  localStorage.setItem("coins", coins);
+  localStorage.setItem("coins", String(coins));
   localStorage.setItem("bushCleared", "true");
   updateIslandUI();
-}
+};
 
 /* ---------- START ---------- */
 function newGame() {
@@ -234,35 +251,3 @@ function newGame() {
 buildGrid();
 newGame();
 updateIslandUI();
-/* 🎮 3D PLAYFUL TILES */
-.tile {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 28px;
-  background: linear-gradient(145deg, #ffffff, #e6e6e6);
-  box-shadow:
-    0 6px 0 #cfcfcf,
-    0 10px 20px rgba(0,0,0,.25);
-  transition: transform .12s ease, box-shadow .12s ease;
-}
-
-/* Press effect */
-.tile:active {
-  transform: translateY(4px);
-  box-shadow:
-    0 2px 0 #cfcfcf,
-    0 6px 10px rgba(0,0,0,.25);
-}
-
-/* Selected tile */
-.tile.selected {
-  outline: 3px solid #ffd166;
-  transform: scale(1.08);
-}
-
-/* Empty (clearing) */
-.tile:empty {
-  background: rgba(255,255,255,.1);
-  box-shadow: none;
-}
