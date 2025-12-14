@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Safari Stay</title>
+
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #0f3d2e;
+    color: #fff;
+    text-align: center;
+    margin: 0;
+    padding: 10px;
+  }
+
+  h1 { margin: 10px 0; }
+
+  .top {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 10px;
+    font-weight: bold;
+  }
+
+  .board {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 4px;
+    max-width: 360px;
+    margin: 10px auto;
+  }
+
+  .tile {
+    aspect-ratio: 1 / 1;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+
+  .upgrade {
+    background: #1e6f5c;
+    padding: 10px;
+    border-radius: 10px;
+    margin-top: 12px;
+  }
+
+  button {
+    padding: 10px 16px;
+    font-size: 16px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    margin-top: 6px;
+  }
+</style>
+</head>
+
+<body>
+
+<h1>🌴 Safari Stay</h1>
+
+<div class="top">
+  <div>💰 Coins: <span id="coins">0</span></div>
+  <div>🏨 Level: <span id="level">1</span></div>
+</div>
+
+<div class="board" id="board"></div>
+
+<div class="upgrade">
+  <div id="upgradeName">Maasai Mara Camp</div>
+  <div>Next location cost: <span id="cost">150</span></div>
+  <button onclick="upgrade()">Upgrade Location</button>
+</div>
+
+<script>
+  const colors = ["#2ecc71", "#27ae60", "#f1c40f", "#e67e22", "#3498db"];
+  const board = document.getElementById("board");
+
+  let coins = 0;
+  let level = 1;
+
+  const upgrades = [
+    { name: "Maasai Mara Camp", cost: 0, power: 1 },
+    { name: "Mombasa Beach Stay", cost: 150, power: 2 },
+    { name: "Naivasha Eco Lodge", cost: 350, power: 3 },
+    { name: "Amboseli View Lodge", cost: 700, power: 5 }
+  ];
+
+  function randomColor() {
+    return colors[Math.floor(Math.random() * colors.length)];
+  }
+
+  function updateUI() {
+    document.getElementById("coins").textContent = coins;
+    document.getElementById("level").textContent = level;
+
+    if (level < upgrades.length) {
+      document.getElementById("upgradeName").textContent = upgrades[level].name;
+      document.getElementById("cost").textContent = upgrades[level].cost;
+    } else {
+      document.getElementById("upgradeName").textContent = "All Locations Unlocked";
+      document.getElementById("cost").textContent = "-";
+    }
+  }
+
+  function createTile() {
+    const tile = document.createElement("div");
+    tile.className = "tile";
+    tile.style.background = randomColor();
+
+    tile.onclick = () => {
+      coins += upgrades[level - 1].power;
+      tile.style.background = randomColor();
+      updateUI();
+    };
+
+    return tile;
+  }
+
+  function createBoard() {
+    for (let i = 0; i < 64; i++) {
+      board.appendChild(createTile());
+    }
+  }
+
+  function upgrade() {
+    if (level >= upgrades.length) return;
+
+    const next = upgrades[level];
+    if (coins >= next.cost) {
+      coins -= next.cost;
+      level++;
+      updateUI();
+    } else {
+      alert("Not enough coins yet!");
+    }
+  }
+
+  createBoard();
+  updateUI();
+</script>
+
+</body>
+</html>
