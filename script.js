@@ -1,32 +1,12 @@
-// Safari Stay — Match 3 (8x8)
-// Full working: match -> clear -> fall -> refill
+/* ================================
+   SAFARI STAY – PUZZLE + ISLAND
+   ================================ */
 
-let coins = Number(localStorage.getItem("coins")) || 0;
-let bushCleared = localStorage.getItem("bushCleared") === "true";
-
-const islandScreen = document.getElementById("islandScreen");
-const gameScreen = document.getElementById("gameScreen");
-const coinsEl = document.getElementById("coins");
-const bushStatus = document.getElementById("bushStatus");
-
-function updateIslandUI() {
-  coinsEl.textContent = coins;
-  bushStatus.textContent = bushCleared
-    ? "✅ Bush cleared"
-    : "🌿 Bush is blocking the path";
-}
-
+/* ---------- GLOBAL STATE ---------- */
 const WIDTH = 8;
 const TOTAL = WIDTH * WIDTH;
 
-const COLORS = [
-  "#ff5c5c", // red
-  "#4aa3ff", // blue
-  "#2ed47a", // green
-  "#ffd166", // yellow
-  "#b388ff", // purple
-  "#ff8a3d"  // orange
-];
+const COLORS = ["#ff5c5c","#4aa3ff","#2ed47a","#ffd166","#b388ff","#ff8a3d"];
 
 let board = new Array(TOTAL).fill(null);
 let selectedIndex = null;
@@ -35,59 +15,66 @@ let isBusy = false;
 let score = 0;
 let moves = 30;
 
+// Island economy
+let coins = Number(localStorage.getItem("coins")) || 0;
+let bushCleared = localStorage.getItem("bushCleared") === "true";
+
+/* ---------- ELEMENTS ---------- */
 const gridEl = document.getElementById("grid");
 const scoreEl = document.getElementById("score");
 const movesEl = document.getElementById("moves");
-const newGameBtn = document.getElementById("newGameBtn");
-const shuffleBtn = document.getElementById("shuffleBtn");
 
+const islandScreen = document.getElementById("islandScreen");
+const gameScreen = document.getElementById("gameScreen");
+const coinsEl = document.getElementById("coins");
+const bushStatus = document.getElementById("bushStatus");
+
+/* ---------- HELPERS ---------- */
 function randColor() {
   return COLORS[Math.floor(Math.random() * COLORS.length)];
-}
-
-function areNeighbors(a, b) {
-  const ar = Math.floor(a / WIDTH), ac = a % WIDTH;
-  const br = Math.floor(b / WIDTH), bc = b % WIDTH;
-  return (Math.abs(ar - br) + Math.abs(ac - bc)) === 1;
 }
 
 function sleep(ms) {
   return new Promise(res => setTimeout(res, ms));
 }
 
+function areNeighbors(a, b) {
+  const ar = Math.floor(a / WIDTH), ac = a % WIDTH;
+  const br = Math.floor(b / WIDTH), bc = b % WIDTH;
+  return Math.abs(ar - br) + Math.abs(ac - bc) === 1;
+}
+
+/* ---------- UI ---------- */
+function updateIslandUI() {
+  coinsEl.textContent = coins;
+  bushStatus.textContent = bushCleared
+    ? "✅ Bush cleared"
+    : "🌿 Bush is blocking the path";
+}
+
+function updateUI() {
+  const tiles = gridEl.querySelectorAll(".tile");
+  tiles.forEach((t, i) => {
+    t.classList.toggle("selected", i === selectedIndex);
+    t.style.background = board[i] || "rgba(255,255,255,.08)";
+  });
+  scoreEl.textContent = score;
+  movesEl.textContent = moves;
+}
+
+/* ---------- GRID ---------- */
 function buildGrid() {
   gridEl.innerHTML = "";
   for (let i = 0; i < TOTAL; i++) {
     const tile = document.createElement("div");
     tile.className = "tile";
-    tile.dataset.index = String(i);
-    tile.addEventListener("click", onTileClick);
+    tile.dataset.index = i;
+    tile.onclick = onTileClick;
     gridEl.appendChild(tile);
   }
 }
 
-function updateUI(extraClearingSet = null) {
-  const tiles = gridEl.querySelectorAll(".tile");
-  tiles.forEach((t, i) => {
-    t.classList.toggle("selected", i === selectedIndex);
-    if (extraClearingSet && extraClearingSet.has(i)) t.classList.add("clearing");
-    else t.classList.remove("clearing");
-
-    const val = board[i];
-    // "null" becomes empty hole
-    t.style.background = val ? val : "rgba(255,255,255,.06)";
-    t.style.opacity = val ? "1" : "0.35";
-  });
-
-  scoreEl.textContent = String(score);
-  movesEl.textContent = String(moves);
-}
-
-function fillBoardNoImmediateMatches() {
-  // Fill with random colors, then resolve any accidental matches
-  for (let i = 0; i < TOTAL; i++) board[i] = randColor();
-}
-
+/* ---------- MATCH LOGIC ---------- */
 function findMatches() {
   const matched = new Set();
 
@@ -95,11 +82,9 @@ function findMatches() {
   for (let r = 0; r < WIDTH; r++) {
     for (let c = 0; c < WIDTH - 2; c++) {
       const i = r * WIDTH + c;
-      const a = board[i], b = board[i + 1], d = board[i + 2];
-      if (a && a === b && a === d) {
-        matched.add(i); matched.add(i + 1); matched.add(i + 2);
-        let k = i + 3;
-        while (k < r * WIDTH + WIDTH && board[k] === a) { matched.add(k); k++; }
+      const a = board[i];
+      if (a && a === board[i+1] && a === board[i+2]) {
+        matched.add(i); matched.add(i+1); matched.add(i+2);
       }
     }
   }
@@ -108,11 +93,9 @@ function findMatches() {
   for (let c = 0; c < WIDTH; c++) {
     for (let r = 0; r < WIDTH - 2; r++) {
       const i = r * WIDTH + c;
-      const a = board[i], b = board[i + WIDTH], d = board[i + 2 * WIDTH];
-      if (a && a === b && a === d) {
-        matched.add(i); matched.add(i + WIDTH); matched.add(i + 2 * WIDTH);
-        let k = i + 3 * WIDTH;
-        while (k < TOTAL && board[k] === a) { matched.add(k); k += WIDTH; }
+      const a = board[i];
+      if (a && a === board[i+WIDTH] && a === board[i+2*WIDTH]) {
+        matched.add(i); matched.add(i+WIDTH); matched.add(i+2*WIDTH);
       }
     }
   }
@@ -122,21 +105,24 @@ function findMatches() {
 
 function clearMatches(matched) {
   if (matched.size === 0) return false;
-  matched.forEach(i => (board[i] = null));
+
+  matched.forEach(i => board[i] = null);
+
   score += matched.size * 10;
+  coins += matched.size * 5;
+
+  localStorage.setItem("coins", coins);
   return true;
 }
 
 function applyGravity() {
-  // Pull non-null down in each column
   for (let c = 0; c < WIDTH; c++) {
     let writeRow = WIDTH - 1;
     for (let r = WIDTH - 1; r >= 0; r--) {
       const i = r * WIDTH + c;
-      if (board[i] != null) {
-        const target = writeRow * WIDTH + c;
-        board[target] = board[i];
-        if (target !== i) board[i] = null;
+      if (board[i]) {
+        board[writeRow * WIDTH + c] = board[i];
+        if (writeRow !== r) board[i] = null;
         writeRow--;
       }
     }
@@ -145,153 +131,95 @@ function applyGravity() {
 
 function refill() {
   for (let i = 0; i < TOTAL; i++) {
-    if (board[i] == null) board[i] = randColor();
+    if (!board[i]) board[i] = randColor();
   }
 }
 
 async function resolveBoard() {
-  // Keep resolving until stable
   while (true) {
-    const matched = findMatches();
-    if (matched.size === 0) break;
-
-    // show clearing animation
-    updateUI(matched);
-    await sleep(140);
-
-    clearMatches(matched);
+    const matches = findMatches();
+    if (matches.size === 0) break;
+    clearMatches(matches);
     updateUI();
     await sleep(120);
-
     applyGravity();
     updateUI();
     await sleep(120);
-
     refill();
     updateUI();
     await sleep(120);
   }
 }
 
+/* ---------- GAMEPLAY ---------- */
 async function onTileClick(e) {
-  if (isBusy) return;
-  if (moves <= 0) return;
+  if (isBusy || moves <= 0) return;
 
-  const idx = Number(e.currentTarget.dataset.index);
+  const idx = Number(e.target.dataset.index);
 
-  // first selection
   if (selectedIndex === null) {
     selectedIndex = idx;
     updateUI();
     return;
   }
 
-  // clicking same tile unselects
-  if (selectedIndex === idx) {
-    selectedIndex = null;
-    updateUI();
-    return;
-  }
-
-  // if not neighbor, switch selection
   if (!areNeighbors(selectedIndex, idx)) {
     selectedIndex = idx;
     updateUI();
     return;
   }
 
-  // Attempt swap
   isBusy = true;
-
-  const a = selectedIndex, b = idx;
-  swap(a, b);
+  [board[selectedIndex], board[idx]] = [board[idx], board[selectedIndex]];
   selectedIndex = null;
   updateUI();
   await sleep(80);
 
-  // Valid move only if it creates a match
-  const matched = findMatches();
-  if (matched.size === 0) {
-    // swap back (invalid)
-    swap(a, b);
+  const matches = findMatches();
+  if (matches.size === 0) {
+    [board[selectedIndex], board[idx]] = [board[idx], board[selectedIndex]];
     updateUI();
     isBusy = false;
     return;
   }
 
-  // consume move
-  moves -= 1;
-  updateUI();
-
-  // resolve cascade
-  await resolveBoard();
-
-  isBusy = false;
-}
-
-function swap(i, j) {
-  const temp = board[i];
-  board[i] = board[j];
-  board[j] = temp;
-}
-
-function shuffleBoard() {
-  for (let i = board.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    const t = board[i];
-    board[i] = board[j];
-    board[j] = t;
-  }
-}
-
-async function newGame() {
-  score = 0;
-  moves = 30;
-  selectedIndex = null;
-  isBusy = true;
-
-  fillBoardNoImmediateMatches();
-  updateUI();
-  await resolveBoard(); // clears any accidental initial matches
-  isBusy = false;
-}
-
-newGameBtn.addEventListener("click", () => newGame());
-shuffleBtn.addEventListener("click", async () => {
-  if (isBusy) return;
-  isBusy = true;
-  shuffleBoard();
-  updateUI();
+  moves--;
   await resolveBoard();
   isBusy = false;
-});
+}
 
-// Boot
-buildGrid();
-newGame();
-
+/* ---------- ISLAND ---------- */
 function goToGame() {
   islandScreen.classList.add("hidden");
   gameScreen.classList.remove("hidden");
 }
 
 function backToIsland() {
-  islandScreen.classList.remove("hidden");
   gameScreen.classList.add("hidden");
+  islandScreen.classList.remove("hidden");
   updateIslandUI();
 }
 
 function clearBush() {
-  if (bushCleared) return alert("Bush already cleared!");
+  if (bushCleared) return alert("Bush already cleared");
+  if (coins < 100) return alert("Not enough coins. Play puzzle!");
 
-  if (coins >= 100) {
-    coins -= 100;
-    bushCleared = true;
-    localStorage.setItem("coins", coins);
-    localStorage.setItem("bushCleared", "true");
-    updateIslandUI();
-  } else {
-    alert("Not enough coins! Play puzzle.");
-  }
+  coins -= 100;
+  bushCleared = true;
+  localStorage.setItem("coins", coins);
+  localStorage.setItem("bushCleared", "true");
+  updateIslandUI();
 }
 
+/* ---------- START ---------- */
+function newGame() {
+  board = board.map(() => randColor());
+  score = 0;
+  moves = 30;
+  updateUI();
+  resolveBoard();
+}
+
+buildGrid();
+newGame();
+updateIslandUI();
