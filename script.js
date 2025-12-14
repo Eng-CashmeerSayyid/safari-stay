@@ -15,6 +15,8 @@ let isBusy = false;
 let score = 0;
 let moves = 30;
 
+const BUSH_COST = 100;
+
 // Island economy
 let coins = Number(localStorage.getItem("coins")) || 0;
 let bushCleared = localStorage.getItem("bushCleared") === "true";
@@ -50,7 +52,7 @@ function updateIslandUI() {
   coinsEl.textContent = coins;
   bushStatus.textContent = bushCleared
     ? "✅ Bush cleared"
-    : "🌿 Bush is blocking the path";
+    `🌿 Bush is blocking the path — Need ${BUSH_COST} coins to clear it`;
 }
 
 function updateUI() {
@@ -212,7 +214,10 @@ async function onTileClick(e) {
 
   await resolveBoard();
   updateIslandUI();
-
+   // 🎯 Goal reached message
+  if (!bushCleared && coins >= BUSH_COST) {
+    alert("🎉 Goal reached! You have enough coins to clear the bush. Go back to the island!");
+  }
   isBusy = false;
 }
 
@@ -230,7 +235,9 @@ window.backToIsland = function backToIsland() {
 
 window.clearBush = function clearBush() {
   if (bushCleared) return alert("Bush already cleared");
-  if (coins < 100) return alert("Not enough coins. Play puzzle!");
+  if (coins < BUSH_COST) return alert("Not enough coins. Play puzzle!");
+coins -= BUSH_COST;
+
 
   coins -= 100;
   bushCleared = true;
