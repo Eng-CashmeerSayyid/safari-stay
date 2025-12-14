@@ -3,16 +3,48 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Safari Stay — Level 1: Maasai Mara</title>
+  <title>Safari Stay</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+
+<!-- 🌴 ISLAND SCREEN -->
+<div id="islandScreen">
+  <header class="top">
+    <div class="brand">
+      <div class="logo">🏝️</div>
+      <div>
+        <div class="title">Safari Stay</div>
+        <div class="subtitle">Mombasa Island</div>
+      </div>
+    </div>
+
+    <div class="pill">Coins: <span id="coins">0</span></div>
+  </header>
+
+  <main class="wrap">
+    <section class="panel">
+      <h3>Island Tasks</h3>
+
+      <p id="bushStatus">🌿 Bush is blocking the path</p>
+
+      <button class="btn" onclick="clearBush()">Clear Bush (100 coins)</button>
+
+      <div class="buttons">
+        <button class="btn" onclick="goToGame()">🎮 Play Puzzle</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- 🎮 GAME SCREEN -->
+<div id="gameScreen" class="hidden">
   <header class="top">
     <div class="brand">
       <div class="logo">🦁</div>
       <div>
         <div class="title">Safari Stay</div>
-        <div class="subtitle">Level 1 — Maasai Mara</div>
+        <div class="subtitle">Puzzle Mode</div>
       </div>
     </div>
 
@@ -24,28 +56,15 @@
 
   <main class="wrap">
     <section class="panel">
-      <div class="hint">
-        Match <b>3+</b> in a row or column to earn coins. <br/>
-        Tap one tile, then tap a neighbor to swap.
-      </div>
-
-      <div id="grid" class="grid" aria-label="Game grid"></div>
+      <div id="grid" class="grid"></div>
 
       <div class="buttons">
-        <button id="newGameBtn" class="btn">New Game</button>
-        <button id="shuffleBtn" class="btn btn-ghost">Shuffle</button>
-      </div>
-
-      <div class="tiny">
-        Tip: Add to Home Screen on iPhone for an “app-like” feel.
+        <button class="btn" onclick="backToIsland()">⬅ Back to Island</button>
       </div>
     </section>
   </main>
+</div>
 
-  <footer class="footer">
-    <span>🏕️ Build your Safari Stay by earning coins!</span>
-  </footer>
-
-  <script src="script.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
