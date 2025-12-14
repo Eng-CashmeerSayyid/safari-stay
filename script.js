@@ -52,17 +52,26 @@ function updateIslandUI() {
     ? "✅ Bush cleared"
     : "🌿 Bush is blocking the path";
 }
-
 function updateUI() {
   const tiles = gridEl.querySelectorAll(".tile");
   tiles.forEach((t, i) => {
     t.classList.toggle("selected", i === selectedIndex);
-    t.textContent = board[i] || "";
 
+    if (board[i]) {
+      t.textContent = board[i];
+      t.style.background =
+        "linear-gradient(145deg, #ffffff, #e6e6e6)";
+    } else {
+      t.textContent = "";
+      t.style.background = "rgba(255,255,255,.08)";
+    }
   });
+
   scoreEl.textContent = score;
   movesEl.textContent = moves;
 }
+
+
 
 /* ---------- GRID ---------- */
 function buildGrid() {
