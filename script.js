@@ -1,6 +1,21 @@
 // Safari Stay — Match 3 (8x8)
 // Full working: match -> clear -> fall -> refill
 
+let coins = Number(localStorage.getItem("coins")) || 0;
+let bushCleared = localStorage.getItem("bushCleared") === "true";
+
+const islandScreen = document.getElementById("islandScreen");
+const gameScreen = document.getElementById("gameScreen");
+const coinsEl = document.getElementById("coins");
+const bushStatus = document.getElementById("bushStatus");
+
+function updateIslandUI() {
+  coinsEl.textContent = coins;
+  bushStatus.textContent = bushCleared
+    ? "✅ Bush cleared"
+    : "🌿 Bush is blocking the path";
+}
+
 const WIDTH = 8;
 const TOTAL = WIDTH * WIDTH;
 
