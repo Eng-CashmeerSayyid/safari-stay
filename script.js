@@ -6,7 +6,8 @@
 const WIDTH = 8;
 const TOTAL = WIDTH * WIDTH;
 
-const COLORS = ["#ff5c5c","#4aa3ff","#2ed47a","#ffd166","#b388ff","#ff8a3d"];
+const COLORS =  ["🍓","🥥","🌴","🐚","⭐","🍍"];
+
 
 let board = new Array(TOTAL).fill(null);
 let selectedIndex = null;
@@ -56,7 +57,8 @@ function updateUI() {
   const tiles = gridEl.querySelectorAll(".tile");
   tiles.forEach((t, i) => {
     t.classList.toggle("selected", i === selectedIndex);
-    t.style.background = board[i] || "rgba(255,255,255,.08)";
+    t.textContent = board[i] || "";
+
   });
   scoreEl.textContent = score;
   movesEl.textContent = moves;
@@ -223,3 +225,35 @@ function newGame() {
 buildGrid();
 newGame();
 updateIslandUI();
+/* 🎮 3D PLAYFUL TILES */
+.tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  background: linear-gradient(145deg, #ffffff, #e6e6e6);
+  box-shadow:
+    0 6px 0 #cfcfcf,
+    0 10px 20px rgba(0,0,0,.25);
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+
+/* Press effect */
+.tile:active {
+  transform: translateY(4px);
+  box-shadow:
+    0 2px 0 #cfcfcf,
+    0 6px 10px rgba(0,0,0,.25);
+}
+
+/* Selected tile */
+.tile.selected {
+  outline: 3px solid #ffd166;
+  transform: scale(1.08);
+}
+
+/* Empty (clearing) */
+.tile:empty {
+  background: rgba(255,255,255,.1);
+  box-shadow: none;
+}
