@@ -42,17 +42,19 @@ function sleep(ms) {
 
 function areNeighbors(a, b) {
   const ar = Math.floor(a / WIDTH), ac = a % WIDTH;
-  const br = Math.floor(b / WIDTH), bc = b % WIDTH;
+  const br = Math.floor(a / WIDTH), bc = b % WIDTH;
   return Math.abs(ar - br) + Math.abs(ac - bc) === 1;
 }
 
 /* ---------- UI ---------- */
 function updateIslandUI() {
-  if (!coinsEl || !bushStatus) return; // safety
+  if (!coinsEl || !bushStatus) return;
+
   coinsEl.textContent = coins;
+
   bushStatus.textContent = bushCleared
     ? "✅ Bush cleared"
-    `🌿 Bush is blocking the path — Need ${BUSH_COST} coins to clear it`;
+    : `🌿 Bush is blocking the path — Need ${BUSH_COST} coins to clear it`;
 }
 
 function updateUI() {
@@ -89,7 +91,6 @@ function findMatches() {
       const a = board[i];
       if (a && a === board[i + 1] && a === board[i + 2]) {
         matched.add(i); matched.add(i + 1); matched.add(i + 2);
-        // extend run
         let k = i + 3;
         while (k < r * WIDTH + WIDTH && board[k] === a) { matched.add(k); k++; }
       }
@@ -103,7 +104,6 @@ function findMatches() {
       const a = board[i];
       if (a && a === board[i + WIDTH] && a === board[i + 2 * WIDTH]) {
         matched.add(i); matched.add(i + WIDTH); matched.add(i + 2 * WIDTH);
-        // extend run
         let k = i + 3 * WIDTH;
         while (k < TOTAL && board[k] === a) { matched.add(k); k += WIDTH; }
       }
@@ -120,8 +120,8 @@ function clearMatches(matched) {
 
   score += matched.size * 10;
   coins += matched.size * 5;
-  localStorage.setItem("coins", String(coins));
 
+  localStorage.setItem("coins", String(coins));
   return true;
 }
 
@@ -199,7 +199,7 @@ async function onTileClick(e) {
   updateUI();
   await sleep(80);
 
-  // validate move (must create a match)
+  // validate move
   const matches = findMatches();
   if (matches.size === 0) {
     // swap back
@@ -214,10 +214,12 @@ async function onTileClick(e) {
 
   await resolveBoard();
   updateIslandUI();
-   // 🎯 Goal reached message
+
+  // 🎯 Goal reached message
   if (!bushCleared && coins >= BUSH_COST) {
     alert("🎉 Goal reached! You have enough coins to clear the bush. Go back to the island!");
   }
+
   isBusy = false;
 }
 
@@ -236,11 +238,10 @@ window.backToIsland = function backToIsland() {
 window.clearBush = function clearBush() {
   if (bushCleared) return alert("Bush already cleared");
   if (coins < BUSH_COST) return alert("Not enough coins. Play puzzle!");
-coins -= BUSH_COST;
 
-
-  coins -= 100;
+  coins -= BUSH_COST;
   bushCleared = true;
+
   localStorage.setItem("coins", String(coins));
   localStorage.setItem("bushCleared", "true");
   updateIslandUI();
