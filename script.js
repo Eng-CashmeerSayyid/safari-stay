@@ -31,6 +31,42 @@ const gameScreen = document.getElementById("gameScreen");
 const coinsEl = document.getElementById("coins");
 const bushStatus = document.getElementById("bushStatus");
 
+/* ---------- SOUND (Web Audio, no files needed) ---------- */
+let audioCtx = null;
+function initAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === "suspended") audioCtx.resume();
+}
+
+function beep(type) {
+  if (!audioCtx) return;
+
+  const now = audioCtx.currentTime;
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+
+  // different tones for different actions
+  let freq = 440, dur = 0.08;
+  if (type === "select") { freq = 520; dur = 0.05; }
+  if (type === "swap")   { freq = 660; dur = 0.06; }
+  if (type === "bad")    { freq = 180; dur = 0.08; }
+  if (type === "crash")  { freq = 260; dur = 0.10; }
+  if (type === "clear")  { freq = 740; dur = 0.10; }
+
+  o.type = "triangle";
+  o.frequency.setValueAtTime(freq, now);
+
+  g.gain.setValueAtTime(0.0001, now);
+  g.gain.exponentialRampToValueAtTime(0.22, now + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+
+  o.connect(g);
+  g.connect(audioCtx.destination);
+
+  o.start(now);
+  o.stop(now + dur + 0.02);
+}
+
 /* ---------- HELPERS ---------- */
 function randColor() {
   return COLORS[Math.floor(Math.random() * COLORS.length)];
@@ -41,8 +77,9 @@ function sleep(ms) {
 }
 
 function areNeighbors(a, b) {
+  // ✅ FIXED (your earlier version accidentally used "a" twice)
   const ar = Math.floor(a / WIDTH), ac = a % WIDTH;
-  const br = Math.floor(a / WIDTH), bc = b % WIDTH;
+  const br = Math.floor(b / WIDTH), bc = b % WIDTH;
   return Math.abs(ar - br) + Math.abs(ac - bc) === 1;
 }
 
@@ -51,9 +88,8 @@ function updateIslandUI() {
   if (!coinsEl || !bushStatus) return;
 
   coinsEl.textContent = coins;
-
   bushStatus.textContent = bushCleared
-    ? "✅ Bush cleared"
+    ? "🌴 Path cleared! You can now build your island."
     : `🌿 Bush is blocking the path — Need ${BUSH_COST} coins to clear it`;
 }
 
@@ -113,6 +149,14 @@ function findMatches() {
   return matched;
 }
 
+async function animateCrash(matched) {
+  const tiles = gridEl.querySelectorAll(".tile");
+  matched.forEach(i => tiles[i] && tiles[i].classList.add("crash"));
+  beep("crash");
+  await sleep(160);
+  matched.forEach(i => tiles[i] && tiles[i].classList.remove("crash"));
+}
+
 function clearMatches(matched) {
   if (matched.size === 0) return false;
 
@@ -151,9 +195,13 @@ async function resolveBoard() {
     const matches = findMatches();
     if (matches.size === 0) break;
 
+    // 3D “breaking” animation + sound BEFORE clearing
+    await animateCrash(matches);
+
     clearMatches(matches);
+    beep("clear");
     updateUI();
-    await sleep(120);
+    await sleep(80);
 
     applyGravity();
     updateUI();
@@ -167,12 +215,14 @@ async function resolveBoard() {
 
 /* ---------- GAMEPLAY ---------- */
 async function onTileClick(e) {
+  initAudio(); // iPhone needs user tap to unlock sound
   if (isBusy || moves <= 0) return;
 
   const idx = Number(e.currentTarget.dataset.index);
 
   if (selectedIndex === null) {
     selectedIndex = idx;
+    beep("select");
     updateUI();
     return;
   }
@@ -185,6 +235,7 @@ async function onTileClick(e) {
 
   if (!areNeighbors(selectedIndex, idx)) {
     selectedIndex = idx;
+    beep("select");
     updateUI();
     return;
   }
@@ -196,6 +247,7 @@ async function onTileClick(e) {
   // swap
   [board[a], board[b]] = [board[b], board[a]];
   selectedIndex = null;
+  beep("swap");
   updateUI();
   await sleep(80);
 
@@ -204,6 +256,7 @@ async function onTileClick(e) {
   if (matches.size === 0) {
     // swap back
     [board[a], board[b]] = [board[b], board[a]];
+    beep("bad");
     updateUI();
     isBusy = false;
     return;
@@ -244,6 +297,8 @@ window.clearBush = function clearBush() {
 
   localStorage.setItem("coins", String(coins));
   localStorage.setItem("bushCleared", "true");
+
+  alert("🌴 Path cleared! New area unlocked!");
   updateIslandUI();
 };
 
