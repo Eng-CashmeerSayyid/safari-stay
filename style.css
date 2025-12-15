@@ -21,6 +21,11 @@ body{
   color:var(--text);
 }
 
+/* hide screens */
+.hidden{
+  display:none;
+}
+
 /* ---------- HEADER ---------- */
 .top{
   display:flex;
@@ -60,6 +65,7 @@ body{
   margin-top:2px;
 }
 
+/* ---------- STATS ---------- */
 .stats{
   display:flex;
   gap:8px;
@@ -95,30 +101,22 @@ body{
   box-shadow: var(--shadow);
 }
 
-.hint{
-  color:var(--muted);
-  font-size:13px;
-  margin:0 0 12px;
-  line-height:1.35;
-}
-
 /* ---------- GAME GRID ---------- */
 .grid{
   width:100%;
-  aspect-ratio: 1 / 1;
+  aspect-ratio:1 / 1;
   display:grid;
-  grid-template-columns: repeat(8, 1fr);
+  grid-template-columns:repeat(8, 1fr);
   gap:8px;
   padding:10px;
   border-radius:16px;
   background:linear-gradient(180deg, rgba(0,0,0,.18), rgba(0,0,0,.05));
   border:1px solid rgba(255,255,255,.10);
-  touch-action: manipulation;
 }
 
-/* ---------- TILE (ONE CLEAN BLOCK) ---------- */
+/* ---------- TILE ---------- */
 .tile{
-  aspect-ratio: 1 / 1;               /* 🔥 fixes invisible tiles */
+  aspect-ratio:1 / 1;
   border-radius:14px;
   border:1px solid rgba(255,255,255,.14);
   position:relative;
@@ -129,21 +127,20 @@ body{
   justify-content:center;
   font-size:28px;
 
-  background: linear-gradient(145deg, #ffffff, #e6e6e6);
+  background:linear-gradient(145deg, #ffffff, #e6e6e6);
   box-shadow:
     0 6px 0 #cfcfcf,
     0 10px 20px rgba(0,0,0,.25);
 
-  transform: translateZ(0);
-  transition: transform .12s ease, box-shadow .12s ease;
+  transition:transform .12s ease, box-shadow .12s ease;
 }
 
-/* Shine overlay */
+/* shine */
 .tile::after{
   content:"";
   position:absolute;
   inset:0;
-  background: radial-gradient(
+  background:radial-gradient(
     180px 120px at 25% 20%,
     rgba(255,255,255,.35),
     transparent 55%
@@ -151,4 +148,58 @@ body{
   pointer-events:none;
 }
 
-/* Press effect */
+/* press */
+.tile:active{
+  transform:translateY(4px);
+  box-shadow:
+    0 2px 0 #cfcfcf,
+    0 6px 10px rgba(0,0,0,.25);
+}
+
+/* selected */
+.tile.selected{
+  outline:3px solid #ffd166;
+  outline-offset:2px;
+  transform:scale(1.05);
+}
+
+/* ---------- BUTTONS ---------- */
+.buttons{
+  display:flex;
+  gap:10px;
+  margin-top:12px;
+}
+
+.btn{
+  flex:1;
+  padding:10px 12px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.20);
+  background:linear-gradient(
+    180deg,
+    rgba(255,214,102,.18),
+    rgba(255,214,102,.06)
+  );
+  color:var(--text);
+  font-weight:800;
+  cursor:pointer;
+  box-shadow:0 10px 20px rgba(0,0,0,.22);
+}
+
+.btn:active{
+  transform:translateY(1px);
+}
+
+.btn-ghost{
+  background:rgba(255,255,255,.05);
+}
+
+/* ---------- FOOTER ---------- */
+.footer{
+  max-width:980px;
+  margin:0 auto;
+  padding:8px 16px 18px;
+  color:rgba(233,240,255,.65);
+  font-size:12px;
+  text-align:center;
+}
