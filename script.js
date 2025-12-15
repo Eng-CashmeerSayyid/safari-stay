@@ -183,3 +183,82 @@ async function onTileClick(e) {
 
   if (selectedIndex === null) {
     selectedIndex = idx;
+    updateUI();
+    return;
+  }
+
+  if (!areNeighbors(selectedIndex, idx)) {
+    selectedIndex = idx;
+    updateUI();
+    return;
+  }
+
+  isBusy = true;
+  const a = selectedIndex;
+  const b = idx;
+
+  [board[a], board[b]] = [board[b], board[a]];
+  sounds.swap.currentTime = 0;
+  sounds.swap.play();
+
+  selectedIndex = null;
+  updateUI();
+  await sleep(80);
+
+  const matches = findMatches();
+  if (matches.size === 0) {
+    [board[a], board[b]] = [board[b], board[a]];
+    updateUI();
+    isBusy = false;
+    return;
+  }
+
+  moves--;
+  await resolveBoard();
+  updateIslandUI();
+
+  if (!bushCleared && coins >= BUSH_COST) {
+    alert("🎉 Goal reached! Go back and clear the bush!");
+  }
+
+  isBusy = false;
+}
+
+/* ---------- ISLAND ---------- */
+window.goToGame = () => {
+  islandScreen.classList.add("hidden");
+  gameScreen.classList.remove("hidden");
+};
+
+window.backToIsland = () => {
+  gameScreen.classList.add("hidden");
+  islandScreen.classList.remove("hidden");
+  updateIslandUI();
+};
+
+window.clearBush = () => {
+  if (bushCleared) return alert("Bush already cleared");
+  if (coins < BUSH_COST) return alert("Not enough coins!");
+
+  coins -= BUSH_COST;
+  bushCleared = true;
+
+  localStorage.setItem("coins", coins);
+  localStorage.setItem("bushCleared", "true");
+
+  alert("🌴 Path cleared! New area unlocked!");
+  updateIslandUI();
+};
+
+/* ---------- START ---------- */
+function newGame() {
+  board = board.map(() => randColor());
+  score = 0;
+  moves = 30;
+  updateUI();
+  resolveBoard();
+}
+
+buildGrid();
+newGame();
+updateIslandUI();
