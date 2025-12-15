@@ -1,13 +1,14 @@
 /* ================================
    SAFARI STAY – PUZZLE + ISLAND
-   ================================ */
+================================ */
 
-/* ---------- GLOBAL STATE ---------- */
+/* ---------- GRID SETUP ---------- */
 const WIDTH = 8;
 const TOTAL = WIDTH * WIDTH;
 
 const COLORS = ["🍓","🥥","🌴","🐚","⭐","🍍"];
 
+/* ---------- GAME STATE ---------- */
 let board = new Array(TOTAL).fill(null);
 let selectedIndex = null;
 let isBusy = false;
@@ -15,9 +16,8 @@ let isBusy = false;
 let score = 0;
 let moves = 30;
 
+/* ---------- ISLAND STATE ---------- */
 const BUSH_COST = 100;
-
-// Island economy
 let coins = Number(localStorage.getItem("coins")) || 0;
 let bushCleared = localStorage.getItem("bushCleared") === "true";
 
@@ -29,9 +29,7 @@ const sounds = {
   coin: new Audio("sounds/coin.mp3")
 };
 
-Object.values(sounds).forEach(s => {
-  s.volume = 0.6;
-});
+Object.values(sounds).forEach(s => s.preload = "auto");
 
 /* ---------- ELEMENTS ---------- */
 const gridEl = document.getElementById("grid");
@@ -43,53 +41,16 @@ const gameScreen = document.getElementById("gameScreen");
 const coinsEl = document.getElementById("coins");
 const bushStatus = document.getElementById("bushStatus");
 
-/* ---------- SOUND (Web Audio, no files needed) ---------- */
-let audioCtx = null;
-function initAudio() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  if (audioCtx.state === "suspended") audioCtx.resume();
-}
-
-function beep(type) {
-  if (!audioCtx) return;
-
-  const now = audioCtx.currentTime;
-  const o = audioCtx.createOscillator();
-  const g = audioCtx.createGain();
-
-  // different tones for different actions
-  let freq = 440, dur = 0.08;
-  if (type === "select") { freq = 520; dur = 0.05; }
-  if (type === "swap")   { freq = 660; dur = 0.06; }
-  if (type === "bad")    { freq = 180; dur = 0.08; }
-  if (type === "crash")  { freq = 260; dur = 0.10; }
-  if (type === "clear")  { freq = 740; dur = 0.10; }
-
-  o.type = "triangle";
-  o.frequency.setValueAtTime(freq, now);
-
-  g.gain.setValueAtTime(0.0001, now);
-  g.gain.exponentialRampToValueAtTime(0.22, now + 0.01);
-  g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
-
-  o.connect(g);
-  g.connect(audioCtx.destination);
-
-  o.start(now);
-  o.stop(now + dur + 0.02);
-}
-
 /* ---------- HELPERS ---------- */
 function randColor() {
   return COLORS[Math.floor(Math.random() * COLORS.length)];
 }
 
 function sleep(ms) {
-  return new Promise(res => setTimeout(res, ms));
+  return new Promise(r => setTimeout(r, ms));
 }
 
 function areNeighbors(a, b) {
-  // ✅ FIXED (your earlier version accidentally used "a" twice)
   const ar = Math.floor(a / WIDTH), ac = a % WIDTH;
   const br = Math.floor(b / WIDTH), bc = b % WIDTH;
   return Math.abs(ar - br) + Math.abs(ac - bc) === 1;
@@ -97,11 +58,9 @@ function areNeighbors(a, b) {
 
 /* ---------- UI ---------- */
 function updateIslandUI() {
-  if (!coinsEl || !bushStatus) return;
-
   coinsEl.textContent = coins;
   bushStatus.textContent = bushCleared
-    ? "🌴 Path cleared! You can now build your island."
+    ? "✅ Bush cleared — New path unlocked!"
     : `🌿 Bush is blocking the path — Need ${BUSH_COST} coins to clear it`;
 }
 
@@ -128,7 +87,7 @@ function buildGrid() {
   }
 }
 
-/* ---------- MATCH LOGIC ---------- */
+/* ---------- MATCHING ---------- */
 function findMatches() {
   const matched = new Set();
 
@@ -137,10 +96,8 @@ function findMatches() {
     for (let c = 0; c < WIDTH - 2; c++) {
       const i = r * WIDTH + c;
       const a = board[i];
-      if (a && a === board[i + 1] && a === board[i + 2]) {
-        matched.add(i); matched.add(i + 1); matched.add(i + 2);
-        let k = i + 3;
-        while (k < r * WIDTH + WIDTH && board[k] === a) { matched.add(k); k++; }
+      if (a && a === board[i+1] && a === board[i+2]) {
+        matched.add(i); matched.add(i+1); matched.add(i+2);
       }
     }
   }
@@ -150,23 +107,13 @@ function findMatches() {
     for (let r = 0; r < WIDTH - 2; r++) {
       const i = r * WIDTH + c;
       const a = board[i];
-      if (a && a === board[i + WIDTH] && a === board[i + 2 * WIDTH]) {
-        matched.add(i); matched.add(i + WIDTH); matched.add(i + 2 * WIDTH);
-        let k = i + 3 * WIDTH;
-        while (k < TOTAL && board[k] === a) { matched.add(k); k += WIDTH; }
+      if (a && a === board[i+WIDTH] && a === board[i+2*WIDTH]) {
+        matched.add(i); matched.add(i+WIDTH); matched.add(i+2*WIDTH);
       }
     }
   }
 
   return matched;
-}
-
-async function animateCrash(matched) {
-  const tiles = gridEl.querySelectorAll(".tile");
-  matched.forEach(i => tiles[i] && tiles[i].classList.add("crash"));
-  beep("crash");
-  await sleep(160);
-  matched.forEach(i => tiles[i] && tiles[i].classList.remove("crash"));
 }
 
 function clearMatches(matched) {
@@ -177,20 +124,24 @@ function clearMatches(matched) {
   score += matched.size * 10;
   coins += matched.size * 5;
 
-  localStorage.setItem("coins", String(coins));
+  sounds.match.currentTime = 0;
+  sounds.match.play();
+  sounds.coin.currentTime = 0;
+  sounds.coin.play();
+
+  localStorage.setItem("coins", coins);
   return true;
 }
 
 function applyGravity() {
   for (let c = 0; c < WIDTH; c++) {
-    let writeRow = WIDTH - 1;
+    let write = WIDTH - 1;
     for (let r = WIDTH - 1; r >= 0; r--) {
       const i = r * WIDTH + c;
-      if (board[i] != null) {
-        const target = writeRow * WIDTH + c;
-        board[target] = board[i];
-        if (target !== i) board[i] = null;
-        writeRow--;
+      if (board[i]) {
+        board[write * WIDTH + c] = board[i];
+        if (write !== r) board[i] = null;
+        write--;
       }
     }
   }
@@ -198,7 +149,7 @@ function applyGravity() {
 
 function refill() {
   for (let i = 0; i < TOTAL; i++) {
-    if (board[i] == null) board[i] = randColor();
+    if (!board[i]) board[i] = randColor();
   }
 }
 
@@ -207,13 +158,12 @@ async function resolveBoard() {
     const matches = findMatches();
     if (matches.size === 0) break;
 
-    // 3D “breaking” animation + sound BEFORE clearing
-    await animateCrash(matches);
+    sounds.break.currentTime = 0;
+    sounds.break.play();
 
     clearMatches(matches);
-    beep("clear");
     updateUI();
-    await sleep(80);
+    await sleep(120);
 
     applyGravity();
     updateUI();
@@ -227,102 +177,9 @@ async function resolveBoard() {
 
 /* ---------- GAMEPLAY ---------- */
 async function onTileClick(e) {
-  initAudio(); // iPhone needs user tap to unlock sound
   if (isBusy || moves <= 0) return;
 
   const idx = Number(e.currentTarget.dataset.index);
 
   if (selectedIndex === null) {
     selectedIndex = idx;
-    beep("select");
-    updateUI();
-    return;
-  }
-
-  if (selectedIndex === idx) {
-    selectedIndex = null;
-    updateUI();
-    return;
-  }
-
-  if (!areNeighbors(selectedIndex, idx)) {
-    selectedIndex = idx;
-    beep("select");
-    updateUI();
-    return;
-  }
-
-  isBusy = true;
-  const a = selectedIndex;
-  const b = idx;
-
-  // swap
-  [board[a], board[b]] = [board[b], board[a]];
-  selectedIndex = null;
-  beep("swap");
-  updateUI();
-  await sleep(80);
-
-  // validate move
-  const matches = findMatches();
-  if (matches.size === 0) {
-    // swap back
-    [board[a], board[b]] = [board[b], board[a]];
-    beep("bad");
-    updateUI();
-    isBusy = false;
-    return;
-  }
-
-  moves--;
-  updateUI();
-
-  await resolveBoard();
-  updateIslandUI();
-
-  // 🎯 Goal reached message
-  if (!bushCleared && coins >= BUSH_COST) {
-    alert("🎉 Goal reached! You have enough coins to clear the bush. Go back to the island!");
-  }
-
-  isBusy = false;
-}
-
-/* ---------- ISLAND ---------- */
-window.goToGame = function goToGame() {
-  islandScreen.classList.add("hidden");
-  gameScreen.classList.remove("hidden");
-};
-
-window.backToIsland = function backToIsland() {
-  gameScreen.classList.add("hidden");
-  islandScreen.classList.remove("hidden");
-  updateIslandUI();
-};
-
-window.clearBush = function clearBush() {
-  if (bushCleared) return alert("Bush already cleared");
-  if (coins < BUSH_COST) return alert("Not enough coins. Play puzzle!");
-
-  coins -= BUSH_COST;
-  bushCleared = true;
-
-  localStorage.setItem("coins", String(coins));
-  localStorage.setItem("bushCleared", "true");
-
-  alert("🌴 Path cleared! New area unlocked!");
-  updateIslandUI();
-};
-
-/* ---------- START ---------- */
-function newGame() {
-  board = board.map(() => randColor());
-  score = 0;
-  moves = 30;
-  updateUI();
-  resolveBoard();
-}
-
-buildGrid();
-newGame();
-updateIslandUI();
