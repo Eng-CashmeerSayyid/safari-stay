@@ -21,6 +21,18 @@ const BUSH_COST = 100;
 let coins = Number(localStorage.getItem("coins")) || 0;
 let bushCleared = localStorage.getItem("bushCleared") === "true";
 
+/* ---------- AUDIO ---------- */
+const sounds = {
+  swap: new Audio("sounds/swap.mp3"),
+  match: new Audio("sounds/match.mp3"),
+  break: new Audio("sounds/break.mp3"),
+  coin: new Audio("sounds/coin.mp3")
+};
+
+Object.values(sounds).forEach(s => {
+  s.volume = 0.6;
+});
+
 /* ---------- ELEMENTS ---------- */
 const gridEl = document.getElementById("grid");
 const scoreEl = document.getElementById("score");
