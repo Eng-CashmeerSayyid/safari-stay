@@ -29,7 +29,17 @@ const sounds = {
   coin: new Audio("sounds/coin.mp3")
 };
 
-Object.values(sounds).forEach(s => s.preload = "auto");
+Object.values(sounds).forEach(s => {
+  s.preload = "auto";
+  s.volume = 0.6;
+});
+
+function playSound(sound) {
+  if (!sound) return;
+  sound.currentTime = 0;
+  const p = sound.play();
+  if (p && typeof p.catch === "function") p.catch(() => {});
+}
 
 /* ---------- ELEMENTS ---------- */
 const gridEl = document.getElementById("grid");
@@ -124,25 +134,29 @@ function clearMatches(matched) {
   score += matched.size * 10;
   coins += matched.size * 5;
 
-  sounds.match.currentTime = 0;
-  sounds.match.play();
-  sounds.coin.currentTime = 0;
-  sounds.coin.play();
+  playSound(sounds.match);
+  playSound(sounds.coin);
 
-  localStorage.setItem("coins", coins);
+  localStorage.setItem("coins", String(coins));
   return true;
 }
 
 function applyGravity() {
   for (let c = 0; c < WIDTH; c++) {
-    let write = WIDTH - 1;
+    let writeRow = WIDTH - 1;
+
     for (let r = WIDTH - 1; r >= 0; r--) {
       const i = r * WIDTH + c;
       if (board[i]) {
-        board[write * WIDTH + c] = board[i];
-        if (write !== r) board[i] = null;
-        write--;
+        board[writeRow * WIDTH + c] = board[i];
+        if (writeRow !== r) board[i] = null;
+        writeRow--;
       }
+    }
+
+    // Make sure everything above is null
+    for (let r = writeRow; r >= 0; r--) {
+      board[r * WIDTH + c] = null;
     }
   }
 }
@@ -158,8 +172,7 @@ async function resolveBoard() {
     const matches = findMatches();
     if (matches.size === 0) break;
 
-    sounds.break.currentTime = 0;
-    sounds.break.play();
+    playSound(sounds.break);
 
     clearMatches(matches);
     updateUI();
@@ -198,8 +211,7 @@ async function onTileClick(e) {
   const b = idx;
 
   [board[a], board[b]] = [board[b], board[a]];
-  sounds.swap.currentTime = 0;
-  sounds.swap.play();
+  playSound(sounds.swap);
 
   selectedIndex = null;
   updateUI();
@@ -243,7 +255,7 @@ window.clearBush = () => {
   coins -= BUSH_COST;
   bushCleared = true;
 
-  localStorage.setItem("coins", coins);
+  localStorage.setItem("coins", String(coins));
   localStorage.setItem("bushCleared", "true");
 
   alert("🌴 Path cleared! New area unlocked!");
@@ -252,7 +264,7 @@ window.clearBush = () => {
 
 /* ---------- START ---------- */
 function newGame() {
-  board = board.map(() => randColor());
+  board = Array.from({ length: TOTAL }, randColor);
   score = 0;
   moves = 30;
   updateUI();
@@ -262,3 +274,4 @@ function newGame() {
 buildGrid();
 newGame();
 updateIslandUI();
+
