@@ -1,3 +1,8 @@
+/* ================================
+   SAFARI STAY – FULL STYLESHEET
+================================ */
+
+/* ---------- THEME ---------- */
 :root{
   --bg:#0b1220;
   --panel:#0f1b33;
@@ -8,6 +13,7 @@
   --shadow: 0 12px 30px rgba(0,0,0,.35);
 }
 
+/* ---------- RESET ---------- */
 *{ box-sizing:border-box; }
 html,body{ height:100%; }
 
@@ -21,10 +27,8 @@ body{
   color:var(--text);
 }
 
-/* hide screens */
-.hidden{
-  display:none;
-}
+/* ---------- SCREENS ---------- */
+.hidden{ display:none; }
 
 /* ---------- HEADER ---------- */
 .top{
@@ -52,6 +56,7 @@ body{
   border-radius:12px;
   background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
   box-shadow: var(--shadow);
+  font-size:22px;
 }
 
 .title{
@@ -133,9 +138,11 @@ body{
     0 10px 20px rgba(0,0,0,.25);
 
   transition:transform .12s ease, box-shadow .12s ease;
+  user-select:none;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* shine */
+/* tile shine */
 .tile::after{
   content:"";
   position:absolute;
@@ -163,6 +170,22 @@ body{
   transform:scale(1.05);
 }
 
+/* crash / match effect */
+.tile.crash{
+  animation: crashPop .16s ease-in-out;
+  transform: scale(0.88) rotate(-2deg);
+  filter: brightness(1.15) saturate(1.1);
+  box-shadow:
+    0 2px 0 #cfcfcf,
+    0 6px 10px rgba(0,0,0,.25);
+}
+
+@keyframes crashPop{
+  0%   { transform: scale(1) rotate(0deg); opacity: 1; }
+  60%  { transform: scale(0.86) rotate(-2deg); opacity: .65; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
 /* ---------- BUTTONS ---------- */
 .buttons{
   display:flex;
@@ -186,6 +209,10 @@ body{
   box-shadow:0 10px 20px rgba(0,0,0,.22);
 }
 
+.btn:hover{
+  filter:brightness(1.05);
+}
+
 .btn:active{
   transform:translateY(1px);
 }
@@ -194,7 +221,7 @@ body{
   background:rgba(255,255,255,.05);
 }
 
-/* ---------- FOOTER ---------- */
+/* ---------- FOOTER (optional) ---------- */
 .footer{
   max-width:980px;
   margin:0 auto;
@@ -203,18 +230,4 @@ body{
   font-size:12px;
   text-align:center;
 }
-/* ---- Match Crash / Break Effect ---- */
-.tile.crash{
-  animation: crashPop .16s ease-in-out;
-  transform: scale(0.88) rotate(-2deg);
-  filter: brightness(1.15) saturate(1.1);
-  box-shadow:
-    0 2px 0 #cfcfcf,
-    0 6px 10px rgba(0,0,0,.25);
-}
 
-@keyframes crashPop{
-  0%   { transform: scale(1) rotate(0deg); opacity: 1; }
-  60%  { transform: scale(0.86) rotate(-2deg); opacity: .65; }
-  100% { transform: scale(1) rotate(0deg); opacity: 1; }
-}
