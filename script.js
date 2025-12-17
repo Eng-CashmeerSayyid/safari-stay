@@ -1,5 +1,6 @@
 /* ================================
    SAFARI STAY – PUZZLE + ISLAND
+   + AUDIO (Safari-friendly)
 ================================ */
 
 /* ---------- GRID SETUP ---------- */
@@ -21,26 +22,6 @@ const BUSH_COST = 100;
 let coins = Number(localStorage.getItem("coins")) || 0;
 let bushCleared = localStorage.getItem("bushCleared") === "true";
 
-/* ---------- AUDIO ---------- */
-const sounds = {
-  swap: new Audio("sounds/swap.mp3"),
-  match: new Audio("sounds/match.mp3"),
-  break: new Audio("sounds/break.mp3"),
-  coin: new Audio("sounds/coin.mp3")
-};
-
-Object.values(sounds).forEach(s => {
-  s.preload = "auto";
-  s.volume = 0.6;
-});
-
-function playSound(sound) {
-  if (!sound) return;
-  sound.currentTime = 0;
-  const p = sound.play();
-  if (p && typeof p.catch === "function") p.catch(() => {});
-}
-
 /* ---------- ELEMENTS ---------- */
 const gridEl = document.getElementById("grid");
 const scoreEl = document.getElementById("score");
@@ -50,6 +31,57 @@ const islandScreen = document.getElementById("islandScreen");
 const gameScreen = document.getElementById("gameScreen");
 const coinsEl = document.getElementById("coins");
 const bushStatus = document.getElementById("bushStatus");
+
+/* ---------- AUDIO ---------- */
+// Put these in /sounds/ exactly:
+const sounds = {
+  swap: new Audio("sounds/swap.mp3"),
+  match: new Audio("sounds/match.mp3"),
+  break: new Audio("sounds/break.mp3"),
+  coin: new Audio("sounds/coin.mp3"),
+};
+
+let audioUnlocked = false;
+
+function prepAudio() {
+  Object.values(sounds).forEach(a => {
+    a.preload = "auto";
+    a.volume = 0.7;
+  });
+}
+
+// iOS/Safari often needs a user gesture before sound can play
+function unlockAudioOnce() {
+  if (audioUnlocked) return;
+  audioUnlocked = true;
+
+  // Try to play/pause silently to unlock
+  const a = sounds.swap;
+  a.muted = true;
+  const p = a.play();
+  if (p && typeof p.then === "function") {
+    p.then(() => {
+      a.pause();
+      a.currentTime = 0;
+      a.muted = false;
+    }).catch(() => {
+      // still locked; no worries — next click usually unlocks
+      a.muted = false;
+    });
+  } else {
+    // fallback
+    a.muted = false;
+  }
+}
+
+function playSound(audio) {
+  if (!audioUnlocked) return; // will start after first user gesture
+  try {
+    audio.currentTime = 0;
+    const p = audio.play();
+    if (p && typeof p.catch === "function") p.catch(() => {});
+  } catch (_) {}
+}
 
 /* ---------- HELPERS ---------- */
 function randColor() {
@@ -106,8 +138,8 @@ function findMatches() {
     for (let c = 0; c < WIDTH - 2; c++) {
       const i = r * WIDTH + c;
       const a = board[i];
-      if (a && a === board[i+1] && a === board[i+2]) {
-        matched.add(i); matched.add(i+1); matched.add(i+2);
+      if (a && a === board[i + 1] && a === board[i + 2]) {
+        matched.add(i); matched.add(i + 1); matched.add(i + 2);
       }
     }
   }
@@ -117,8 +149,8 @@ function findMatches() {
     for (let r = 0; r < WIDTH - 2; r++) {
       const i = r * WIDTH + c;
       const a = board[i];
-      if (a && a === board[i+WIDTH] && a === board[i+2*WIDTH]) {
-        matched.add(i); matched.add(i+WIDTH); matched.add(i+2*WIDTH);
+      if (a && a === board[i + WIDTH] && a === board[i + 2 * WIDTH]) {
+        matched.add(i); matched.add(i + WIDTH); matched.add(i + 2 * WIDTH);
       }
     }
   }
@@ -126,14 +158,31 @@ function findMatches() {
   return matched;
 }
 
+function animateCrash(matched) {
+  const tiles = gridEl.querySelectorAll(".tile");
+  matched.forEach(i => tiles[i]?.classList.add("crash"));
+  setTimeout(() => {
+    matched.forEach(i => tiles[i]?.classList.remove("crash"));
+  }, 180);
+}
+
 function clearMatches(matched) {
   if (matched.size === 0) return false;
 
+  // visual effect (optional, works with your CSS .tile.crash)
+  animateCrash(matched);
+
+  // sound effect
+  playSound(sounds.break);
+
+  // remove matched tiles
   matched.forEach(i => board[i] = null);
 
+  // scoring + coins
   score += matched.size * 10;
   coins += matched.size * 5;
 
+  // sounds for reward
   playSound(sounds.match);
   playSound(sounds.coin);
 
@@ -154,7 +203,7 @@ function applyGravity() {
       }
     }
 
-    // Make sure everything above is null
+    // clear the rest above
     for (let r = writeRow; r >= 0; r--) {
       board[r * WIDTH + c] = null;
     }
@@ -172,8 +221,6 @@ async function resolveBoard() {
     const matches = findMatches();
     if (matches.size === 0) break;
 
-    playSound(sounds.break);
-
     clearMatches(matches);
     updateUI();
     await sleep(120);
@@ -190,6 +237,9 @@ async function resolveBoard() {
 
 /* ---------- GAMEPLAY ---------- */
 async function onTileClick(e) {
+  // unlock audio on first click
+  unlockAudioOnce();
+
   if (isBusy || moves <= 0) return;
 
   const idx = Number(e.currentTarget.dataset.index);
@@ -210,6 +260,7 @@ async function onTileClick(e) {
   const a = selectedIndex;
   const b = idx;
 
+  // swap
   [board[a], board[b]] = [board[b], board[a]];
   playSound(sounds.swap);
 
@@ -217,14 +268,17 @@ async function onTileClick(e) {
   updateUI();
   await sleep(80);
 
+  // validate move
   const matches = findMatches();
   if (matches.size === 0) {
+    // swap back
     [board[a], board[b]] = [board[b], board[a]];
     updateUI();
     isBusy = false;
     return;
   }
 
+  // successful move
   moves--;
   await resolveBoard();
   updateIslandUI();
@@ -271,7 +325,7 @@ function newGame() {
   resolveBoard();
 }
 
+prepAudio();
 buildGrid();
 newGame();
 updateIslandUI();
-
