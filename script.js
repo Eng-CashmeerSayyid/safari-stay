@@ -1,6 +1,6 @@
 /* ================================
    SAFARI STAY – PUZZLE + ISLAND
-   + AUDIO (Safari-friendly)
+   + AUDIO (NO OVERLAP)
 ================================ */
 
 /* ---------- GRID SETUP ---------- */
@@ -33,7 +33,6 @@ const coinsEl = document.getElementById("coins");
 const bushStatus = document.getElementById("bushStatus");
 
 /* ---------- AUDIO ---------- */
-// Put these in /sounds/ exactly:
 const sounds = {
   swap: new Audio("sounds/swap.mp3"),
   match: new Audio("sounds/match.mp3"),
@@ -50,12 +49,11 @@ function prepAudio() {
   });
 }
 
-// iOS/Safari often needs a user gesture before sound can play
+// Safari/iOS: need a user gesture before audio can play
 function unlockAudioOnce() {
   if (audioUnlocked) return;
   audioUnlocked = true;
 
-  // Try to play/pause silently to unlock
   const a = sounds.swap;
   a.muted = true;
   const p = a.play();
@@ -65,19 +63,20 @@ function unlockAudioOnce() {
       a.currentTime = 0;
       a.muted = false;
     }).catch(() => {
-      // still locked; no worries — next click usually unlocks
       a.muted = false;
     });
   } else {
-    // fallback
     a.muted = false;
   }
 }
 
+/* ✅ FIX 1: NO OVERLAP — stop + rewind + play */
 function playSound(audio) {
-  if (!audioUnlocked) return; // will start after first user gesture
+  if (!audioUnlocked) return;
+
   try {
-    audio.currentTime = 0;
+    audio.pause();          // stop any previous play
+    audio.currentTime = 0;  // rewind
     const p = audio.play();
     if (p && typeof p.catch === "function") p.catch(() => {});
   } catch (_) {}
@@ -169,10 +168,9 @@ function animateCrash(matched) {
 function clearMatches(matched) {
   if (matched.size === 0) return false;
 
-  // visual effect (optional, works with your CSS .tile.crash)
   animateCrash(matched);
 
-  // sound effect
+  // break sound once per clear
   playSound(sounds.break);
 
   // remove matched tiles
@@ -182,9 +180,9 @@ function clearMatches(matched) {
   score += matched.size * 10;
   coins += matched.size * 5;
 
-  // sounds for reward
+  // reward sounds (no overlap because playSound stops previous)
   playSound(sounds.match);
-  playSound(sounds.coin);
+  setTimeout(() => playSound(sounds.coin), 80);
 
   localStorage.setItem("coins", String(coins));
   return true;
@@ -203,7 +201,6 @@ function applyGravity() {
       }
     }
 
-    // clear the rest above
     for (let r = writeRow; r >= 0; r--) {
       board[r * WIDTH + c] = null;
     }
@@ -237,7 +234,6 @@ async function resolveBoard() {
 
 /* ---------- GAMEPLAY ---------- */
 async function onTileClick(e) {
-  // unlock audio on first click
   unlockAudioOnce();
 
   if (isBusy || moves <= 0) return;
