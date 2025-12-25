@@ -230,4 +230,86 @@ body{
   font-size:12px;
   text-align:center;
 }
+/* ======================
+   MOMBASA LOBBY STYLE
+====================== */
+
+.mombasa-body {
+  background: url("images/lobby-bg.jpg") center/cover no-repeat fixed;
+  min-height: 100vh;
+}
+
+/* Dark overlay */
+.lobby {
+  min-height: 100vh;
+  padding: 18px;
+  background: linear-gradient(
+    rgba(20,25,50,0.75),
+    rgba(20,25,50,0.85)
+  );
+  display: flex;
+  flex-direction: column;
+}
+
+/* Characters */
+.lobby-character {
+  width: 240px;
+  max-width: 40vw;
+  animation: idleFloat 2.8s ease-in-out infinite;
+}
+
+.left { animation-delay: 0s; }
+.right { animation-delay: .6s; }
+
+@keyframes idleFloat {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-14px); }
+  100% { transform: translateY(0); }
+}
+
+/* Play button shine */
+.play-btn {
+  width: 320px;
+  height: 72px;
+  border-radius: 22px;
+  font-size: 28px;
+  font-weight: 900;
+  background: linear-gradient(120deg,#4cff82,#13c857);
+  box-shadow: 0 20px 40px rgba(0,0,0,.4);
+  position: relative;
+  overflow: hidden;
+}
+
+.play-btn::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -120%;
+  width: 120%;
+  height: 100%;
+  background: linear-gradient(
+    120deg,
+    transparent,
+    rgba(255,255,255,.7),
+    transparent
+  );
+  animation: shine 2.2s infinite;
+}
+
+@keyframes shine {
+  0% { left: -120%; }
+  100% { left: 120%; }
+}
+
+/* Sparkles */
+.sparkle {
+  position: absolute;
+  animation: sparkle 1.4s infinite;
+}
+
+@keyframes sparkle {
+  0% { opacity: 0; transform: translateY(10px); }
+  50% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-20px); }
+}
 
