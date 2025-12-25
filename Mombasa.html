@@ -4,27 +4,50 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Safari Stay – Mombasa Hotel</title>
-
-  <!-- Reuse main styles for now -->
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
+  <header class="top">
+    <div class="brand">
+      <div class="logo">🏨</div>
+      <div>
+        <div class="title">Safari Stay</div>
+        <div class="subtitle">Mombasa Hotel</div>
+      </div>
+    </div>
 
-  <h1>🏨 Safari Stay – Mombasa</h1>
+    <div class="pill">Coins: <span id="coins">0</span></div>
+  </header>
 
-  <p>Luxury Beach Hotel</p>
+  <main class="wrap">
+    <section class="panel">
+      <h3>Hotel Progress</h3>
+      <p id="progressText">Loading...</p>
 
-  <div id="hotel">
-    <div class="station">🧑🏽‍💼 Reception</div>
-    <div class="station">🛏️ Room</div>
-    <div class="station">🧹 Cleaner</div>
-  </div>
+      <div id="hotel" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0;">
+        <div class="station">🧑🏽‍💼 Reception</div>
+        <div class="station" id="roomsStation">🛏️ Rooms: 0</div>
+        <div class="station" id="cleanerStation">🧹 Cleaner: Not hired</div>
+      </div>
 
-  <p>
-    <button onclick="window.location.href='/safari-stay/'">▶️ Play Puzzle</button>
+      <h3>Actions</h3>
+      <div class="buttons" style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="btn" id="buildRoomBtn">➕ Build Room (150)</button>
+        <button class="btn" id="hireCleanerBtn">🧹 Hire Cleaner (200)</button>
+        <button class="btn" id="collectBtn">💰 Collect Hotel Earnings</button>
+      </div>
 
-  </p>
+      <hr style="opacity:.2;margin:14px 0;">
 
+      <div class="buttons">
+        <button class="btn" onclick="window.location.href='/safari-stay/'">⬅ Back to Island</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="mombasa.js"></script>
 </body>
 </html>
+
 
