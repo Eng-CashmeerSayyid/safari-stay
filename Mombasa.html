@@ -2,101 +2,78 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Safari Stay – Mombasa Hotel</title>
-  <link rel="stylesheet" href="style.css">
+  <title>Safari Stay – Mombasa</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link rel="stylesheet" href="style.css" />
 </head>
+<body>
 
-<body class="mombasa-body">
+<!-- 🌴 LOBBY SCREEN -->
+<div id="lobbyScreen" class="screen">
 
-<!-- 🌴 LOBBY / START SCREEN -->
-<div id="lobbyScreen" class="lobby">
-
-  <div class="lobby-topbar">
-    <div class="lobby-logo">
-      <div class="lobby-badge">🏨</div>
-      <div>
-        <div class="lobby-title">Safari Stay</div>
-        <div class="lobby-subtitle">Mombasa Hotel</div>
-      </div>
-    </div>
-
-    <div class="lobby-coins">Coins: <span id="coinsLobby">0</span></div>
+  <div class="hotel-header">
+    <img src="./images/reception.png" class="reception-img" alt="Reception" />
+    <h1>Safari Stay – Mombasa</h1>
+    <p class="subtitle">Luxury Beach Hotel</p>
   </div>
 
-  <div class="lobby-stage">
+  <div class="card">
+    <p class="coins">Coins: <span id="coinsLobby">0</span></p>
 
-    <!-- LEFT CHARACTER -->
-    <img src="images/bellboy.png" class="lobby-character left" alt="Bellboy">
-
-    <!-- CENTER -->
-    <div class="lobby-center">
-      <div class="game-mark">
-        <div class="game-mark-top">Safari Stay</div>
-        <div class="game-mark-main">Mombasa</div>
-        <div class="game-mark-bottom">Hotel</div>
-      </div>
-
-      <button class="play-btn" id="playHotelBtn">PLAY</button>
-
-      <div class="sparkles">
-        <span class="sparkle s1">✨</span>
-        <span class="sparkle s2">⭐</span>
-        <span class="sparkle s3">✨</span>
-        <span class="sparkle s4">⭐</span>
-      </div>
-
-      <button class="save-btn" id="saveProgressBtn">Save progress</button>
-    </div>
-
-    <!-- RIGHT CHARACTER -->
-    <img src="images/cleaner.png" class="lobby-character right" alt="Cleaner">
+    <button id="playHotelBtn" class="btn shine">▶ Play</button>
+    <button id="saveProgressBtn" class="btn ghost">💾 Save Progress</button>
   </div>
 
-  <div class="lobby-footer">
-    <button class="mini-btn" onclick="window.location.href='/safari-stay/'">
-      ⬅ Back to Island
-    </button>
-  </div>
 </div>
 
+<!-- 🏨 HOTEL SCREEN -->
+<div id="hotelScreen" class="screen hidden">
 
-<!-- 🏨 HOTEL MANAGEMENT SCREEN -->
-<div id="hotelScreen" class="hidden">
-  <header class="top">
-    <div class="brand">
-      <div class="logo">🏨</div>
-      <div>
-        <div class="title">Safari Stay</div>
-        <div class="subtitle">Mombasa Hotel</div>
-      </div>
+  <div class="card">
+    <h2>Hotel Progress</h2>
+
+    <p class="coins">Coins: <span id="coins">0</span></p>
+
+    <!-- ROOMS -->
+    <div class="station">
+      <img src="./images/room.png" class="icon" alt="Rooms" />
+      <span id="roomsStation">Rooms: 0</span>
     </div>
 
-    <div class="pill">Coins: <span id="coins">0</span></div>
-  </header>
+    <!-- CLEANER -->
+    <div class="station">
+      <img src="./images/staff.png" class="icon" alt="Staff" />
+      <span id="cleanerStation">Cleaner: Not hired</span>
+    </div>
 
-  <main class="wrap">
-    <section class="panel">
-      <h3>Hotel Progress</h3>
-      <p id="progressText">Loading...</p>
+    <!-- QUEUE -->
+    <p>Guests waiting: <span id="queueCount">0</span></p>
 
-      <div class="hotel-grid">
-        <div class="station">🧑🏽‍💼 Reception</div>
-        <div class="station" id="roomsStation">🛏️ Rooms: 0</div>
-        <div class="station" id="cleanerStation">🧹 Cleaner: Not hired</div>
-      </div>
+    <div class="guests">
+      <img src="./images/staff.png" id="guest1" class="guest" />
+      <img src="./images/staff.png" id="guest2" class="guest" />
+      <img src="./images/staff.png" id="guest3" class="guest" />
+    </div>
 
-      <div class="buttons">
-        <button class="btn" id="buildRoomBtn">➕ Build Room (150)</button>
-        <button class="btn" id="hireCleanerBtn">🧹 Hire Cleaner (200)</button>
-        <button class="btn" id="collectBtn">💰 Collect Earnings</button>
-      </div>
-    </section>
-  </main>
+    <p id="progressText">Pending earnings: 0 coins</p>
+
+    <!-- ACTIONS -->
+    <div class="actions">
+      <button id="buildRoomBtn" class="btn">➕ Build Room (150)</button>
+      <button id="hireCleanerBtn" class="btn">🧹 Hire Cleaner (200)</button>
+      <button id="collectBtn" class="btn">💰 Collect Earnings</button>
+      <button id="checkInBtn" class="btn ghost">Check-in Guest</button>
+    </div>
+
+    <button onclick="location.reload()" class="btn ghost">⬅ Back to Lobby</button>
+  </div>
+
 </div>
 
 <script src="Mombasa.js"></script>
 </body>
 </html>
+
 
 
