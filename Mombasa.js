@@ -1,12 +1,20 @@
+// ===============================
+// SAFARI STAY — MOMBASA HOTEL
+// Grand-Hotel-style simple economy
+// ===============================
+
+// --- SAVE STATE ---
 let coins = Number(localStorage.getItem("coins")) || 0;
 let rooms = Number(localStorage.getItem("mombasaRooms")) || 0;
 let queue = Number(localStorage.getItem("mombasaQueue")) || 0;
 let cleanerHired = localStorage.getItem("mombasaCleaner") === "true";
 let pending = Number(localStorage.getItem("mombasaEarnings")) || 0;
 
+// --- COSTS ---
 const ROOM_COST = 150;
 const CLEANER_COST = 200;
 
+// --- HELPERS ---
 function save() {
   localStorage.setItem("coins", String(coins));
   localStorage.setItem("mombasaRooms", String(rooms));
@@ -16,39 +24,35 @@ function save() {
 }
 
 function render() {
-  // coins in hotel screen + lobby screen
   const coinsEl = document.getElementById("coins");
   const coinsLobbyEl = document.getElementById("coinsLobby");
+  const roomsStationEl = document.getElementById("roomsStation");
+  const cleanerStationEl = document.getElementById("cleanerStation");
+  const progressTextEl = document.getElementById("progressText");
+  const qCount = document.getElementById("queueCount");
+
   if (coinsEl) coinsEl.textContent = coins;
   if (coinsLobbyEl) coinsLobbyEl.textContent = coins;
 
-  const roomsStation = document.getElementById("roomsStation");
-  if (roomsStation) roomsStation.textContent = `🛏️ Rooms: ${rooms}`;
+  if (roomsStationEl) roomsStationEl.textContent = `🛏️ Rooms: ${rooms}`;
+  if (cleanerStationEl)
+    cleanerStationEl.textContent = cleanerHired ? "🧹 Cleaner: Hired" : "🧹 Cleaner: Not hired";
 
-  const cleanerStation = document.getElementById("cleanerStation");
-  if (cleanerStation) {
-    cleanerStation.textContent = cleanerHired
-      ? "🧹 Cleaner: Hired"
-      : "🧹 Cleaner: Not hired";
-  }
-
-  const progressText = document.getElementById("progressText");
-  if (progressText) {
-    progressText.textContent = `Pending earnings: ${pending} coins`;
-  }
+  if (progressTextEl) progressTextEl.textContent = `Pending earnings: ${pending} coins`;
+  if (qCount) qCount.textContent = queue;
 
   renderQueue();
 }
 
 function renderQueue() {
-  const qEl = document.getElementById("queueCount");
-  if (qEl) qEl.textContent = queue;
-
   const g1 = document.getElementById("guest1");
   const g2 = document.getElementById("guest2");
   const g3 = document.getElementById("guest3");
 
-  [g1, g2, g3].forEach(g => g && g.classList.remove("show"));
+  [g1, g2, g3].forEach(g => {
+    if (!g) return;
+    g.classList.remove("show");
+  });
 
   if (queue >= 1 && g1) g1.classList.add("show");
   if (queue >= 2 && g2) g2.classList.add("show");
@@ -56,98 +60,105 @@ function renderQueue() {
 }
 
 function addGuest() {
-  // We only visually show max 3
   queue = Math.min(queue + 1, 3);
   save();
-  renderQueue();
+  render();
 }
 
-window.onload = () => {
+// --- SCREEN NAV ---
+function goHotel() {
   const lobby = document.getElementById("lobbyScreen");
   const hotel = document.getElementById("hotelScreen");
+  if (!lobby || !hotel) return;
 
-  // PLAY -> go to hotel screen
-  const playBtn = document.getElementById("playHotelBtn");
-  if (playBtn) {
-    playBtn.onclick = () => {
-      if (lobby) lobby.classList.add("hidden");
-      if (hotel) hotel.classList.remove("hidden");
-      render();
-    };
-  }
-
-  // SAVE PROGRESS
-  const saveBtn = document.getElementById("saveProgressBtn");
-  if (saveBtn) {
-    saveBtn.onclick = () => {
-      save();
-      alert("Progress saved ✅");
-    };
-  }
-
-  // BUILD ROOM
-  const buildBtn = document.getElementById("buildRoomBtn");
-  if (buildBtn) {
-    buildBtn.onclick = () => {
-      if (coins < ROOM_COST) return alert("Not enough coins");
-      coins -= ROOM_COST;
-      rooms++;
-      save();
-      render();
-    };
-  }
-
-  // HIRE CLEANER
-  const cleanerBtn = document.getElementById("hireCleanerBtn");
-  if (cleanerBtn) {
-    cleanerBtn.onclick = () => {
-      if (cleanerHired) return alert("Cleaner already hired ✅");
-      if (coins < CLEANER_COST) return alert("Not enough coins");
-      coins -= CLEANER_COST;
-      cleanerHired = true;
-      save();
-      render();
-    };
-  }
-
-  // COLLECT EARNINGS
-  const collectBtn = document.getElementById("collectBtn");
-  if (collectBtn) {
-    collectBtn.onclick = () => {
-      coins += pending;
-      pending = 0;
-      save();
-      render();
-    };
-  }
-
-  // CHECK-IN GUEST
-  const checkInBtn = document.getElementById("checkInBtn");
-  if (checkInBtn) {
-    checkInBtn.onclick = () => {
-      if (queue <= 0) return alert("No guests in queue yet 🙂");
-
-      queue -= 1;
-      coins += 25; // reward for check-in
-
-      save();
-      render();
-    };
-  }
-
-  // LOOP: earnings + guest arrivals
-  setInterval(() => {
-    // hotel makes money
-    if (rooms > 0) pending += rooms * (cleanerHired ? 2 : 1);
-
-    // 35% chance a guest arrives
-    if (Math.random() < 0.35) addGuest();
-
-    save();
-    render();
-  }, 5000);
-
-  // initial render
+  lobby.classList.add("hidden");
+  hotel.classList.remove("hidden");
   render();
+}
+
+function backLobby() {
+  const lobby = document.getElementById("lobbyScreen");
+  const hotel = document.getElementById("hotelScreen");
+  if (!lobby || !hotel) return;
+
+  hotel.classList.add("hidden");
+  lobby.classList.remove("hidden");
+  render();
+}
+
+// --- ACTIONS ---
+function buildRoom() {
+  if (coins < ROOM_COST) return alert("Not enough coins 🥲");
+  coins -= ROOM_COST;
+  rooms += 1;
+  save();
+  render();
+}
+
+function hireCleaner() {
+  if (cleanerHired) return alert("Cleaner already hired ✅");
+  if (coins < CLEANER_COST) return alert("Not enough coins 🥲");
+  coins -= CLEANER_COST;
+  cleanerHired = true;
+  save();
+  render();
+}
+
+function collectEarnings() {
+  if (pending <= 0) return alert("No earnings yet 🙂");
+  coins += pending;
+  pending = 0;
+  save();
+  render();
+}
+
+function checkInGuest() {
+  if (queue <= 0) return alert("No guests in queue yet 🙂");
+  queue -= 1;
+  coins += 25; // check-in bonus
+  save();
+  render();
+}
+
+// --- LOOP: earn + new guests ---
+function tick() {
+  // earnings
+  if (rooms > 0) {
+    pending += rooms * (cleanerHired ? 2 : 1);
+  }
+
+  // guest arrival chance
+  if (Math.random() < 0.35) addGuest();
+
+  save();
+  render();
+}
+
+// --- START ---
+window.onload = () => {
+  // Buttons
+  const playBtn = document.getElementById("playHotelBtn");
+  const saveBtn = document.getElementById("saveProgressBtn");
+  const buildBtn = document.getElementById("buildRoomBtn");
+  const cleanerBtn = document.getElementById("hireCleanerBtn");
+  const collectBtn = document.getElementById("collectBtn");
+  const checkInBtn = document.getElementById("checkInBtn");
+  const backBtn = document.getElementById("backBtn");
+
+  if (playBtn) playBtn.onclick = goHotel;
+  if (saveBtn) saveBtn.onclick = () => { save(); alert("Progress saved ✅"); };
+
+  if (buildBtn) buildBtn.onclick = buildRoom;
+  if (cleanerBtn) cleanerBtn.onclick = hireCleaner;
+  if (collectBtn) collectBtn.onclick = collectEarnings;
+  if (checkInBtn) checkInBtn.onclick = checkInGuest;
+
+  if (backBtn) backBtn.onclick = backLobby;
+
+  // First paint
+  render();
+
+  // Loop
+  setInterval(tick, 5000);
 };
 
