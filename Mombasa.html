@@ -2,61 +2,77 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Safari Stay – Mombasa</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <link rel="stylesheet" href="/safari-stay/style.css?v=3">
-
+  <title>Safari Stay – Mombasa Hotel</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body{
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      margin: 0;
+      padding: 24px;
+      background: #0b1220;
+      color: #fff;
+    }
+    .card{
+      max-width: 720px;
+      margin: 0 auto;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 16px;
+      padding: 18px;
+    }
+    .hero{
+      height: 200px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #f7c65b, #2dd4bf, #60a5fa);
+      display: flex;
+      align-items: end;
+      padding: 16px;
+      box-sizing: border-box;
+      font-weight: 700;
+      color: rgba(0,0,0,0.75);
+    }
+    .stations{
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .station{
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: rgba(0,0,0,0.25);
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+    a{
+      color: #f7c65b;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    a:hover{ text-decoration: underline; }
+  </style>
 </head>
 <body>
 
-  <!-- LOBBY -->
-  <div id="lobbyScreen" class="screen">
-    <h1>Safari Stay – Mombasa</h1>
-    <p class="subtitle">Luxury Beach Hotel</p>
+  <div class="card">
+    <div class="hero">🏨 Mombasa Hotel (Image test: OFF)</div>
 
-    <img
-      src="/safari-stay/images/reception.png"
-      class="hero-img"
-      alt="Hotel Reception"
-    />
+    <h1 style="margin: 14px 0 6px;">Safari Stay – Mombasa</h1>
+    <p style="margin: 0 0 12px; opacity: 0.9;">Luxury Beach Hotel</p>
 
-    <div class="card">
-      <p><strong>Coins:</strong> <span id="coinsLobby">0</span></p>
-
-      <button id="playHotelBtn" class="primary-btn">▶ Play</button>
-      <button id="saveProgressBtn" class="secondary-btn">💾 Save Progress</button>
+    <div class="stations">
+      <div class="station">🧑🏽‍💼 Reception</div>
+      <div class="station">🛏️ Room</div>
+      <div class="station">🧹 Cleaner</div>
     </div>
+
+    <p style="margin-top: 16px;">
+      <a href="index.html">⬅ Back to Island</a>
+    </p>
   </div>
 
-  <!-- HOTEL -->
-  <div id="hotelScreen" class="screen hidden">
-    <div class="card">
-      <h2>Hotel Progress</h2>
-
-      <p><strong>Coins:</strong> <span id="coins">0</span></p>
-      <p><strong>Rooms:</strong> <span id="roomsStation">0</span></p>
-      <p><strong>Cleaner:</strong> <span id="cleanerStation">Not hired</span></p>
-      <p><strong>Guests waiting:</strong> <span id="queueCount">0</span></p>
-      <p><strong>Pending earnings:</strong> <span id="progressText">0</span></p>
-
-      <div class="guests">
-        <img src="/safari-stay/images/staff.png" id="guest1" class="guest hidden" />
-        <img src="/safari-stay/images/staff.png" id="guest2" class="guest hidden" />
-        <img src="/safari-stay/images/staff.png" id="guest3" class="guest hidden" />
-      </div>
-
-      <button id="buildRoomBtn" class="primary-btn">➕ Build Room (150)</button>
-      <button id="hireCleanerBtn" class="primary-btn">🧹 Hire Cleaner (200)</button>
-      <button id="collectBtn" class="primary-btn">💰 Collect Earnings</button>
-      <button id="checkInBtn" class="secondary-btn">🛎 Check-in Guest</button>
-      <button onclick="location.reload()" class="secondary-btn">⬅ Back to Lobby</button>
-    </div>
-  </div>
-
-  <script src="/safari-stay/Mombasa.js?v=3"></script>
 </body>
 </html>
+
 
 
 
