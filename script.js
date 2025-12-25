@@ -1,12 +1,11 @@
 /* ================================
    SAFARI STAY – PUZZLE + ISLAND
-   + AUDIO (NO OVERLAP)
+   FULL CLEAN SCRIPT (WITH AUDIO)
 ================================ */
 
 /* ---------- GRID SETUP ---------- */
 const WIDTH = 8;
 const TOTAL = WIDTH * WIDTH;
-
 const COLORS = ["🍓","🥥","🌴","🐚","⭐","🍍"];
 
 /* ---------- GAME STATE ---------- */
@@ -22,7 +21,7 @@ const BUSH_COST = 100;
 let coins = Number(localStorage.getItem("coins")) || 0;
 let bushCleared = localStorage.getItem("bushCleared") === "true";
 
-/* ---------- ELEMENTS ---------- */
+/* ---------- ELEMENTS (MUST EXIST IN index.html) ---------- */
 const gridEl = document.getElementById("grid");
 const scoreEl = document.getElementById("score");
 const movesEl = document.getElementById("moves");
@@ -32,7 +31,22 @@ const gameScreen = document.getElementById("gameScreen");
 const coinsEl = document.getElementById("coins");
 const bushStatus = document.getElementById("bushStatus");
 
-/* ---------- AUDIO ---------- */
+/* ---------- SAFETY CHECK ---------- */
+function mustExist(el, name) {
+  if (!el) {
+    console.error(`Missing element #${name} in index.html`);
+    // Don’t crash hard; just prevent broken behavior
+  }
+}
+mustExist(gridEl, "grid");
+mustExist(scoreEl, "score");
+mustExist(movesEl, "moves");
+mustExist(islandScreen, "islandScreen");
+mustExist(gameScreen, "gameScreen");
+mustExist(coinsEl, "coins");
+mustExist(bushStatus, "bushStatus");
+
+/* ---------- AUDIO (NO OVERLAP) ---------- */
 const sounds = {
   swap: new Audio("sounds/swap.mp3"),
   match: new Audio("sounds/match.mp3"),
@@ -49,7 +63,7 @@ function prepAudio() {
   });
 }
 
-// Safari/iOS: need a user gesture before audio can play
+// Safari/iOS/Chrome: require a user gesture before audio plays
 function unlockAudioOnce() {
   if (audioUnlocked) return;
   audioUnlocked = true;
@@ -70,13 +84,11 @@ function unlockAudioOnce() {
   }
 }
 
-/* ✅ FIX 1: NO OVERLAP — stop + rewind + play */
 function playSound(audio) {
   if (!audioUnlocked) return;
-
   try {
-    audio.pause();          // stop any previous play
-    audio.currentTime = 0;  // rewind
+    audio.pause();
+    audio.currentTime = 0;
     const p = audio.play();
     if (p && typeof p.catch === "function") p.catch(() => {});
   } catch (_) {}
@@ -99,25 +111,32 @@ function areNeighbors(a, b) {
 
 /* ---------- UI ---------- */
 function updateIslandUI() {
-  coinsEl.textContent = coins;
-  bushStatus.textContent = bushCleared
-    ? "✅ Bush cleared — New path unlocked!"
-    : `🌿 Bush is blocking the path — Need ${BUSH_COST} coins to clear it`;
+  if (coinsEl) coinsEl.textContent = coins;
+
+  if (bushStatus) {
+    bushStatus.textContent = bushCleared
+      ? "✅ Bush cleared — New path unlocked!"
+      : `🌿 Bush is blocking the path — Need ${BUSH_COST} coins to clear it`;
+  }
 }
 
 function updateUI() {
+  if (!gridEl) return;
+
   const tiles = gridEl.querySelectorAll(".tile");
   tiles.forEach((t, i) => {
     t.classList.toggle("selected", i === selectedIndex);
     t.textContent = board[i] || "";
   });
 
-  scoreEl.textContent = score;
-  movesEl.textContent = moves;
+  if (scoreEl) scoreEl.textContent = score;
+  if (movesEl) movesEl.textContent = moves;
 }
 
 /* ---------- GRID ---------- */
 function buildGrid() {
+  if (!gridEl) return;
+
   gridEl.innerHTML = "";
   for (let i = 0; i < TOTAL; i++) {
     const tile = document.createElement("div");
@@ -158,29 +177,23 @@ function findMatches() {
 }
 
 function animateCrash(matched) {
+  if (!gridEl) return;
   const tiles = gridEl.querySelectorAll(".tile");
   matched.forEach(i => tiles[i]?.classList.add("crash"));
-  setTimeout(() => {
-    matched.forEach(i => tiles[i]?.classList.remove("crash"));
-  }, 180);
+  setTimeout(() => matched.forEach(i => tiles[i]?.classList.remove("crash")), 180);
 }
 
 function clearMatches(matched) {
   if (matched.size === 0) return false;
 
   animateCrash(matched);
-
-  // break sound once per clear
   playSound(sounds.break);
 
-  // remove matched tiles
   matched.forEach(i => board[i] = null);
 
-  // scoring + coins
   score += matched.size * 10;
   coins += matched.size * 5;
 
-  // reward sounds (no overlap because playSound stops previous)
   playSound(sounds.match);
   setTimeout(() => playSound(sounds.coin), 80);
 
@@ -267,7 +280,6 @@ async function onTileClick(e) {
   // validate move
   const matches = findMatches();
   if (matches.size === 0) {
-    // swap back
     [board[a], board[b]] = [board[b], board[a]];
     updateUI();
     isBusy = false;
@@ -279,27 +291,36 @@ async function onTileClick(e) {
   await resolveBoard();
   updateIslandUI();
 
+  // Hint to clear bush once you can afford it
   if (!bushCleared && coins >= BUSH_COST) {
-    alert("🎉 Goal reached! Go back and clear the bush!");
+    alert("🎉 You have enough coins! Go back and clear the bush!");
+  }
+
+  // Optional: when moves end, auto send player to island
+  if (moves <= 0) {
+    alert("Moves finished! Returning to Island Tasks.");
+    backToIsland();
   }
 
   isBusy = false;
 }
 
-/* ---------- ISLAND ---------- */
-window.goToGame = () => {
+/* ---------- ISLAND NAV (BUTTONS CALL THESE) ---------- */
+window.goToGame = function goToGame() {
+  if (!islandScreen || !gameScreen) return;
   islandScreen.classList.add("hidden");
   gameScreen.classList.remove("hidden");
 };
 
-window.backToIsland = () => {
+window.backToIsland = function backToIsland() {
+  if (!islandScreen || !gameScreen) return;
   gameScreen.classList.add("hidden");
   islandScreen.classList.remove("hidden");
   updateIslandUI();
 };
 
-window.clearBush = () => {
-  if (bushCleared) return alert("Bush already cleared");
+window.clearBush = function clearBush() {
+  if (bushCleared) return alert("Bush already cleared ✅");
   if (coins < BUSH_COST) return alert("Not enough coins!");
 
   coins -= BUSH_COST;
