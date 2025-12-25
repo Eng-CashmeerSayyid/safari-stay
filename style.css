@@ -312,4 +312,74 @@ body{
   50% { opacity: 1; }
   100% { opacity: 0; transform: translateY(-20px); }
 }
+/* ======================
+   RECEPTION QUEUE UI
+====================== */
+
+.reception-station {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.reception-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-weight: 800;
+}
+
+.queue-pill {
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.12);
+}
+
+.queue-track {
+  height: 46px;
+  border-radius: 14px;
+  background: rgba(0,0,0,0.15);
+  border: 1px solid rgba(255,255,255,0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+.guest {
+  position: absolute;
+  bottom: 6px;
+  font-size: 22px;
+  opacity: 0;
+  transform: translateX(-20px);
+  transition: opacity 240ms ease, transform 240ms ease;
+}
+
+.guest.show {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Guest “idle bounce” */
+@keyframes guestBounce {
+  0% { transform: translateX(0) translateY(0); }
+  50% { transform: translateX(0) translateY(-3px); }
+  100% { transform: translateX(0) translateY(0); }
+}
+.guest.show {
+  animation: guestBounce 1.2s ease-in-out infinite;
+}
+
+/* positions in the queue */
+#guest1 { left: 14px; }
+#guest2 { left: 54px; }
+#guest3 { left: 94px; }
+
+.small-btn {
+  height: 42px;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 800;
+}
 
