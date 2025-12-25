@@ -320,8 +320,16 @@ window.backToIsland = function backToIsland() {
 };
 
 window.clearBush = function clearBush() {
-  if (bushCleared) return alert("Bush already cleared ✅");
-  if (coins < BUSH_COST) return alert("Not enough coins!");
+  // If already cleared, go straight to Mombasa
+  if (bushCleared) {
+    window.location.href = "Mombasa.html";
+    return;
+  }
+
+  if (coins < BUSH_COST) {
+    alert("Not enough coins!");
+    return;
+  }
 
   coins -= BUSH_COST;
   bushCleared = true;
@@ -329,11 +337,10 @@ window.clearBush = function clearBush() {
   localStorage.setItem("coins", String(coins));
   localStorage.setItem("bushCleared", "true");
 
-  alert("🌴 Path cleared! New area unlocked!");
-  updateIslandUI();
-   window.location.href = "Mombasa.html";
-
+  alert("🌴 Path cleared! Welcome to Mombasa!");
+  window.location.href = "Mombasa.html";
 };
+
 
 /* ---------- START ---------- */
 function newGame() {
