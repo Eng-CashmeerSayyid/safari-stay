@@ -1,3 +1,4 @@
+alert("script.js loaded ✅");
 /* ================================
    SAFARI STAY – PUZZLE + ISLAND
    FULL CLEAN SCRIPT (WITH AUDIO)
