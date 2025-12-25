@@ -4,89 +4,59 @@
   <meta charset="UTF-8" />
   <title>Safari Stay – Mombasa</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
   <link rel="stylesheet" href="style.css" />
 </head>
+<body>
 
-<body class="mombasa-body">
-
-  <!-- LOBBY SCREEN -->
+  <!-- LOBBY -->
   <div id="lobbyScreen" class="screen">
+    <h1>Safari Stay – Mombasa</h1>
+    <p class="subtitle">Luxury Beach Hotel</p>
 
-    <div class="lobby-card">
-      <img src="images/reception.png" alt="Reception" class="hero-img" />
+    <img
+      src="/safari-stay/images/reception.png"
+      class="hero-img"
+      alt="Hotel Reception"
+    />
 
-      <h1>Safari Stay – Mombasa</h1>
-      <p class="subtitle">Luxury Beach Hotel</p>
+    <div class="card">
+      <p><strong>Coins:</strong> <span id="coinsLobby">0</span></p>
 
-      <div class="coin-box">
-        Coins: <span id="coinsLobby">0</span>
-      </div>
-
-      <button id="playHotelBtn" class="btn primary">
-        ▶ Play
-      </button>
-
-      <button id="saveProgressBtn" class="btn secondary">
-        💾 Save Progress
-      </button>
+      <button id="playHotelBtn" class="primary-btn">▶ Play</button>
+      <button id="saveProgressBtn" class="secondary-btn">💾 Save Progress</button>
     </div>
-
   </div>
 
-  <!-- HOTEL SCREEN -->
+  <!-- HOTEL -->
   <div id="hotelScreen" class="screen hidden">
-
-    <div class="hotel-card">
-
+    <div class="card">
       <h2>Hotel Progress</h2>
-      <p>Coins: <span id="coins">0</span></p>
 
-      <div class="station">
-        <img src="images/staff.png" class="station-img" />
-        <span id="roomsStation">Rooms: 0</span>
+      <p><strong>Coins:</strong> <span id="coins">0</span></p>
+      <p><strong>Rooms:</strong> <span id="roomsStation">0</span></p>
+      <p><strong>Cleaner:</strong> <span id="cleanerStation">Not hired</span></p>
+      <p><strong>Guests waiting:</strong> <span id="queueCount">0</span></p>
+      <p><strong>Pending earnings:</strong> <span id="progressText">0</span></p>
+
+      <div class="guests">
+        <img src="/safari-stay/images/staff.png" id="guest1" class="guest hidden" />
+        <img src="/safari-stay/images/staff.png" id="guest2" class="guest hidden" />
+        <img src="/safari-stay/images/staff.png" id="guest3" class="guest hidden" />
       </div>
 
-      <div class="station">
-        <img src="images/staff.png" class="station-img" />
-        <span id="cleanerStation">Cleaner: Not hired</span>
-      </div>
-
-      <p>Guests waiting: <span id="queueCount">0</span></p>
-
-      <div class="guest-row">
-        <div id="guest1" class="guest"></div>
-        <div id="guest2" class="guest"></div>
-        <div id="guest3" class="guest"></div>
-      </div>
-
-      <p id="progressText">Pending earnings: 0 coins</p>
-
-      <button id="buildRoomBtn" class="btn primary">
-        + Build Room (150)
-      </button>
-
-      <button id="hireCleanerBtn" class="btn primary">
-        Hire Cleaner (200)
-      </button>
-
-      <button id="collectBtn" class="btn primary">
-        Collect Earnings
-      </button>
-
-      <button id="checkInBtn" class="btn secondary">
-        Check-in Guest
-      </button>
-
-      <button onclick="location.reload()" class="btn secondary">
-        ← Back to Lobby
-      </button>
-
+      <button id="buildRoomBtn" class="primary-btn">➕ Build Room (150)</button>
+      <button id="hireCleanerBtn" class="primary-btn">🧹 Hire Cleaner (200)</button>
+      <button id="collectBtn" class="primary-btn">💰 Collect Earnings</button>
+      <button id="checkInBtn" class="secondary-btn">🛎 Check-in Guest</button>
+      <button onclick="location.reload()" class="secondary-btn">⬅ Back to Lobby</button>
     </div>
   </div>
 
   <script src="Mombasa.js"></script>
 </body>
 </html>
+
 
 
 
