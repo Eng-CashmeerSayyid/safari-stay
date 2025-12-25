@@ -1,53 +1,43 @@
 * {
   box-sizing: border-box;
-  font-family: "Segoe UI", sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 body {
   margin: 0;
-  background: linear-gradient(to bottom, #0a2540, #041527);
-  color: #fff;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
+  background: linear-gradient(180deg, #0f2a44, #081c2f);
+  color: white;
 }
 
 /* SCREENS */
 .screen {
-  width: 100%;
-  max-width: 420px;
-  padding: 20px;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .hidden {
   display: none;
 }
 
-/* HEADER */
-.hotel-header {
-  text-align: center;
-  margin-bottom: 20px;
-}
-
-.reception-img {
-  width: 140px;
-  margin-bottom: 10px;
-}
-
-.subtitle {
-  opacity: 0.8;
-}
-
-/* CARD */
-.card {
+/* CARDS */
+.lobby-card,
+.hotel-card {
   background: rgba(255, 255, 255, 0.08);
-  border-radius: 20px;
-  padding: 20px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+  padding: 28px;
+  border-radius: 18px;
+  width: 320px;
+  text-align: center;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.4);
 }
 
-/* STATIONS */
+/* IMAGES */
+.hero-img {
+  width: 120px;
+  margin-bottom: 12px;
+}
+
 .station {
   display: flex;
   align-items: center;
@@ -55,293 +45,51 @@ body {
   margin: 12px 0;
 }
 
-.icon {
-  width: 46px;
+.station-img {
+  width: 48px;
 }
 
 /* GUESTS */
-.guests {
+.guest-row {
   display: flex;
+  justify-content: center;
   gap: 8px;
   margin: 10px 0;
 }
 
 .guest {
-  width: 40px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: gold;
   opacity: 0;
-  transform: translateY(10px);
-  transition: all 0.4s ease;
 }
 
 .guest.show {
   opacity: 1;
-  transform: translateY(0);
 }
 
 /* BUTTONS */
 .btn {
   width: 100%;
-  padding: 14px;
+  padding: 12px;
   margin-top: 10px;
-  border: none;
   border-radius: 14px;
-  background: linear-gradient(135deg, #f7c873, #e6a23c);
-  color: #2a1a00;
-  font-weight: bold;
+  border: none;
+  font-size: 15px;
   cursor: pointer;
 }
 
-.btn:hover {
-  transform: scale(1.03);
-}
-
-.btn.ghost {
-  background: transparent;
-  border: 1px solid rgba(255,255,255,0.3);
-  color: #fff;
-}
-
-/* SHINE ANIMATION */
-.shine {
-  position: relative;
-  overflow: hidden;
-}
-
-.shine::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    120deg,
-    transparent,
-    rgba(255,255,255,0.5),
-    transparent
-  );
-  animation: shine 2.5s infinite;
-}
-
-@keyframes shine {
-  0% { left: -100%; }
-  50% { left: 100%; }
-  100% { left: 100%; }
-}
-
-.coins {
+.btn.primary {
+  background: linear-gradient(135deg, #ffcc00, #ff9f00);
+  color: #2b1b00;
   font-weight: bold;
-  margin-bottom: 10px;
-}
-/* ===========================
-   MOMBASA GRAND HOTEL THEME
-   (paste at bottom of style.css)
-=========================== */
-
-body.mombasa {
-  background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.08), transparent 40%),
-              radial-gradient(circle at 80% 30%, rgba(255,204,0,0.10), transparent 45%),
-              #0b1a33;
-  min-height: 100vh;
-  margin: 0;
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-  color: #fff;
 }
 
-.screen { min-height: 100vh; }
-.hidden { display: none; }
-
-.topbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 18px 20px;
+.btn.secondary {
+  background: rgba(255,255,255,0.15);
+  color: white;
 }
 
-.brand { display: flex; gap: 12px; align-items: center; }
-.brandIcon { width: 44px; height: 44px; border-radius: 14px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.25); }
-.brandImg { width: 100%; height: 100%; object-fit: cover; display: block; }
-
-.brandTitle { font-weight: 800; font-size: 16px; }
-.brandSub { opacity: 0.75; font-size: 12px; margin-top: 2px; }
-
-.pill {
-  padding: 10px 14px;
-  border-radius: 999px;
-  background: rgba(255,255,255,0.10);
-  border: 1px solid rgba(255,255,255,0.14);
-  box-shadow: 0 8px 25px rgba(0,0,0,0.20);
-}
-
-.centerWrap {
-  display: grid;
-  place-items: center;
-  padding: 28px 16px 60px;
-}
-
-.card {
-  width: min(520px, 92vw);
-  border-radius: 22px;
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.14);
-  box-shadow: 0 22px 60px rgba(0,0,0,0.40);
-  padding: 22px;
-  backdrop-filter: blur(10px);
-}
-
-.cardBig { padding: 28px; }
-
-.heroTitle {
-  margin: 0;
-  font-size: 28px;
-  letter-spacing: 0.3px;
-  text-shadow: 0 8px 30px rgba(0,0,0,0.45);
-}
-.heroSub { margin: 8px 0 18px; opacity: 0.85; }
-
-.lobbyArt {
-  position: relative;
-  height: 180px;
-  margin: 10px 0 18px;
-}
-
-.lobbyImg {
-  position: absolute;
-  left: 10px;
-  top: 10px;
-  width: 180px;
-  border-radius: 18px;
-  box-shadow: 0 18px 40px rgba(0,0,0,0.38);
-}
-
-.staffImg {
-  position: absolute;
-  right: 10px;
-  bottom: 10px;
-  width: 220px;
-  border-radius: 18px;
-  box-shadow: 0 18px 40px rgba(0,0,0,0.38);
-}
-
-.floaty { animation: floaty 3.8s ease-in-out infinite; }
-.floaty2 { animation: floaty 4.6s ease-in-out infinite; }
-
-@keyframes floaty {
-  0%,100% { transform: translateY(0px); }
-  50% { transform: translateY(-8px); }
-}
-
-.sectionTitle { margin: 0 0 16px; font-size: 22px; }
-
-.stations { display: grid; gap: 12px; margin-bottom: 14px; }
-
-.station {
-  display: flex;
-  gap: 14px;
-  align-items: center;
-  padding: 12px;
-  border-radius: 18px;
-  background: rgba(0,0,0,0.18);
-  border: 1px solid rgba(255,255,255,0.10);
-}
-
-.stationImg {
-  width: 62px;
-  height: 62px;
-  object-fit: cover;
-  border-radius: 14px;
-  box-shadow: 0 12px 30px rgba(0,0,0,0.35);
-}
-
-.stationLabel { font-weight: 800; }
-.stationValue { opacity: 0.9; margin-top: 4px; }
-
-.queueBox {
-  margin: 14px 0 16px;
-  padding: 12px;
-  border-radius: 18px;
-  background: rgba(0,0,0,0.16);
-  border: 1px solid rgba(255,255,255,0.10);
-}
-
-.queueTop {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-.smallMuted { opacity: 0.75; font-size: 12px; }
-
-.guests { display: flex; gap: 10px; }
-
-.guestBubble {
-  width: 46px;
-  height: 46px;
-  border-radius: 16px;
-  background: rgba(255,255,255,0.10);
-  border: 1px solid rgba(255,255,255,0.14);
-  opacity: 0;
-  transform: translateY(6px) scale(0.96);
-  transition: 200ms ease;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.25);
-}
-
-.guestBubble.show {
-  opacity: 1;
-  transform: translateY(0px) scale(1);
-}
-
-.btnRow { display: grid; gap: 10px; margin-top: 10px; }
-.btnStack { display: grid; gap: 10px; margin-top: 10px; }
-
-button {
-  border: none;
-  cursor: pointer;
-  font-weight: 800;
-}
-
-.btnPrimary {
-  padding: 14px 16px;
-  border-radius: 14px;
-  background: linear-gradient(180deg, #ffd65a, #ffb300);
-  color: #132040;
-  box-shadow: 0 16px 35px rgba(255, 187, 0, 0.22);
-}
-
-.btnGhost {
-  padding: 14px 16px;
-  border-radius: 14px;
-  background: rgba(255,255,255,0.10);
-  color: #fff;
-  border: 1px solid rgba(255,255,255,0.16);
-}
-
-.shine {
-  position: relative;
-  overflow: hidden;
-}
-
-.shine::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  transform: translateX(-140%);
-  background: linear-gradient(90deg,
-    transparent 0%,
-    rgba(255,255,255,0.35) 45%,
-    transparent 70%
-  );
-  animation: shine 2.8s infinite;
-}
-
-@keyframes shine {
-  0% { transform: translateX(-140%); }
-  60% { transform: translateX(140%); }
-  100% { transform: translateX(140%); }
-}
-
-.tinyNote { margin-top: 14px; opacity: 0.75; font-size: 12px; }
 
 
