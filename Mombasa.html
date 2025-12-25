@@ -1,116 +1,93 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Safari Stay — Mombasa Hotel</title>
-
+  <meta charset="UTF-8" />
+  <title>Safari Stay – Mombasa</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="style.css" />
 </head>
-<body class="mombasa">
 
-  <!-- ✅ LOBBY / START SCREEN -->
+<body class="mombasa-body">
+
+  <!-- LOBBY SCREEN -->
   <div id="lobbyScreen" class="screen">
-    <header class="topbar">
-      <div class="brand">
-        <div class="brandIcon">
-          <img src="images/reception.png" alt="Reception" class="brandImg">
-        </div>
-        <div class="brandText">
-          <div class="brandTitle">Safari Stay</div>
-          <div class="brandSub">Mombasa Hotel</div>
-        </div>
+
+    <div class="lobby-card">
+      <img src="images/reception.png" alt="Reception" class="hero-img" />
+
+      <h1>Safari Stay – Mombasa</h1>
+      <p class="subtitle">Luxury Beach Hotel</p>
+
+      <div class="coin-box">
+        Coins: <span id="coinsLobby">0</span>
       </div>
 
-      <div class="pill">Coins: <span id="coinsLobby">0</span></div>
-    </header>
+      <button id="playHotelBtn" class="btn primary">
+        ▶ Play
+      </button>
 
-    <main class="centerWrap">
-      <section class="card cardBig">
-        <h1 class="heroTitle">Safari Stay — Mombasa</h1>
-        <p class="heroSub">Luxury Beach Hotel</p>
+      <button id="saveProgressBtn" class="btn secondary">
+        💾 Save Progress
+      </button>
+    </div>
 
-        <div class="lobbyArt">
-          <img src="images/reception.png" alt="Lobby Reception" class="lobbyImg floaty">
-          <img src="images/staff.png" alt="Hotel Staff" class="staffImg floaty2">
-        </div>
-
-        <div class="btnRow">
-          <button id="playHotelBtn" class="btnPrimary shine">▶ Play</button>
-          <button id="saveProgressBtn" class="btnGhost">💾 Save Progress</button>
-        </div>
-
-        <p class="tinyNote">Tip: If images show as ❓, refresh with <b>CMD + SHIFT + R</b>.</p>
-      </section>
-    </main>
   </div>
 
-  <!-- ✅ HOTEL / MANAGEMENT SCREEN -->
+  <!-- HOTEL SCREEN -->
   <div id="hotelScreen" class="screen hidden">
-    <header class="topbar">
-      <div class="brand">
-        <div class="brandIcon">
-          <img src="images/reception.png" alt="Reception" class="brandImg">
-        </div>
-        <div class="brandText">
-          <div class="brandTitle">Hotel Progress</div>
-          <div class="brandSub">Mombasa</div>
-        </div>
+
+    <div class="hotel-card">
+
+      <h2>Hotel Progress</h2>
+      <p>Coins: <span id="coins">0</span></p>
+
+      <div class="station">
+        <img src="images/staff.png" class="station-img" />
+        <span id="roomsStation">Rooms: 0</span>
       </div>
 
-      <div class="pill">Coins: <span id="coins">0</span></div>
-    </header>
+      <div class="station">
+        <img src="images/staff.png" class="station-img" />
+        <span id="cleanerStation">Cleaner: Not hired</span>
+      </div>
 
-    <main class="centerWrap">
-      <section class="card">
-        <h2 class="sectionTitle">Hotel Progress</h2>
+      <p>Guests waiting: <span id="queueCount">0</span></p>
 
-        <div class="stations">
-          <div class="station">
-            <img src="images/reception.png" alt="Reception" class="stationImg">
-            <div class="stationText">
-              <div class="stationLabel">Reception</div>
-              <div class="stationValue" id="roomsStation">🛏️ Rooms: 0</div>
-            </div>
-          </div>
+      <div class="guest-row">
+        <div id="guest1" class="guest"></div>
+        <div id="guest2" class="guest"></div>
+        <div id="guest3" class="guest"></div>
+      </div>
 
-          <div class="station">
-            <img src="images/staff.png" alt="Staff" class="stationImg">
-            <div class="stationText">
-              <div class="stationLabel">Staff</div>
-              <div class="stationValue" id="cleanerStation">🧹 Cleaner: Not hired</div>
-            </div>
-          </div>
-        </div>
+      <p id="progressText">Pending earnings: 0 coins</p>
 
-        <div class="queueBox">
-          <div class="queueTop">
-            <div>Guests waiting: <b><span id="queueCount">0</span></b></div>
-            <div class="smallMuted" id="progressText">Pending earnings: 0 coins</div>
-          </div>
+      <button id="buildRoomBtn" class="btn primary">
+        + Build Room (150)
+      </button>
 
-          <div class="guests">
-            <div id="guest1" class="guestBubble"></div>
-            <div id="guest2" class="guestBubble"></div>
-            <div id="guest3" class="guestBubble"></div>
-          </div>
-        </div>
+      <button id="hireCleanerBtn" class="btn primary">
+        Hire Cleaner (200)
+      </button>
 
-        <div class="btnStack">
-          <button id="buildRoomBtn" class="btnPrimary shine">+ Build Room (150)</button>
-          <button id="hireCleanerBtn" class="btnPrimary shine">🧹 Hire Cleaner (200)</button>
-          <button id="collectBtn" class="btnPrimary shine">💰 Collect Earnings</button>
+      <button id="collectBtn" class="btn primary">
+        Collect Earnings
+      </button>
 
-          <button id="checkInBtn" class="btnGhost">✅ Check-in Guest (+25)</button>
-          <button id="backBtn" class="btnGhost">⬅ Back to Lobby</button>
-        </div>
-      </section>
-    </main>
+      <button id="checkInBtn" class="btn secondary">
+        Check-in Guest
+      </button>
+
+      <button onclick="location.reload()" class="btn secondary">
+        ← Back to Lobby
+      </button>
+
+    </div>
   </div>
 
   <script src="Mombasa.js"></script>
 </body>
 </html>
+
 
 
 
