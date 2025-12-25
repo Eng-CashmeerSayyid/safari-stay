@@ -3,16 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Safari Stay – Mombasa Hotel</title>
+  <title>Safari Stay – Mombasa</title>
+
+  <!-- Optional global styles -->
   <link rel="stylesheet" href="style.css">
+
   <style>
     body{
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
       margin: 0;
       padding: 24px;
       background: #0b1220;
-      color: #fff;
+      color: #ffffff;
     }
+
     .card{
       max-width: 720px;
       margin: 0 auto;
@@ -21,74 +25,123 @@
       border-radius: 16px;
       padding: 18px;
     }
+
     .hero{
       height: 200px;
       border-radius: 14px;
       background: linear-gradient(135deg, #f7c65b, #2dd4bf, #60a5fa);
       display: flex;
-      align-items: end;
+      align-items: flex-end;
       padding: 16px;
       box-sizing: border-box;
       font-weight: 700;
       color: rgba(0,0,0,0.75);
+      margin-bottom: 14px;
     }
+
+    h1{
+      margin: 6px 0;
+    }
+
+    .subtitle{
+      opacity: 0.85;
+      margin-bottom: 14px;
+    }
+
     .stations{
       display: grid;
-      gap: 10px;
-      margin-top: 14px;
+      gap: 14px;
     }
+
     .station{
-      padding: 12px 14px;
-      border-radius: 12px;
       background: rgba(0,0,0,0.25);
       border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 14px;
+      padding: 12px;
     }
+
+    .imgbox{
+      width: 100%;
+      height: 130px;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 8px;
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .imgbox img{
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .placeholder{
+      background: rgba(0,0,0,0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      opacity: 0.85;
+    }
+
     a{
+      display: inline-block;
+      margin-top: 16px;
       color: #f7c65b;
       text-decoration: none;
       font-weight: 600;
     }
-    a:hover{ text-decoration: underline; }
+
+    a:hover{
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body>
 
   <div class="card">
-    <div class="hero">🏨 Mombasa Hotel (Image test: OFF)</div>
 
-    <h1 style="margin: 14px 0 6px;">Safari Stay – Mombasa</h1>
-    <p style="margin: 0 0 12px; opacity: 0.9;">Luxury Beach Hotel</p>
+    <div class="hero">🏨 Mombasa Hotel</div>
 
-  <div class="station">
-  <div class="imgbox">
-    <img src="assets/reception.png" alt="Reception">
-  </div>
-  <p>🧑🏽‍💼 Reception</p>
-</div>
+    <h1>Safari Stay – Mombasa</h1>
+    <div class="subtitle">Luxury Beach Hotel</div>
 
-<div class="station">
-  <div class="imgbox placeholder">
-    <div class="ph">🛏️ Room image coming soon</div>
-  </div>
-  <p>🛏️ Room</p>
-</div>
+    <div class="stations">
 
-<div class="station">
-  <div class="imgbox">
-    <img src="assets/staff.png" alt="Cleaner">
-  </div>
-  <p>🧹 Cleaner</p>
-</div>
+      <!-- Reception -->
+      <div class="station">
+        <div class="imgbox">
+          <img src="images/reception.png" alt="Reception">
+        </div>
+        🧑🏽‍💼 Reception
+      </div>
 
+      <!-- Room (placeholder if image missing) -->
+      <div class="station">
+        <div class="imgbox placeholder">
+          🛏️ Room image coming soon
+        </div>
+        🛏️ Room
+      </div>
 
+      <!-- Cleaner -->
+      <div class="station">
+        <div class="imgbox">
+          <img src="images/staff.png" alt="Cleaner">
+        </div>
+        🧹 Cleaner
+      </div>
 
-    <p style="margin-top: 16px;">
-      <a href="index.html">⬅ Back to Island</a>
-    </p>
+    </div>
+
+    <a href="index.html">⬅ Back to Island</a>
+
   </div>
 
 </body>
 </html>
+
 
 
 
