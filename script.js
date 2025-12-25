@@ -331,6 +331,8 @@ window.clearBush = function clearBush() {
 
   alert("🌴 Path cleared! New area unlocked!");
   updateIslandUI();
+   window.location.href = "Mombasa.html";
+
 };
 
 /* ---------- START ---------- */
