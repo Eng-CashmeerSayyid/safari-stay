@@ -7,64 +7,67 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-
-<!-- 🌴 ISLAND SCREEN -->
-<div id="islandScreen">
-  <header class="top">
+  <header class="topbar">
     <div class="brand">
-      <div class="logo">🏝️</div>
+      <div class="logo">🦒</div>
       <div>
-        <div class="title">Safari Stay</div>
-        <div class="subtitle">Mombasa Island</div>
+        <h1>Safari Stay</h1>
+        <p class="muted">Match • Earn • Build Kenya’s best resorts</p>
       </div>
     </div>
 
-    <div class="pill">Coins: <span id="coins">0</span></div>
-  </header>
-
-  <main class="wrap">
-    <section class="panel">
-      <h3>Island Tasks</h3>
-
-      <p id="bushStatus">🌿 Bush is blocking the path</p>
-
-      <button class="btn" onclick="clearBush()">Clear Bush (100 coins)</button>
-
-      <div class="buttons">
-        <button class="btn" onclick="goToGame()">🎮 Play Puzzle</button>
-      </div>
-    </section>
-  </main>
-</div>
-
-<!-- 🎮 GAME SCREEN -->
-<div id="gameScreen" class="hidden">
-  <header class="top">
-    <div class="brand">
-      <div class="logo">🦁</div>
-      <div>
-        <div class="title">Safari Stay</div>
-        <div class="subtitle">Puzzle Mode</div>
-      </div>
-    </div>
-
-    <div class="stats">
-      <div class="pill">Score: <span id="score">0</span></div>
-      <div class="pill">Moves: <span id="moves">30</span></div>
+    <div class="pill">
+      <span>💰 Coins:</span>
+      <strong id="coins">0</strong>
+      <button class="btn small" id="resetBtn" title="Reset coins & progress">Reset</button>
     </div>
   </header>
 
-  <main class="wrap">
-    <section class="panel">
-      <div id="grid" class="grid"></div>
+  <main class="container">
+    <section class="card hero">
+      <h2>Choose a destination</h2>
+      <p class="muted">Start in Mombasa. Earn coins and upgrade your hotel.</p>
 
-      <div class="buttons">
-        <button class="btn" onclick="backToIsland()">⬅ Back to Island</button>
+      <div class="grid2">
+        <a class="levelCard" href="Mombasa.html">
+          <div class="levelTitle">
+            <h3>🌊 Mombasa</h3>
+            <p class="muted">Hotel & beach vibes</p>
+          </div>
+          <div class="levelMeta">
+            <span class="tag">Level 1</span>
+            <span class="tag">Open</span>
+          </div>
+        </a>
+
+        <div class="levelCard locked" aria-disabled="true">
+          <div class="levelTitle">
+            <h3>🦁 Maasai Mara</h3>
+            <p class="muted">Coming soon</p>
+          </div>
+          <div class="levelMeta">
+            <span class="tag">Level 2</span>
+            <span class="tag">Locked</span>
+          </div>
+        </div>
       </div>
     </section>
-  </main>
-</div>
 
-<script src="script.js"></script>
+    <section class="card">
+      <h2>How it works</h2>
+      <ol class="muted">
+        <li>Play the mini “earn” actions to gain coins</li>
+        <li>Use coins to build rooms and hire staff</li>
+        <li>Upgrade your hotel to unlock new levels</li>
+      </ol>
+    </section>
+  </main>
+
+  <footer class="footer muted">
+    Built by Eng-CashmeerSayyid • Safari Stay
+  </footer>
+
+  <script src="script.js"></script>
 </body>
 </html>
+
