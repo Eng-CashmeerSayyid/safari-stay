@@ -1,144 +1,117 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Safari Stay – Mombasa</title>
-
-  <!-- Optional global styles -->
-  <link rel="stylesheet" href="style.css">
-
-  <style>
-    body{
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      margin: 0;
-      padding: 24px;
-      background: #0b1220;
-      color: #ffffff;
-    }
-
-    .card{
-      max-width: 720px;
-      margin: 0 auto;
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 16px;
-      padding: 18px;
-    }
-
-    .hero{
-      height: 200px;
-      border-radius: 14px;
-      background: linear-gradient(135deg, #f7c65b, #2dd4bf, #60a5fa);
-      display: flex;
-      align-items: flex-end;
-      padding: 16px;
-      box-sizing: border-box;
-      font-weight: 700;
-      color: rgba(0,0,0,0.75);
-      margin-bottom: 14px;
-    }
-
-    h1{
-      margin: 6px 0;
-    }
-
-    .subtitle{
-      opacity: 0.85;
-      margin-bottom: 14px;
-    }
-
-    .stations{
-      display: grid;
-      gap: 14px;
-    }
-
-    .station{
-      background: rgba(0,0,0,0.25);
-      border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 14px;
-      padding: 12px;
-    }
-
-    .imgbox{
-      width: 100%;
-      height: 130px;
-      border-radius: 10px;
-      overflow: hidden;
-      margin-bottom: 8px;
-      border: 1px solid rgba(255,255,255,0.12);
-    }
-
-    .imgbox img{
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-
-    .placeholder{
-      background: rgba(0,0,0,0.35);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 600;
-      opacity: 0.85;
-    }
-
-    a{
-      display: inline-block;
-      margin-top: 16px;
-      color: #f7c65b;
-      text-decoration: none;
-      font-weight: 600;
-    }
-
-    a:hover{
-      text-decoration: underline;
-    }
-  </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Mombasa • Safari Stay</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-
-  <div class="card">
-
-    <div class="hero">🏨 Mombasa Hotel</div>
-
-    <h1>Safari Stay – Mombasa</h1>
-    <div class="subtitle">Luxury Beach Hotel</div>
-
-    <div class="stations">
-
-      <!-- Reception -->
-      <div class="station">
-        <div class="imgbox">
-          <img src="images/reception.png" alt="Reception">
-        </div>
-        🧑🏽‍💼 Reception
+  <header class="topbar">
+    <div class="brand">
+      <a class="logo" href="index.html" title="Back to home">⬅️</a>
+      <div>
+        <h1>🌊 Mombasa Hotel</h1>
+        <p class="muted">Build rooms • Hire staff • Serve guests</p>
       </div>
-
-      <!-- Room (placeholder if image missing) -->
-      <div class="station">
-        <div class="imgbox">
-         <img src="images/room.png" alt="Room">
-        </div>
-        🛏️ Room
-      </div>
-
-      <!-- Cleaner -->
-      <div class="station">
-        <div class="imgbox">
-          <img src="images/staff.png" alt="Cleaner">
-        </div>
-        🧹 Cleaner
-      </div>
-
     </div>
 
-    <a href="index.html">⬅ Back to Island</a>
+    <div class="pill">
+      <span>💰 Coins:</span>
+      <strong id="coins">0</strong>
+    </div>
+  </header>
 
-  </div>
+  <main class="container">
+    <section class="card cols">
+      <div class="preview">
+        <img src="images/reception.png" alt="Hotel reception" onerror="this.style.display='none'" />
+        <img src="images/staff.png" alt="Hotel staff" onerror="this.style.display='none'" />
+        <img src="images/room.png" alt="Hotel room" onerror="this.style.display='none'" />
+        <p class="muted">
+          If any image disappears, it means that file is not inside <b>/images</b> or the name is different.
+        </p>
+      </div>
 
+      <div>
+        <h2>Status</h2>
+        <div class="hr"></div>
+
+        <p class="muted">Rooms built: <b id="rooms">0</b></p>
+        <p class="muted">Cleaner hired: <b id="cleaner">No</b></p>
+        <p class="muted">Bellboy hired: <b id="bellboy">No</b></p>
+        <p class="muted">Guests waiting: <b id="queue">0</b></p>
+        <p class="muted">Guests served: <b id="served">0</b></p>
+
+        <div class="hr"></div>
+
+        <div class="row">
+          <button class="btn" id="earnBtn">Earn +25 coins</button>
+          <button class="btn small" id="saveBtn" title="Save progress">Save</button>
+        </div>
+
+        <p class="muted" style="margin-top:10px">
+          Tip: Use “Earn” to get coins, then buy upgrades below.
+        </p>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Hotel Shop</h2>
+      <p class="muted">Spend coins to upgrade your Mombasa hotel.</p>
+
+      <div class="shop">
+        <div class="shopItem">
+          <div>
+            <strong>Build 1 Room</strong>
+            <div class="muted">+1 capacity • Cost: 100 coins</div>
+          </div>
+          <button class="btn" id="buyRoom">Buy</button>
+        </div>
+
+        <div class="shopItem">
+          <div>
+            <strong>Hire Cleaner</strong>
+            <div class="muted">Faster service • Cost: 150 coins</div>
+          </div>
+          <button class="btn" id="buyCleaner">Hire</button>
+        </div>
+
+        <div class="shopItem">
+          <div>
+            <strong>Hire Bellboy</strong>
+            <div class="muted">Serve more guests • Cost: 200 coins</div>
+          </div>
+          <button class="btn" id="buyBellboy">Hire</button>
+        </div>
+
+        <div class="shopItem">
+          <div>
+            <strong>Serve 1 Guest</strong>
+            <div class="muted">Earns 40 coins • Needs 1 room</div>
+          </div>
+          <button class="btn" id="serveGuest">Serve</button>
+        </div>
+
+        <div class="shopItem">
+          <div>
+            <strong>Call New Guests</strong>
+            <div class="muted">Adds +3 guests to the queue</div>
+          </div>
+          <button class="btn" id="callGuests">Call</button>
+        </div>
+      </div>
+
+      <div class="hr"></div>
+      <p class="muted" id="msg">Ready ✅</p>
+    </section>
+  </main>
+
+  <footer class="footer muted">
+    <a href="index.html">Home</a> • Safari Stay
+  </footer>
+
+  <script src="Mombasa.js"></script>
 </body>
 </html>
 
