@@ -200,5 +200,70 @@ body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial
   .cell { height: 46px; font-size: 22px; border-radius: 12px; }
   .hero h1 { font-size: 22px; }
 }
+.hidden { display: none; }
+
+.tabs{
+  display:flex;
+  gap:10px;
+  margin-bottom:12px;
+}
+.tabBtn{
+  flex:1;
+  padding:12px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.06);
+  color:#eaf0ff;
+  font-weight:900;
+  cursor:pointer;
+}
+.tabBtn.active{
+  background:#f5c542;
+  color:#111;
+}
+
+.hotelHud{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  align-items:center;
+  margin: 12px 0;
+}
+
+.hotelMap{
+  position: relative;
+  height: 360px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.05);
+  overflow: hidden;
+}
+
+.station{
+  position:absolute;
+  padding:10px 12px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.08);
+  border:1px solid rgba(255,255,255,0.12);
+  font-weight:900;
+  font-size: 12px;
+}
+
+.reception{ left: 22px; top: 140px; }
+.room{ right: 30px; top: 80px; }
+.exit{ left: 22px; bottom: 22px; }
+
+.character{
+  position:absolute;
+  width: 44px;
+  height: 44px;
+  display:grid;
+  place-items:center;
+  font-size: 26px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.10);
+  border:1px solid rgba(255,255,255,0.14);
+}
+.guest{ left: 10px; top: 10px; }
 
 
