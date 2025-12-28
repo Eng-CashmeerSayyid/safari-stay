@@ -1,388 +1,301 @@
-/* ==========================================
-   SAFARI STAY – UPGRADED MATCH PUZZLE
-   + TAB SWITCHER (single source of truth)
-   + Staff hire events -> hotel.js updates live
-   ========================================== */
+/* ==========================================================
+   SAFARI STAY – MOMBASA PUZZLE (SAFE, NO CONFLICTS)
+   - 8x8 match-3 style
+   - +1 coin per MOVE (always)
+   - bonus coins: +1 per tile cleared in matches
+   - updates #coins and #moves in top bar
+   - uses localStorage key: "coins" (shared with hotel.js)
+   - DOES NOT control tabs (hotel.js controls tabs)
+   ========================================================== */
 
-// =================== TAB SWITCHER (SAFE) ===================
-(function initTabs(){
-  const tabPuzzle = document.getElementById("tabPuzzle");
-  const tabHotel  = document.getElementById("tabHotel");
-  const viewPuzzle = document.getElementById("viewPuzzle");
-  const viewHotel  = document.getElementById("viewHotel");
+document.addEventListener("DOMContentLoaded", () => {
+  const gridEl = document.getElementById("grid");
+  if (!gridEl) return;
 
-  if (!tabPuzzle || !tabHotel || !viewPuzzle || !viewHotel) return;
+  // Top bar
+  const coinsEl = document.getElementById("coins");
+  const movesEl = document.getElementById("moves");
 
-  function showPuzzle(){
-    tabPuzzle.classList.add("active");
-    tabHotel.classList.remove("active");
-    viewPuzzle.classList.remove("hidden");
-    viewHotel.classList.add("hidden");
-  }
+  // Mini stats
+  const comboEl = document.getElementById("combo");
+  const clearedEl = document.getElementById("cleared");
 
-  function showHotel(){
-    tabHotel.classList.add("active");
-    tabPuzzle.classList.remove("active");
-    viewHotel.classList.remove("hidden");
-    viewPuzzle.classList.add("hidden");
-  }
+  // Buttons
+  const newGameBtn = document.getElementById("newGameBtn");
+  const resetCoinsBtn = document.getElementById("resetCoinsBtn");
 
-  tabPuzzle.addEventListener("click", showPuzzle);
-  tabHotel.addEventListener("click", showHotel);
+  // Shared coins with hotel.js
+  let coins = Number(localStorage.getItem("coins")) || 0;
 
-  // default view
-  showPuzzle();
-})();
+  // Puzzle state
+  const WIDTH = 8;
+  const TOTAL = WIDTH * WIDTH;
+  const ICONS = ["🍍","🥥","🐚","⭐","🍓","🌴"];
 
-/* =================== PUZZLE CORE =================== */
-const WIDTH = 8;
-const TOTAL = WIDTH * WIDTH;
-
-// Tile set
-const TILES = ["🍓", "🥥", "🌴", "🐚", "⭐", "🍍"];
-
-// Rules
-const START_MOVES = 30;
-const COIN_PER_MOVE = 1;
-const COIN_PER_TILE_CLEARED = 1;
-
-// Storage keys
-const KEY_COINS = "coins";
-const KEY_ROOM_LVL = "mombasaRoomLevel";
-const KEY_BELL = "mombasaBellboy";
-const KEY_CLEAN = "mombasaCleaner";
-
-// Elements
-const grid = document.getElementById("grid");
-const movesEl = document.getElementById("moves");
-const coinsEl = document.getElementById("coins");
-const comboEl = document.getElementById("combo");
-const clearedEl = document.getElementById("cleared");
-
-const newGameBtn = document.getElementById("newGameBtn");
-const resetCoinsBtn = document.getElementById("resetCoinsBtn");
-
-// Upgrades UI
-const roomCostEl = document.getElementById("roomCost");
-const roomLevelEl = document.getElementById("roomLevel");
-const buyRoomBtn = document.getElementById("buyRoomBtn");
-
-const hireBellBtn = document.getElementById("hireBellBtn");
-const hireCleanBtn = document.getElementById("hireCleanBtn");
-const bellStatusEl = document.getElementById("bellStatus");
-const cleanStatusEl = document.getElementById("cleanStatus");
-
-// Guard: if someone opens index.html, these may not exist
-if (!grid || !movesEl || !coinsEl) {
-  // Do nothing on pages without the puzzle UI
-} else {
-
-  // State
-  let board = [];
-  let selectedIndex = null;
-  let isBusy = false;
-
-  let moves = START_MOVES;
-  let coins = Number(localStorage.getItem(KEY_COINS)) || 0;
+  let board = new Array(TOTAL).fill(null);
+  let selected = null;
+  let moves = 30;
 
   let combo = 0;
   let clearedTotal = 0;
 
-  // Upgrades
-  let roomLevel = Number(localStorage.getItem(KEY_ROOM_LVL)) || 0;
-  let bellHired = localStorage.getItem(KEY_BELL) === "true";
-  let cleanerHired = localStorage.getItem(KEY_CLEAN) === "true";
+  let busy = false;
 
-  function randomTile() {
-    return TILES[Math.floor(Math.random() * TILES.length)];
+  function saveCoins() {
+    localStorage.setItem("coins", String(coins));
   }
 
-  function indexToRow(i) { return Math.floor(i / WIDTH); }
-
-  function isAdjacent(a, b) {
-    const ra = indexToRow(a), rb = indexToRow(b);
-    return (
-      (a === b - 1 && ra === rb) ||
-      (a === b + 1 && ra === rb) ||
-      a === b - WIDTH ||
-      a === b + WIDTH
-    );
+  function renderTopBar() {
+    if (coinsEl) coinsEl.textContent = String(coins);
+    if (movesEl) movesEl.textContent = String(moves);
   }
 
-  function updateTopUI() {
-    movesEl.textContent = moves;
-    coinsEl.textContent = coins;
-    if (comboEl) comboEl.textContent = combo;
-    if (clearedEl) clearedEl.textContent = clearedTotal;
-    localStorage.setItem(KEY_COINS, String(coins));
+  function renderMiniStats() {
+    if (comboEl) comboEl.textContent = String(combo);
+    if (clearedEl) clearedEl.textContent = String(clearedTotal);
   }
 
-  function clearHighlights() {
-    document.querySelectorAll(".cell").forEach(c => c.classList.remove("selected"));
+  function randIcon() {
+    return ICONS[Math.floor(Math.random() * ICONS.length)];
   }
 
-  function highlight(i) {
-    clearHighlights();
-    if (grid.children[i]) grid.children[i].classList.add("selected");
-  }
-
-  function render() {
-    for (let i = 0; i < TOTAL; i++) {
-      if (grid.children[i]) grid.children[i].textContent = board[i] || "";
-    }
-  }
-
-  // Find matches (3+ rows/cols)
-  function findAllMatches() {
-    const toClear = new Set();
-
-    // rows
-    for (let r = 0; r < WIDTH; r++) {
-      let runStart = r * WIDTH;
-      let runLen = 1;
-      for (let c = 1; c < WIDTH; c++) {
-        const i = r * WIDTH + c;
-        const prev = r * WIDTH + (c - 1);
-        if (board[i] && board[i] === board[prev]) runLen++;
-        else {
-          if (runLen >= 3) for (let k = 0; k < runLen; k++) toClear.add(runStart + k);
-          runStart = i;
-          runLen = 1;
-        }
-      }
-      if (runLen >= 3) for (let k = 0; k < runLen; k++) toClear.add(runStart + k);
-    }
-
-    // cols
-    for (let c = 0; c < WIDTH; c++) {
-      let runStart = c;
-      let runLen = 1;
-      for (let r = 1; r < WIDTH; r++) {
-        const i = r * WIDTH + c;
-        const prev = (r - 1) * WIDTH + c;
-        if (board[i] && board[i] === board[prev]) runLen++;
-        else {
-          if (runLen >= 3) for (let k = 0; k < runLen; k++) toClear.add(runStart + k * WIDTH);
-          runStart = i;
-          runLen = 1;
-        }
-      }
-      if (runLen >= 3) for (let k = 0; k < runLen; k++) toClear.add(runStart + k * WIDTH);
-    }
-
-    return [...toClear];
-  }
-
-  function applyGravity() {
-    for (let c = 0; c < WIDTH; c++) {
-      const colTiles = [];
-      for (let r = WIDTH - 1; r >= 0; r--) {
-        const i = r * WIDTH + c;
-        if (board[i]) colTiles.push(board[i]);
-      }
-      let writeRow = WIDTH - 1;
-      for (let t = 0; t < colTiles.length; t++) {
-        board[writeRow * WIDTH + c] = colTiles[t];
-        writeRow--;
-      }
-      while (writeRow >= 0) {
-        board[writeRow * WIDTH + c] = randomTile();
-        writeRow--;
-      }
-    }
-  }
-
-  function clearMatchesAndCascade() {
-    const matches = findAllMatches();
-    if (matches.length === 0) return false;
-
-    matches.forEach(i => board[i] = "");
-    const clearedNow = matches.length;
-    clearedTotal += clearedNow;
-
-    coins += clearedNow * COIN_PER_TILE_CLEARED;
-
-    updateTopUI();
-    render();
-
-    setTimeout(() => {
-      applyGravity();
-      render();
-
-      setTimeout(() => {
-        combo += 1;
-        updateTopUI();
-        clearMatchesAndCascade();
-      }, 140);
-    }, 160);
-
-    return true;
-  }
-
-  function doSwap(a, b) {
-    [board[a], board[b]] = [board[b], board[a]];
-  }
-
-  function attemptMove(a, b) {
-    if (isBusy || moves <= 0) return;
-
-    isBusy = true;
-
-    doSwap(a, b);
-    render();
-
-    moves -= 1;
-    coins += COIN_PER_MOVE;
-
-    combo = 0;
-    updateTopUI();
-    refreshUpgradesUI();
-
-    setTimeout(() => {
-      const hadMatch = clearMatchesAndCascade();
-
-      if (!hadMatch) {
-        setTimeout(() => {
-          doSwap(a, b);
-          render();
-          isBusy = false;
-        }, 140);
-      } else {
-        setTimeout(() => {
-          isBusy = false;
-          refreshUpgradesUI();
-        }, 900);
-      }
-    }, 120);
-  }
-
-  function handleClick(i) {
-    if (isBusy || moves <= 0) return;
-
-    if (selectedIndex === null) {
-      selectedIndex = i;
-      highlight(i);
-      return;
-    }
-
-    if (!isAdjacent(selectedIndex, i)) {
-      selectedIndex = i;
-      highlight(i);
-      return;
-    }
-
-    clearHighlights();
-    const a = selectedIndex;
-    selectedIndex = null;
-    attemptMove(a, i);
-  }
-
-  function buildBoard() {
-    grid.innerHTML = "";
-    board = [];
-    selectedIndex = null;
-    isBusy = false;
-
-    moves = START_MOVES;
+  function initBoard() {
+    board = new Array(TOTAL).fill(null).map(() => randIcon());
+    selected = null;
+    moves = 30;
     combo = 0;
     clearedTotal = 0;
+    // Clean starting matches
+    while (crushMatches(true) > 0) {
+      dropAndFill();
+    }
+    renderAll();
+  }
 
+  function renderAll() {
+    renderTopBar();
+    renderMiniStats();
+    renderGrid();
+  }
+
+  function renderGrid() {
+    gridEl.innerHTML = "";
     for (let i = 0; i < TOTAL; i++) {
-      board.push(randomTile());
-
       const cell = document.createElement("div");
-      cell.className = "cell";
-      cell.addEventListener("click", () => handleClick(i));
-      grid.appendChild(cell);
+      cell.className = "cell"; // IMPORTANT: matches your CSS
+      cell.textContent = board[i] ?? " ";
+      if (selected === i) cell.classList.add("selected");
+      cell.addEventListener("click", () => onCellClick(i));
+      gridEl.appendChild(cell);
+    }
+  }
+
+  function neighbors(a, b) {
+    const ax = a % WIDTH, ay = Math.floor(a / WIDTH);
+    const bx = b % WIDTH, by = Math.floor(b / WIDTH);
+    return (Math.abs(ax - bx) + Math.abs(ay - by)) === 1;
+  }
+
+  function swap(a, b) {
+    const t = board[a];
+    board[a] = board[b];
+    board[b] = t;
+  }
+
+  function hasAnyMatch() {
+    // rows
+    for (let r = 0; r < WIDTH; r++) {
+      for (let c = 0; c < WIDTH - 2; c++) {
+        const i = r * WIDTH + c;
+        const v = board[i];
+        if (v && v === board[i+1] && v === board[i+2]) return true;
+      }
+    }
+    // cols
+    for (let c = 0; c < WIDTH; c++) {
+      for (let r = 0; r < WIDTH - 2; r++) {
+        const i = r * WIDTH + c;
+        const v = board[i];
+        if (v && v === board[i+WIDTH] && v === board[i+2*WIDTH]) return true;
+      }
+    }
+    return false;
+  }
+
+  function onCellClick(i) {
+    if (busy) return;
+    if (moves <= 0) return;
+
+    if (selected === null) {
+      selected = i;
+      renderGrid();
+      return;
     }
 
-    render();
-    updateTopUI();
+    if (selected === i) {
+      selected = null;
+      renderGrid();
+      return;
+    }
 
-    clearMatchesAndCascade(); // remove starting matches
+    if (!neighbors(selected, i)) {
+      selected = i;
+      renderGrid();
+      return;
+    }
+
+    // attempt swap
+    busy = true;
+    const a = selected, b = i;
+    swap(a, b);
+
+    if (!hasAnyMatch()) {
+      // invalid swap -> swap back
+      swap(a, b);
+      selected = null;
+      busy = false;
+      renderAll();
+      return;
+    }
+
+    // VALID move: spend move + earn +1 coin
+    moves -= 1;
+    coins += 1;
+    saveCoins();
+    renderTopBar();
+
+    selected = null;
+
+    // resolve matches chain
+    combo = 0;
+    setTimeout(() => resolveChain(), 60);
   }
 
-  // ---------- Upgrades ----------
-  function getRoomCost() {
-    return Math.floor(20 + roomLevel * 15 + roomLevel * roomLevel * 5);
+  // Crush matches. If silent=true, no coin bonus.
+  function crushMatches(silent=false) {
+    let crushed = 0;
+
+    // Row runs
+    for (let r = 0; r < WIDTH; r++) {
+      let start = r * WIDTH;
+      let runVal = board[start];
+      let runLen = 1;
+
+      for (let c = 1; c < WIDTH; c++) {
+        const idx = r * WIDTH + c;
+        const v = board[idx];
+        if (v && v === runVal) runLen++;
+        else {
+          if (runVal && runLen >= 3) {
+            for (let k = 0; k < runLen; k++) {
+              board[start + k] = null;
+              crushed++;
+            }
+          }
+          start = idx;
+          runVal = v;
+          runLen = 1;
+        }
+      }
+      if (runVal && runLen >= 3) {
+        for (let k = 0; k < runLen; k++) {
+          board[start + k] = null;
+          crushed++;
+        }
+      }
+    }
+
+    // Col runs
+    for (let c = 0; c < WIDTH; c++) {
+      let start = c;
+      let runVal = board[start];
+      let runLen = 1;
+
+      for (let r = 1; r < WIDTH; r++) {
+        const idx = r * WIDTH + c;
+        const v = board[idx];
+        if (v && v === runVal) runLen++;
+        else {
+          if (runVal && runLen >= 3) {
+            for (let k = 0; k < runLen; k++) {
+              board[start + k*WIDTH] = null;
+              crushed++;
+            }
+          }
+          start = idx;
+          runVal = v;
+          runLen = 1;
+        }
+      }
+      if (runVal && runLen >= 3) {
+        for (let k = 0; k < runLen; k++) {
+          board[start + k*WIDTH] = null;
+          crushed++;
+        }
+      }
+    }
+
+    if (crushed > 0) {
+      combo += 1;
+      clearedTotal += crushed;
+
+      // bonus: +1 coin per tile cleared
+      if (!silent) {
+        coins += crushed;
+        saveCoins();
+      }
+    }
+
+    return crushed;
   }
 
-  function refreshUpgradesUI() {
-    if (!roomCostEl || !roomLevelEl) return;
-
-    const cost = getRoomCost();
-    roomCostEl.textContent = cost;
-    roomLevelEl.textContent = roomLevel;
-
-    if (bellStatusEl) bellStatusEl.textContent = bellHired ? "Hired ✅" : "Not hired";
-    if (cleanStatusEl) cleanStatusEl.textContent = cleanerHired ? "Hired ✅" : "Not hired";
-
-    if (buyRoomBtn) buyRoomBtn.disabled = coins < cost;
-    if (hireBellBtn) hireBellBtn.disabled = bellHired || coins < 30;
-    if (hireCleanBtn) hireCleanBtn.disabled = cleanerHired || coins < 30;
+  function dropAndFill() {
+    for (let c = 0; c < WIDTH; c++) {
+      let write = (WIDTH - 1) * WIDTH + c;
+      for (let r = WIDTH - 1; r >= 0; r--) {
+        const read = r * WIDTH + c;
+        if (board[read] !== null) {
+          board[write] = board[read];
+          if (write !== read) board[read] = null;
+          write -= WIDTH;
+        }
+      }
+      for (let r = Math.floor(write / WIDTH); r >= 0; r--) {
+        const idx = r * WIDTH + c;
+        if (board[idx] === null) board[idx] = randIcon();
+      }
+    }
   }
 
-  function spendCoins(amount) {
-    if (coins < amount) return false;
-    coins -= amount;
-    localStorage.setItem(KEY_COINS, String(coins));
-    updateTopUI();
-    return true;
+  function resolveChain() {
+    const crushed = crushMatches(false);
+    if (crushed > 0) {
+      dropAndFill();
+      renderAll();
+      setTimeout(resolveChain, 120);
+    } else {
+      busy = false;
+      renderAll();
+    }
   }
 
-  // Fire event so hotel.js updates live
-  function notifyStaffUpdate(){
-    window.dispatchEvent(new Event("staffUpdated"));
-  }
-
-  if (buyRoomBtn) buyRoomBtn.addEventListener("click", () => {
-    const cost = getRoomCost();
-    if (!spendCoins(cost)) return;
-
-    roomLevel += 1;
-    localStorage.setItem(KEY_ROOM_LVL, String(roomLevel));
-    refreshUpgradesUI();
+  // Buttons
+  newGameBtn?.addEventListener("click", () => {
+    initBoard();
   });
 
-  if (hireBellBtn) hireBellBtn.addEventListener("click", () => {
-    if (bellHired) return;
-    if (!spendCoins(30)) return;
-
-    bellHired = true;
-    localStorage.setItem(KEY_BELL, "true");
-    refreshUpgradesUI();
-    notifyStaffUpdate();
-  });
-
-  if (hireCleanBtn) hireCleanBtn.addEventListener("click", () => {
-    if (cleanerHired) return;
-    if (!spendCoins(30)) return;
-
-    cleanerHired = true;
-    localStorage.setItem(KEY_CLEAN, "true");
-    refreshUpgradesUI();
-    notifyStaffUpdate();
-  });
-
-  if (newGameBtn) newGameBtn.addEventListener("click", () => {
-    buildBoard();
-    refreshUpgradesUI();
-  });
-
-  if (resetCoinsBtn) resetCoinsBtn.addEventListener("click", () => {
+  resetCoinsBtn?.addEventListener("click", () => {
     coins = 0;
-    localStorage.setItem(KEY_COINS, "0");
-    updateTopUI();
-    refreshUpgradesUI();
-    alert("Coins reset to 0 ✅");
+    saveCoins();
+    renderTopBar();
   });
 
-  // Start
-  buildBoard();
-  updateTopUI();
-  refreshUpgradesUI();
-  notifyStaffUpdate(); // initial sync on page load
-}
+  // Boot
+  renderTopBar();
+  renderMiniStats();
+  initBoard();
+});
+
 
 
 
