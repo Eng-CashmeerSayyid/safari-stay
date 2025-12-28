@@ -1,3 +1,4 @@
+<!-- ===================== MOMBASA.html (FULL) ===================== -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,7 +9,8 @@
 </head>
 
 <body class="page">
-  <!-- TOP BAR -->
+
+  <!-- ================= TOP BAR ================= -->
   <header class="topbar">
     <div class="brand">
       <div class="logo">🌴</div>
@@ -25,45 +27,97 @@
     </div>
   </header>
 
+  <!-- ================= MAIN ================= -->
   <main class="container grid2">
 
-    <!-- LEFT COLUMN -->
+    <!-- ===== LEFT COLUMN: VISUALS + UPGRADES ===== -->
     <section class="card">
-      <h2>Your Hotel</h2>
+      <h2>Your Hotel (Visuals)</h2>
+      <p class="muted">Cartoon assets + upgrades. (Pool unlocks after you reach the required coins.)</p>
 
+      <!-- HOTEL IMAGES (optional preview images) -->
+      <div class="hotelShots">
+        <figure class="shot">
+          <img src="images/reception.png" alt="Reception lobby" />
+          <figcaption>Reception</figcaption>
+        </figure>
+
+        <figure class="shot">
+          <img src="images/staff.png" alt="Hotel staff" />
+          <figcaption>Bellboy & Cleaner</figcaption>
+        </figure>
+
+        <figure class="shot">
+          <img src="images/room.png" alt="Hotel room" />
+          <figcaption>Guest Room</figcaption>
+        </figure>
+      </div>
+
+      <hr class="line" />
+
+      <!-- UPGRADES -->
+      <h3>Hotel Upgrades</h3>
       <div class="upgradeRow">
+
         <div class="upgradeItem">
           <div class="upgradeTitle">🛏️ Room Level</div>
-          <div class="smallText">Cost: <span id="roomCost">20</span></div>
+          <div class="smallText">Cost: <span id="roomCost">20</span> coins</div>
           <button class="btn ghost small" id="buyRoomBtn">Upgrade</button>
           <div class="smallText">Level: <span id="roomLevel">0</span></div>
         </div>
 
         <div class="upgradeItem">
           <div class="upgradeTitle">🧑🏾‍💼 Bellboy</div>
+          <div class="smallText">Auto-delivers snacks</div>
           <button class="btn ghost small" id="hireBellBtn">Hire (30)</button>
-          <div class="smallText"><span id="bellStatus">Not hired</span></div>
+          <div class="smallText">Status: <span id="bellStatus">Not hired</span></div>
         </div>
 
         <div class="upgradeItem">
           <div class="upgradeTitle">🧹 Cleaner</div>
+          <div class="smallText">Lets you clean dirty rooms</div>
           <button class="btn ghost small" id="hireCleanBtn">Hire (30)</button>
-          <div class="smallText"><span id="cleanStatus">Not hired</span></div>
+          <div class="smallText">Status: <span id="cleanStatus">Not hired</span></div>
         </div>
+
+      </div>
+
+      <hr class="line" />
+
+      <!-- POOL UNLOCK -->
+      <div class="upgradeItem">
+        <div class="upgradeTitle">🏊🏾 Pool (Mombasa Vibes)</div>
+        <div class="smallText">
+          Unlock requirement: <b><span id="poolNeed">150</span> coins</b><br/>
+          Status: <span id="poolStatus">Locked 🔒</span>
+        </div>
+        <div class="note" style="margin-top:10px;">
+          Earn coins from the puzzle + hotel tips. When you hit the target, the pool appears in the hotel map ✅
+        </div>
+      </div>
+
+      <div class="note">
+        Bellboy is <b>AUTO</b> (only works when hired). Cleaner is <b>MANUAL</b> (only works when hired).
       </div>
     </section>
 
-    <!-- RIGHT COLUMN -->
+    <!-- ===== RIGHT COLUMN: GAME TABS ===== -->
     <section class="card">
 
       <!-- TABS -->
       <div class="tabs">
-        <button type="button" class="tabBtn active" id="tabPuzzle">🧩 Puzzle</button>
-        <button type="button" class="tabBtn" id="tabHotel">🏨 Hotel</button>
+        <button class="tabBtn active" id="tabPuzzle">🧩 Puzzle</button>
+        <button class="tabBtn" id="tabHotel">🏨 Hotel</button>
       </div>
 
-      <!-- PUZZLE VIEW -->
+      <!-- ========== PUZZLE VIEW ========== -->
       <div id="viewPuzzle">
+        <h2>Upgraded Puzzle</h2>
+        <p class="muted">
+          Match tiles to earn coins.<br>
+          <b>+1 coin per move</b> + bonus for cleared tiles.
+        </p>
+
         <div class="miniStats">
           <div class="pill">Combo: <span id="combo">0</span></div>
           <div class="pill">Cleared: <span id="cleared">0</span></div>
@@ -77,40 +131,66 @@
         </div>
       </div>
 
-      <!-- HOTEL VIEW -->
+      <!-- ========== HOTEL VIEW ========== -->
       <div id="viewHotel" class="hidden">
+        <h2>Hotel Simulation (Mombasa Coast)</h2>
+        <p class="muted">
+          Guests check in, request drinks, pay, and leave.<br>
+          Cleaning is <b>MANUAL</b>: tap 🧴 station then tap 🧺 dirty room (only if Cleaner is hired).
+        </p>
+
         <div class="hotelHud">
-          <div class="pill">Served: <span id="served">0</span></div>
-          <div class="pill">Queue: <span id="queueCount">0</span></div>
-          <div class="pill">Cash: <span id="hotelCash">0</span></div>
-          <button class="btn ghost small" id="spawnGuestBtn">+ Guest</button>
+          <div class="pill">Guests Served: <span id="served">0</span></div>
+          <div class="pill">In Queue: <span id="queueCount">0</span></div>
+          <div class="pill">Hotel Cash: <span id="hotelCash">0</span></div>
+          <button class="btn ghost small" id="spawnGuestBtn">+ Spawn Guest</button>
         </div>
 
         <div class="tipRow">
-          <div class="pill">Cleaner: <span id="cleanerMode">Hire cleaner</span></div>
+          <div class="pill">Cleaner: <span id="cleanerMode">Tap 🧴 station</span></div>
           <div class="pill">Rooms Free: <span id="roomsFree">0</span>/4</div>
+          <div class="pill">Pool: <span id="poolHud">Locked 🔒</span></div>
         </div>
 
+        <!-- HOTEL MAP (ONLY ONE) -->
         <div id="hotelMap" class="hotelMap">
+          <!-- Ocean / sky / waves are created by CSS background -->
+
+          <!-- Stations -->
           <div class="station reception" id="stReception">Reception</div>
-          <div class="station snack" id="stSnack">Snack Hut</div>
-          <div class="station clean" id="stClean">Cleaning</div>
+          <div class="station snack" id="stSnack">Snack Hut 🥥🥤🍍</div>
+          <div class="station clean" id="stClean">Cleaning Station 🧴</div>
           <div class="station exit" id="stExit">Exit</div>
 
-          <div class="roomTile" id="room0">Room 1 <span id="badge0"></span></div>
-          <div class="roomTile" id="room1">Room 2 <span id="badge1"></span></div>
-          <div class="roomTile" id="room2">Room 3 <span id="badge2"></span></div>
-          <div class="roomTile" id="room3">Room 4 <span id="badge3"></span></div>
+          <!-- Rooms -->
+          <div class="roomTile" id="room0">Room 1 <span class="roomBadge" id="badge0"></span></div>
+          <div class="roomTile" id="room1">Room 2 <span class="roomBadge" id="badge1"></span></div>
+          <div class="roomTile" id="room2">Room 3 <span class="roomBadge" id="badge2"></span></div>
+          <div class="roomTile" id="room3">Room 4 <span class="roomBadge" id="badge3"></span></div>
 
+          <!-- Dynamic guests -->
           <div id="guestLayer"></div>
 
+          <!-- Workers -->
           <div class="character bellboy" id="bellboy">🧑🏾‍💼</div>
           <div class="character cleaner" id="cleaner">🧹</div>
+
+          <!-- Pool placeholder (hotel.js will show/hide) -->
+          <div id="poolZone" class="poolZone hidden">
+            <div class="poolWater"></div>
+            <div class="poolLabel">🏊🏾 Pool</div>
+          </div>
+        </div>
+
+        <div class="note">
+          ✅ Goal: earn coins → unlock pool → upgrade staff → run like Hotel Mania.
         </div>
       </div>
+
     </section>
   </main>
 
+  <!-- ================= SCRIPTS ================= -->
   <script src="script.js"></script>
   <script src="hotel.js"></script>
 </body>
