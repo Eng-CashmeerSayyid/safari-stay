@@ -21,6 +21,11 @@
 
     <div class="rightHeader">
       <a class="btn small ghost" href="index.html">← Home</a>
+
+      <button class="btn small ghost" id="soundBtn" type="button" title="Toggle sound">
+        🔊 Sound: <span id="soundState">ON</span>
+      </button>
+
       <div class="pill">Moves: <span id="moves">30</span></div>
       <div class="pill">Coins: <span id="coins">0</span></div>
     </div>
@@ -33,33 +38,27 @@
     <section class="card">
       <h2>Your Hotel (Visuals)</h2>
       <p class="muted">
-        Cartoon assets + upgrades. (Pool unlocks after you reach the required unlock rule.)
+        Mombasa vibes: ocean + pool, Hotel-Mania flow, VIP guests, and progression to Masai Mara.
       </p>
 
       <!-- HOTEL IMAGES (optional preview images) -->
       <div class="hotelShots">
         <figure class="shot">
-          <img src="images/reception.png" alt="Reception lobby"
-               onerror="this.style.display='none'" />
+          <img src="images/reception.png" alt="Reception lobby" onerror="this.style.display='none'" />
           <figcaption>Reception</figcaption>
         </figure>
-
         <figure class="shot">
-          <img src="images/staff.png" alt="Hotel staff"
-               onerror="this.style.display='none'" />
+          <img src="images/staff.png" alt="Hotel staff" onerror="this.style.display='none'" />
           <figcaption>Bellboy & Cleaner</figcaption>
         </figure>
-
         <figure class="shot">
-          <img src="images/room.png" alt="Hotel room"
-               onerror="this.style.display='none'" />
+          <img src="images/room.png" alt="Hotel room" onerror="this.style.display='none'" />
           <figcaption>Guest Room</figcaption>
         </figure>
       </div>
 
       <hr class="line" />
 
-      <!-- UPGRADES -->
       <h3>Hotel Upgrades</h3>
       <div class="upgradeRow">
 
@@ -68,6 +67,7 @@
           <div class="smallText">Cost: <span id="roomCost">20</span> coins</div>
           <button class="btn ghost small" id="buyRoomBtn" type="button">Upgrade</button>
           <div class="smallText">Level: <span id="roomLevel">0</span></div>
+          <div class="smallText">Effect: unlock pool at level 1 ✅</div>
         </div>
 
         <div class="upgradeItem">
@@ -79,16 +79,16 @@
 
         <div class="upgradeItem">
           <div class="upgradeTitle">🧹 Cleaner</div>
-          <div class="smallText">Lets you clean dirty rooms</div>
+          <div class="smallText">Manual cleaning</div>
           <button class="btn ghost small" id="hireCleanBtn" type="button">Hire (30)</button>
           <div class="smallText">Status: <span id="cleanStatus">Not hired</span></div>
+          <div class="smallText">Tip: Tap 🧴 then tap 🧺 room</div>
         </div>
 
       </div>
 
       <hr class="line" />
 
-      <!-- POOL UNLOCK UI (display only; hotel.js controls real pool on map) -->
       <div class="upgradeItem">
         <div class="upgradeTitle">🏊🏾 Pool (Mombasa Vibes)</div>
         <div class="smallText">
@@ -96,20 +96,36 @@
           Status: <span id="poolStatus">Locked 🔒</span>
         </div>
         <div class="note" style="margin-top:10px;">
-          When Room Level hits 1, the pool becomes active in the hotel map ✅
+          Pool gives small tip bonus when guests visit 🏖️
+        </div>
+      </div>
+
+      <hr class="line" />
+
+      <div class="upgradeItem">
+        <div class="upgradeTitle">🦁 Progression</div>
+        <div class="smallText">
+          Unlock Masai Mara when you reach:<br/>
+          • <b>Served ≥ <span id="needServed">10</span></b> and
+          • <b>Coins ≥ <span id="needCoins">200</span></b><br/>
+          Status: <span id="maraStatus">Locked 🔒</span>
+        </div>
+        <div class="note" style="margin-top:10px;">
+          When unlocked, you’ll see a button to go to Masai Mara (next level).
+        </div>
+        <div class="actions">
+          <a class="btn ghost small hidden" id="goMaraBtn" href="MasaiMara.html">Go to Masai Mara →</a>
         </div>
       </div>
 
       <div class="note">
-        Bellboy is <b>AUTO</b> (only works when hired). Cleaner is <b>MANUAL</b>
-        (tap 🧴 station then tap 🧺 dirty room — only if Cleaner is hired).
+        VIP guests 👑 pay more and get priority in the queue.
       </div>
     </section>
 
     <!-- ===== RIGHT COLUMN: GAME TABS ===== -->
     <section class="card">
 
-      <!-- TABS -->
       <div class="tabs">
         <button class="tabBtn active" id="tabPuzzle" type="button">🧩 Puzzle</button>
         <button class="tabBtn" id="tabHotel" type="button">🏨 Hotel</button>
@@ -119,8 +135,8 @@
       <div id="viewPuzzle">
         <h2>Upgraded Puzzle</h2>
         <p class="muted">
-          Match tiles to earn coins.<br>
-          <b>+1 coin per move</b> + bonus for cleared tiles.
+          <b>+1 coin per move</b> + bonus coins per cleared tile.<br/>
+          (Coins are shared with the hotel.)
         </p>
 
         <div class="miniStats">
@@ -140,8 +156,7 @@
       <div id="viewHotel" class="hidden">
         <h2>Hotel Simulation (Mombasa Coast)</h2>
         <p class="muted">
-          Guests check in, request drinks, pay, and leave.<br>
-          Cleaning is <b>MANUAL</b>: tap 🧴 station then tap 🧺 dirty room (only if Cleaner is hired).
+          Flow: check-in → requests → pay → room gets dirty 🧺 → you clean → next guest enters.
         </p>
 
         <div class="hotelHud">
@@ -157,13 +172,12 @@
           <div class="pill">Pool: <span id="poolHud">Locked 🔒</span></div>
         </div>
 
-        <!-- HOTEL MAP (ONLY ONE) -->
         <div id="hotelMap" class="hotelMap">
 
           <!-- Stations -->
           <div class="station reception" id="stReception">Reception</div>
           <div class="station snack" id="stSnack">Snack Hut 🥥🥤🍍</div>
-          <div class="station clean" id="stClean">Cleaning Station 🧴</div>
+          <div class="station clean" id="stClean">Cleaning 🧴</div>
           <div class="station exit" id="stExit">Exit</div>
 
           <!-- Rooms -->
@@ -172,7 +186,7 @@
           <div class="roomTile" id="room2">Room 3 <span class="roomBadge" id="badge2"></span></div>
           <div class="roomTile" id="room3">Room 4 <span class="roomBadge" id="badge3"></span></div>
 
-          <!-- Dynamic guests -->
+          <!-- Guests -->
           <div id="guestLayer"></div>
 
           <!-- Workers -->
@@ -181,36 +195,15 @@
         </div>
 
         <div class="note">
-          ✅ Goal: earn coins → upgrade room level → unlock pool → run like Hotel Mania.
+          ✅ VIP 👑 priority, room cooldown ⏳, pool bonus tips 🏊🏾
         </div>
       </div>
 
     </section>
   </main>
 
-<script src="script.js"></script>
-<script src="hotel.js"></script>
-
-
-
-  <!-- Tiny UI sync for pool status text (doesn't fight hotel.js) -->
-  <script>
-    // Keeps the pool text on the left panel updated based on Room Level
-    (function(){
-      const KEY_ROOM_LVL = "mombasaRoomLevel";
-      const poolStatus = document.getElementById("poolStatus");
-      const poolHud = document.getElementById("poolHud");
-      function refresh(){
-        const lvl = Number(localStorage.getItem(KEY_ROOM_LVL)) || 0;
-        const ok = lvl >= 1;
-        if (poolStatus) poolStatus.textContent = ok ? "Unlocked ✅" : "Locked 🔒";
-        if (poolHud) poolHud.textContent = ok ? "Unlocked ✅" : "Locked 🔒";
-      }
-      refresh();
-      setInterval(refresh, 800);
-    })();
-  </script>
-
+  <script src="script.js"></script>
+  <script src="hotel.js"></script>
 </body>
 </html>
 
