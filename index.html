@@ -1,73 +1,68 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Safari Stay</title>
   <link rel="stylesheet" href="style.css" />
 </head>
-<body>
+<body class="page">
   <header class="topbar">
     <div class="brand">
-      <div class="logo">🦒</div>
+      <div class="logo">🦁</div>
       <div>
-        <h1>Safari Stay</h1>
-        <p class="muted">Match • Earn • Build Kenya’s best resorts</p>
+        <div class="title">Safari Stay</div>
+        <div class="subtitle">Kenya Hotel Tycoon + Puzzle</div>
       </div>
     </div>
-
     <div class="pill">
-      <span>💰 Coins:</span>
-      <strong id="coins">0</strong>
-      <button class="btn small" id="resetBtn" title="Reset coins & progress">Reset</button>
+      Coins: <span id="coinsTop">0</span>
     </div>
   </header>
 
   <main class="container">
     <section class="card hero">
-      <h2>Choose a destination</h2>
-      <p class="muted">Start in Mombasa. Earn coins and upgrade your hotel.</p>
+      <h1>Welcome to Safari Stay</h1>
+      <p>
+        Earn coins by playing the puzzle, then build your hotel across Kenya.
+        Start with <b>Mombasa</b>.
+      </p>
 
-      <div class="grid2">
-        <a class="levelCard" href="Mombasa.html">
-          <div class="levelTitle">
-            <h3>🌊 Mombasa</h3>
-            <p class="muted">Hotel & beach vibes</p>
-          </div>
-          <div class="levelMeta">
-            <span class="tag">Level 1</span>
-            <span class="tag">Open</span>
-          </div>
-        </a>
+      <div class="actions">
+        <a class="btn" href="Mombasa.html">▶ Start Mombasa</a>
+        <button class="btn ghost" id="resetBtn">Reset Coins</button>
+      </div>
 
-        <div class="levelCard locked" aria-disabled="true">
-          <div class="levelTitle">
-            <h3>🦁 Maasai Mara</h3>
-            <p class="muted">Coming soon</p>
-          </div>
-          <div class="levelMeta">
-            <span class="tag">Level 2</span>
-            <span class="tag">Locked</span>
-          </div>
-        </div>
+      <div class="note">
+        Tip: Each valid swap (move) in the puzzle gives you <b>+1 coin</b>.
       </div>
     </section>
 
     <section class="card">
-      <h2>How it works</h2>
-      <ol class="muted">
-        <li>Play the mini “earn” actions to gain coins</li>
-        <li>Use coins to build rooms and hire staff</li>
-        <li>Upgrade your hotel to unlock new levels</li>
-      </ol>
+      <h2>Coming Levels</h2>
+      <div class="chips">
+        <span class="chip">🏝️ Mombasa</span>
+        <span class="chip">🦓 Maasai Mara</span>
+        <span class="chip">🌋 Naivasha</span>
+        <span class="chip">🏔️ Mt. Kenya</span>
+      </div>
     </section>
   </main>
 
-  <footer class="footer muted">
-    Built by Eng-CashmeerSayyid • Safari Stay
-  </footer>
+  <script>
+    function refreshCoins() {
+      const coins = Number(localStorage.getItem("coins")) || 0;
+      document.getElementById("coinsTop").textContent = coins;
+    }
+    refreshCoins();
 
-  <script src="script.js"></script>
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      localStorage.setItem("coins", "0");
+      refreshCoins();
+      alert("Coins reset to 0 ✅");
+    });
+  </script>
 </body>
 </html>
+
 
