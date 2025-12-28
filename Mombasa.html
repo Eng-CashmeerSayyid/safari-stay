@@ -1,4 +1,3 @@
-<!-- ===================== MOMBASA.html (FULL) ===================== -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -33,22 +32,27 @@
     <!-- ===== LEFT COLUMN: VISUALS + UPGRADES ===== -->
     <section class="card">
       <h2>Your Hotel (Visuals)</h2>
-      <p class="muted">Cartoon assets + upgrades. (Pool unlocks after you reach the required coins.)</p>
+      <p class="muted">
+        Cartoon assets + upgrades. (Pool unlocks after you reach the required unlock rule.)
+      </p>
 
       <!-- HOTEL IMAGES (optional preview images) -->
       <div class="hotelShots">
         <figure class="shot">
-          <img src="images/reception.png" alt="Reception lobby" />
+          <img src="images/reception.png" alt="Reception lobby"
+               onerror="this.style.display='none'" />
           <figcaption>Reception</figcaption>
         </figure>
 
         <figure class="shot">
-          <img src="images/staff.png" alt="Hotel staff" />
+          <img src="images/staff.png" alt="Hotel staff"
+               onerror="this.style.display='none'" />
           <figcaption>Bellboy & Cleaner</figcaption>
         </figure>
 
         <figure class="shot">
-          <img src="images/room.png" alt="Hotel room" />
+          <img src="images/room.png" alt="Hotel room"
+               onerror="this.style.display='none'" />
           <figcaption>Guest Room</figcaption>
         </figure>
       </div>
@@ -62,21 +66,21 @@
         <div class="upgradeItem">
           <div class="upgradeTitle">🛏️ Room Level</div>
           <div class="smallText">Cost: <span id="roomCost">20</span> coins</div>
-          <button class="btn ghost small" id="buyRoomBtn">Upgrade</button>
+          <button class="btn ghost small" id="buyRoomBtn" type="button">Upgrade</button>
           <div class="smallText">Level: <span id="roomLevel">0</span></div>
         </div>
 
         <div class="upgradeItem">
           <div class="upgradeTitle">🧑🏾‍💼 Bellboy</div>
           <div class="smallText">Auto-delivers snacks</div>
-          <button class="btn ghost small" id="hireBellBtn">Hire (30)</button>
+          <button class="btn ghost small" id="hireBellBtn" type="button">Hire (30)</button>
           <div class="smallText">Status: <span id="bellStatus">Not hired</span></div>
         </div>
 
         <div class="upgradeItem">
           <div class="upgradeTitle">🧹 Cleaner</div>
           <div class="smallText">Lets you clean dirty rooms</div>
-          <button class="btn ghost small" id="hireCleanBtn">Hire (30)</button>
+          <button class="btn ghost small" id="hireCleanBtn" type="button">Hire (30)</button>
           <div class="smallText">Status: <span id="cleanStatus">Not hired</span></div>
         </div>
 
@@ -84,20 +88,21 @@
 
       <hr class="line" />
 
-      <!-- POOL UNLOCK -->
+      <!-- POOL UNLOCK UI (display only; hotel.js controls real pool on map) -->
       <div class="upgradeItem">
         <div class="upgradeTitle">🏊🏾 Pool (Mombasa Vibes)</div>
         <div class="smallText">
-          Unlock requirement: <b><span id="poolNeed">150</span> coins</b><br/>
+          Unlock requirement: <b>Room Level ≥ 1</b><br/>
           Status: <span id="poolStatus">Locked 🔒</span>
         </div>
         <div class="note" style="margin-top:10px;">
-          Earn coins from the puzzle + hotel tips. When you hit the target, the pool appears in the hotel map ✅
+          When Room Level hits 1, the pool becomes active in the hotel map ✅
         </div>
       </div>
 
       <div class="note">
-        Bellboy is <b>AUTO</b> (only works when hired). Cleaner is <b>MANUAL</b> (only works when hired).
+        Bellboy is <b>AUTO</b> (only works when hired). Cleaner is <b>MANUAL</b>
+        (tap 🧴 station then tap 🧺 dirty room — only if Cleaner is hired).
       </div>
     </section>
 
@@ -106,8 +111,8 @@
 
       <!-- TABS -->
       <div class="tabs">
-        <button class="tabBtn active" id="tabPuzzle">🧩 Puzzle</button>
-        <button class="tabBtn" id="tabHotel">🏨 Hotel</button>
+        <button class="tabBtn active" id="tabPuzzle" type="button">🧩 Puzzle</button>
+        <button class="tabBtn" id="tabHotel" type="button">🏨 Hotel</button>
       </div>
 
       <!-- ========== PUZZLE VIEW ========== -->
@@ -126,8 +131,8 @@
         <div id="grid" class="grid"></div>
 
         <div class="actions">
-          <button class="btn ghost" id="newGameBtn">New Board</button>
-          <button class="btn ghost" id="resetCoinsBtn">Reset Coins</button>
+          <button class="btn ghost" id="newGameBtn" type="button">New Board</button>
+          <button class="btn ghost" id="resetCoinsBtn" type="button">Reset Coins</button>
         </div>
       </div>
 
@@ -143,7 +148,7 @@
           <div class="pill">Guests Served: <span id="served">0</span></div>
           <div class="pill">In Queue: <span id="queueCount">0</span></div>
           <div class="pill">Hotel Cash: <span id="hotelCash">0</span></div>
-          <button class="btn ghost small" id="spawnGuestBtn">+ Spawn Guest</button>
+          <button class="btn ghost small" id="spawnGuestBtn" type="button">+ Spawn Guest</button>
         </div>
 
         <div class="tipRow">
@@ -154,7 +159,6 @@
 
         <!-- HOTEL MAP (ONLY ONE) -->
         <div id="hotelMap" class="hotelMap">
-          <!-- Ocean / sky / waves are created by CSS background -->
 
           <!-- Stations -->
           <div class="station reception" id="stReception">Reception</div>
@@ -174,16 +178,10 @@
           <!-- Workers -->
           <div class="character bellboy" id="bellboy">🧑🏾‍💼</div>
           <div class="character cleaner" id="cleaner">🧹</div>
-
-          <!-- Pool placeholder (hotel.js will show/hide) -->
-          <div id="poolZone" class="poolZone hidden">
-            <div class="poolWater"></div>
-            <div class="poolLabel">🏊🏾 Pool</div>
-          </div>
         </div>
 
         <div class="note">
-          ✅ Goal: earn coins → unlock pool → upgrade staff → run like Hotel Mania.
+          ✅ Goal: earn coins → upgrade room level → unlock pool → run like Hotel Mania.
         </div>
       </div>
 
@@ -193,8 +191,28 @@
   <!-- ================= SCRIPTS ================= -->
   <script src="script.js"></script>
   <script src="hotel.js"></script>
+
+  <!-- Tiny UI sync for pool status text (doesn't fight hotel.js) -->
+  <script>
+    // Keeps the pool text on the left panel updated based on Room Level
+    (function(){
+      const KEY_ROOM_LVL = "mombasaRoomLevel";
+      const poolStatus = document.getElementById("poolStatus");
+      const poolHud = document.getElementById("poolHud");
+      function refresh(){
+        const lvl = Number(localStorage.getItem(KEY_ROOM_LVL)) || 0;
+        const ok = lvl >= 1;
+        if (poolStatus) poolStatus.textContent = ok ? "Unlocked ✅" : "Locked 🔒";
+        if (poolHud) poolHud.textContent = ok ? "Unlocked ✅" : "Locked 🔒";
+      }
+      refresh();
+      setInterval(refresh, 800);
+    })();
+  </script>
+
 </body>
 </html>
+
 
 
 
