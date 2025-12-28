@@ -16,7 +16,7 @@ const TILES = ["🍓", "🥥", "🌴", "🐚", "⭐", "🍍"];
 // Puzzle rules
 const START_MOVES = 30;
 const COIN_PER_MOVE = 1;
-const COIN_PER_TILE_CLEARED = 1; // bonus per tile cleared (feel-good economy)
+const COIN_PER_TILE_CLEARED = 1; // bonus per tile cleared
 
 // ---------- LocalStorage keys ----------
 const KEY_COINS = "coins";
@@ -24,7 +24,7 @@ const KEY_ROOM_LVL = "mombasaRoomLevel";
 const KEY_BELL = "mombasaBellboy";
 const KEY_CLEAN = "mombasaCleaner";
 
-// ---------- Elements (only exist on Mombasa page) ----------
+// ---------- Elements (exist on Mombasa page only) ----------
 const grid = document.getElementById("grid");
 const movesEl = document.getElementById("moves");
 const coinsEl = document.getElementById("coins");
@@ -52,8 +52,8 @@ let isBusy = false;
 let moves = START_MOVES;
 let coins = Number(localStorage.getItem(KEY_COINS)) || 0;
 
-let combo = 0;         // increases during cascades
-let clearedTotal = 0;  // total tiles cleared this session
+let combo = 0;
+let clearedTotal = 0;
 
 // Upgrades
 let roomLevel = Number(localStorage.getItem(KEY_ROOM_LVL)) || 0;
@@ -79,12 +79,33 @@ function isAdjacent(a, b) {
 }
 
 function updateTopUI() {
-  movesEl.textContent = moves;
-  coinsEl.textContent = coins;
-  comboEl.textContent = combo;
-  clearedEl.textContent = clearedTotal;
+  if (movesEl) movesEl.textContent = moves;
+  if (coinsEl) coinsEl.textContent = coins;
+  if (comboEl) comboEl.textContent = combo;
+  if (clearedEl) clearedEl.textContent = clearedTotal;
 
   localStorage.setItem(KEY_COINS, String(coins));
+}
+
+function refreshUpgradesUI() {
+  // If upgrades UI not on this page, skip safely
+  if (!roomCostEl || !roomLevelEl || !buyRoomBtn) return;
+
+  const cost = getRoomCost();
+  roomCostEl.textContent = cost;
+  roomLevelEl.textContent = roomLevel;
+
+  if (bellStatusEl) bellStatusEl.textContent = bellHired ? "Hired ✅" : "Not hired";
+  if (cleanStatusEl) cleanStatusEl.textContent = cleanerHired ? "Hired ✅" : "Not hired";
+
+  buyRoomBtn.disabled = coins < cost;
+  if (hireBellBtn) hireBellBtn.disabled = bellHired || coins < 30;
+  if (hireCleanBtn) hireCleanBtn.disabled = cleanerHired || coins < 30;
+}
+
+function updateAllUI() {
+  updateTopUI();
+  refreshUpgradesUI();
 }
 
 function clearHighlights() {
@@ -93,10 +114,11 @@ function clearHighlights() {
 
 function highlight(i) {
   clearHighlights();
-  grid.children[i].classList.add("selected");
+  if (grid?.children?.[i]) grid.children[i].classList.add("selected");
 }
 
 function render() {
+  if (!grid) return;
   for (let i = 0; i < TOTAL; i++) {
     grid.children[i].textContent = board[i] || "";
   }
@@ -192,7 +214,7 @@ function clearMatchesAndCascade() {
   // Bonus coins per cleared tile
   coins += clearedNow * COIN_PER_TILE_CLEARED;
 
-  updateTopUI();
+  updateAllUI();
   render();
 
   // Gravity + next cascade
@@ -202,7 +224,7 @@ function clearMatchesAndCascade() {
 
     setTimeout(() => {
       combo += 1;
-      updateTopUI();
+      updateAllUI();
       clearMatchesAndCascade(); // chain until no more matches
     }, 140);
   }, 160);
@@ -229,12 +251,12 @@ function attemptMove(a, b) {
 
   // reset combo for new move
   combo = 0;
-  updateTopUI();
+  updateAllUI();
 
   setTimeout(() => {
     const hadMatch = clearMatchesAndCascade();
 
-    // If no match, revert swap (but move + coin still counted as "attempt")
+    // If no match, revert swap (but move + coin still counted)
     if (!hadMatch) {
       setTimeout(() => {
         doSwap(a, b);
@@ -242,7 +264,7 @@ function attemptMove(a, b) {
         isBusy = false;
       }, 140);
     } else {
-      // End busy after cascades settle (approx)
+      // End busy after cascades settle
       setTimeout(() => {
         isBusy = false;
       }, 900);
@@ -275,6 +297,8 @@ function handleClick(i) {
 
 // ---------- Build board ----------
 function buildBoard() {
+  if (!grid) return;
+
   grid.innerHTML = "";
   board = [];
   selectedIndex = null;
@@ -294,7 +318,7 @@ function buildBoard() {
   }
 
   render();
-  updateTopUI();
+  updateAllUI();
 
   // Remove any starting matches
   clearMatchesAndCascade();
@@ -306,28 +330,15 @@ function getRoomCost() {
   return Math.floor(20 + roomLevel * 15 + roomLevel * roomLevel * 5);
 }
 
-function refreshUpgradesUI() {
-  const cost = getRoomCost();
-  roomCostEl.textContent = cost;
-  roomLevelEl.textContent = roomLevel;
-
-  bellStatusEl.textContent = bellHired ? "Hired ✅" : "Not hired";
-  cleanStatusEl.textContent = cleanerHired ? "Hired ✅" : "Not hired";
-
-  buyRoomBtn.disabled = coins < cost;
-  hireBellBtn.disabled = bellHired || coins < 30;
-  hireCleanBtn.disabled = cleanerHired || coins < 30;
-}
-
 function spendCoins(amount) {
   if (coins < amount) return false;
   coins -= amount;
   localStorage.setItem(KEY_COINS, String(coins));
-  updateTopUI();
+  updateAllUI();
   return true;
 }
 
-buyRoomBtn.addEventListener("click", () => {
+buyRoomBtn?.addEventListener("click", () => {
   const cost = getRoomCost();
   if (!spendCoins(cost)) return;
 
@@ -336,7 +347,7 @@ buyRoomBtn.addEventListener("click", () => {
   refreshUpgradesUI();
 });
 
-hireBellBtn.addEventListener("click", () => {
+hireBellBtn?.addEventListener("click", () => {
   if (bellHired) return;
   if (!spendCoins(30)) return;
 
@@ -345,7 +356,7 @@ hireBellBtn.addEventListener("click", () => {
   refreshUpgradesUI();
 });
 
-hireCleanBtn.addEventListener("click", () => {
+hireCleanBtn?.addEventListener("click", () => {
   if (cleanerHired) return;
   if (!spendCoins(30)) return;
 
@@ -355,23 +366,24 @@ hireCleanBtn.addEventListener("click", () => {
 });
 
 // ---------- Buttons ----------
-newGameBtn.addEventListener("click", () => {
+newGameBtn?.addEventListener("click", () => {
   buildBoard();
   refreshUpgradesUI();
 });
 
-resetCoinsBtn.addEventListener("click", () => {
+resetCoinsBtn?.addEventListener("click", () => {
   coins = 0;
   localStorage.setItem(KEY_COINS, "0");
-  updateTopUI();
-  refreshUpgradesUI();
+  updateAllUI();
   alert("Coins reset to 0 ✅");
 });
 
-// ---------- Start ----------
-buildBoard();
-updateTopUI();
-refreshUpgradesUI();
+// ---------- Start (SAFE) ----------
+if (grid && movesEl && coinsEl) {
+  buildBoard();
+  updateAllUI();
+}
+
 
 
 
