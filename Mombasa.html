@@ -6,13 +6,15 @@
   <title>Safari Stay – Mombasa</title>
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body class="page">
+  <!-- ================= TOP BAR ================= -->
   <header class="topbar">
     <div class="brand">
       <div class="logo">🌴</div>
       <div>
         <div class="title">Mombasa Hotel</div>
-        <div class="subtitle">Puzzle → Coins → Upgrades</div>
+        <div class="subtitle">Puzzle → Hotel Mania</div>
       </div>
     </div>
 
@@ -23,21 +25,24 @@
     </div>
   </header>
 
+  <!-- ================= MAIN ================= -->
   <main class="container grid2">
-    <!-- LEFT: HOTEL UI + IMAGES -->
+
+    <!-- ===== LEFT COLUMN: HOTEL + IMAGES ===== -->
     <section class="card">
       <h2>Your Hotel (Visuals)</h2>
-      <p class="muted">These images must be inside <b>images/</b> folder.</p>
+      <p class="muted">Hotel visuals + staff are now active.</p>
 
+      <!-- HOTEL IMAGES -->
       <div class="hotelShots">
         <figure class="shot">
           <img src="images/reception.png" alt="Reception lobby" />
-          <figcaption>Reception Lobby</figcaption>
+          <figcaption>Reception</figcaption>
         </figure>
 
         <figure class="shot">
           <img src="images/staff.png" alt="Hotel staff" />
-          <figcaption>Staff: Bellboy & Cleaner</figcaption>
+          <figcaption>Bellboy & Cleaner</figcaption>
         </figure>
 
         <figure class="shot">
@@ -48,60 +53,106 @@
 
       <hr class="line" />
 
-      <h3>Upgrades (uses your coins)</h3>
+      <!-- HOTEL UPGRADES -->
+      <h3>Hotel Upgrades</h3>
       <div class="upgradeRow">
         <div class="upgradeItem">
           <div class="upgradeTitle">🛏️ Room Level</div>
-          <div class="muted smallText">Cost: <span id="roomCost">20</span> coins</div>
+          <div class="smallText">Cost: <span id="roomCost">20</span> coins</div>
           <button class="btn ghost small" id="buyRoomBtn">Upgrade</button>
-          <div class="muted smallText">Level: <span id="roomLevel">0</span></div>
+          <div class="smallText">Level: <span id="roomLevel">0</span></div>
         </div>
 
         <div class="upgradeItem">
-          <div class="upgradeTitle">🧑🏾‍💼 Hire Bellboy</div>
-          <div class="muted smallText">Cost: 30 coins</div>
-          <button class="btn ghost small" id="hireBellBtn">Hire</button>
-          <div class="muted smallText">Status: <span id="bellStatus">Not hired</span></div>
+          <div class="upgradeTitle">🧑🏾‍💼 Bellboy</div>
+          <div class="smallText">Auto-delivers snacks</div>
+          <button class="btn ghost small" id="hireBellBtn">Hire (30)</button>
+          <div class="smallText">Status: <span id="bellStatus">Not hired</span></div>
         </div>
 
         <div class="upgradeItem">
-          <div class="upgradeTitle">🧹 Hire Cleaner</div>
-          <div class="muted smallText">Cost: 30 coins</div>
-          <button class="btn ghost small" id="hireCleanBtn">Hire</button>
-          <div class="muted smallText">Status: <span id="cleanStatus">Not hired</span></div>
+          <div class="upgradeTitle">🧹 Cleaner</div>
+          <div class="smallText">Speeds up room turnover</div>
+          <button class="btn ghost small" id="hireCleanBtn">Hire (30)</button>
+          <div class="smallText">Status: <span id="cleanStatus">Not hired</span></div>
         </div>
       </div>
 
       <div class="note">
-        ✅ This upgrade system is already wired. Play puzzle, earn coins, then buy upgrades.
+        Bellboy is <b>AUTO</b>: once hired, he automatically serves guest snack requests.
       </div>
     </section>
 
-    <!-- RIGHT: PUZZLE -->
+    <!-- ===== RIGHT COLUMN: GAME TABS ===== -->
     <section class="card">
-      <h2>Upgraded Puzzle</h2>
-      <p class="muted">
-        Tap a tile, then tap an adjacent tile to swap.
-        <b>+1 coin per move</b> + bonus coins for tiles cleared.
-      </p>
 
-      <div class="miniStats">
-        <div class="pill">Combo: <span id="combo">0</span></div>
-        <div class="pill">Cleared: <span id="cleared">0</span></div>
+      <!-- TABS -->
+      <div class="tabs">
+        <button class="tabBtn active" id="tabPuzzle">🧩 Puzzle</button>
+        <button class="tabBtn" id="tabHotel">🏨 Hotel</button>
       </div>
 
-      <div id="grid" class="grid"></div>
+      <!-- ========== PUZZLE VIEW ========== -->
+      <div id="viewPuzzle">
+        <h2>Upgraded Puzzle</h2>
+        <p class="muted">
+          Match tiles to earn coins.<br>
+          <b>+1 coin per move</b> + bonus for cascades.
+        </p>
 
-      <div class="actions">
-        <button class="btn ghost" id="newGameBtn">New Board</button>
-        <button class="btn ghost" id="resetCoinsBtn">Reset Coins</button>
+        <div class="miniStats">
+          <div class="pill">Combo: <span id="combo">0</span></div>
+          <div class="pill">Cleared: <span id="cleared">0</span></div>
+        </div>
+
+        <div id="grid" class="grid"></div>
+
+        <div class="actions">
+          <button class="btn ghost" id="newGameBtn">New Board</button>
+          <button class="btn ghost" id="resetCoinsBtn">Reset Coins</button>
+        </div>
+      </div>
+
+      <!-- ========== HOTEL VIEW ========== -->
+      <div id="viewHotel" class="hidden">
+        <h2>Hotel Simulation</h2>
+        <p class="muted">
+          Guests walk in, check in, go to rooms, pay, and leave.<br>
+          Bellboy handles snack delivery automatically.
+        </p>
+
+        <div class="hotelHud">
+          <div class="pill">Guests Served: <span id="served">0</span></div>
+          <div class="pill">Hotel Cash: <span id="hotelCash">0</span></div>
+          <button class="btn ghost small" id="spawnGuestBtn">+ Spawn Guest</button>
+        </div>
+
+        <!-- HOTEL MAP -->
+        <div id="hotelMap" class="hotelMap">
+          <!-- Stations -->
+          <div class="station reception" id="stReception">Reception</div>
+          <div class="station room" id="stRoom">Room</div>
+          <div class="station exit" id="stExit">Exit</div>
+
+          <!-- Characters -->
+          <div class="character guest" id="guest">🧳</div>
+          <div class="character bellboy" id="bellboy">🧑🏾‍💼</div>
+        </div>
+
+        <div class="note">
+          Next: snack orders (🥪🥤), bellboy walking to snack bar, queues, multiple guests.
+        </div>
       </div>
     </section>
   </main>
 
+  <!-- ================= SCRIPTS ================= -->
   <script src="script.js"></script>
+  <script src="hotel.js"></script>
+
 </body>
 </html>
+
 
 
 
