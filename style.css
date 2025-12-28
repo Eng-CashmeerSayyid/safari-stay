@@ -188,18 +188,6 @@ body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial
   margin-top: 10px;
 }
 
-/* Mobile tweaks */
-@media (max-width: 960px){
-  .grid2{ grid-template-columns: 1fr; }
-  .hotelShots{ grid-template-columns: 1fr; }
-  .shot img{ height: 180px; }
-  .upgradeRow{ grid-template-columns: 1fr; }
-}
-
-@media (max-width: 420px) {
-  .cell { height: 46px; font-size: 22px; border-radius: 12px; }
-  .hero h1 { font-size: 22px; }
-}
 .hidden { display: none; }
 
 .tabs{
@@ -230,15 +218,19 @@ body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial
   margin: 12px 0;
 }
 
+/* =======================================================
+   HOTEL MAP (RESPONSIVE FIX)
+   ======================================================= */
 .hotelMap{
   position: relative;
-  height: 360px;
+  height: 420px; /* a bit taller so everything fits */
   border-radius: 18px;
   border: 1px solid rgba(255,255,255,0.10);
   background: rgba(255,255,255,0.05);
   overflow: hidden;
 }
 
+/* Stations */
 .station{
   position:absolute;
   padding:10px 12px;
@@ -247,13 +239,22 @@ body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial
   border:1px solid rgba(255,255,255,0.12);
   font-weight:900;
   font-size: 12px;
+  z-index: 3; /* above guests */
 }
 
-.reception{ left: 22px; top: 140px; }
-.room{ right: 30px; top: 80px; }
-.exit{ left: 22px; bottom: 22px; }
+/* Keep stations always visible */
+.reception{ left: 14px; top: 14px; }
+.snack{ left: 14px; top: 74px; }
+.exit{ left: 14px; bottom: 14px; }
+.clean{ right: 14px; bottom: 14px; cursor:pointer; }
 
-.character{
+.tipRow { display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
+
+/* Guest layer (must exist) */
+#guestLayer { position:absolute; inset:0; z-index: 2; }
+
+/* Guests */
+.guestToken{
   position:absolute;
   width: 44px;
   height: 44px;
@@ -264,10 +265,71 @@ body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial
   background: rgba(255,255,255,0.10);
   border:1px solid rgba(255,255,255,0.14);
 }
-.guest{ left: 10px; top: 10px; }
-/* Hotel Mania additions */
-.snack { left: 190px; top: 220px; }
+.guestToken.angry { animation: shake 0.22s linear infinite; }
 
+/* Workers */
+.character{
+  position:absolute;
+  width: 44px;
+  height: 44px;
+  display:grid;
+  place-items:center;
+  font-size: 26px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.10);
+  border:1px solid rgba(255,255,255,0.14);
+  z-index: 3;
+}
+
+.character.carrying::after{
+  content: attr(data-carry);
+  position:absolute;
+  top:-18px;
+  left:50%;
+  transform:translateX(-50%);
+  font-size:18px;
+}
+
+@keyframes shake {
+  0% { transform: translate(0,0); }
+  25% { transform: translate(1px,0); }
+  50% { transform: translate(0,0); }
+  75% { transform: translate(-1px,0); }
+  100% { transform: translate(0,0); }
+}
+
+/* Rooms */
+.roomTile{
+  position:absolute;
+  width: clamp(140px, 30vw, 170px);
+  height: 72px;
+  border-radius: 18px;
+  padding: 10px 12px;
+  font-weight: 900;
+  font-size: 13px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.12);
+  cursor: pointer;
+  display:flex;
+  align-items:flex-start;
+  justify-content: space-between;
+  gap:10px;
+  z-index: 1; /* under stations, above map background */
+}
+.roomBadge{
+  font-size: 18px;
+  line-height: 1;
+}
+
+/* Desktop/tablet room positions (inside map) */
+#room0{ left: 45%; top: 120px; transform: translateX(-50%); }
+#room1{ left: 75%; top: 120px; transform: translateX(-50%); }
+#room2{ left: 45%; top: 210px; transform: translateX(-50%); }
+#room3{ left: 75%; top: 210px; transform: translateX(-50%); }
+
+/* =======================================================
+   Bubbles / patience ring
+   ======================================================= */
 .bubble {
   position: absolute;
   top: -22px;
@@ -293,71 +355,29 @@ body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial
   pointer-events: none;
 }
 
-.character { position: absolute; }
-.character.angry { animation: shake 0.22s linear infinite; }
-@keyframes shake {
-  0% { transform: translate(0,0); }
-  25% { transform: translate(1px,0); }
-  50% { transform: translate(0,0); }
-  75% { transform: translate(-1px,0); }
-  100% { transform: translate(0,0); }
-}
-/* ===== Top-down rooms + cleaner manual taps ===== */
-.tipRow { display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
-
-.clean { right: 22px; bottom: 22px; cursor:pointer; }
-
-.roomTile{
-  position:absolute;
-  width: 160px;
-  height: 70px;
-  border-radius: 18px;
-  padding: 10px 12px;
-  font-weight: 900;
-  font-size: 13px;
-  background: rgba(255,255,255,0.07);
-  border: 1px solid rgba(255,255,255,0.12);
-  cursor: pointer;
-  display:flex;
-  align-items:flex-start;
-  justify-content: space-between;
-  gap:10px;
-}
-.roomBadge{
-  font-size: 18px;
-  line-height: 1;
+/* =======================================================
+   Responsive tweaks
+   ======================================================= */
+@media (max-width: 960px){
+  .grid2{ grid-template-columns: 1fr; }
+  .hotelShots{ grid-template-columns: 1fr; }
+  .shot img{ height: 180px; }
+  .upgradeRow{ grid-template-columns: 1fr; }
 }
 
-/* Place rooms (top-down grid) */
-#room0{ left: 260px; top: 70px; }
-#room1{ left: 450px; top: 70px; }
-#room2{ left: 260px; top: 160px; }
-#room3{ left: 450px; top: 160px; }
+/* Mobile: stack rooms into 1 centered column so nothing goes off-screen */
+@media (max-width: 560px){
+  .hotelMap{ height: 520px; }
 
-.character.cleaner{
-  background: rgba(255,255,255,0.10);
+  #room0{ left: 50%; top: 150px; transform: translateX(-50%); }
+  #room1{ left: 50%; top: 235px; transform: translateX(-50%); }
+  #room2{ left: 50%; top: 320px; transform: translateX(-50%); }
+  #room3{ left: 50%; top: 405px; transform: translateX(-50%); }
 }
-.character.carrying::after{
-  content: attr(data-carry);
-  position:absolute;
-  top:-18px;
-  left:50%;
-  transform:translateX(-50%);
-  font-size:18px;
-}
-#guestLayer { position:absolute; inset:0; }
 
-.guestToken{
-  position:absolute;
-  width: 44px;
-  height: 44px;
-  display:grid;
-  place-items:center;
-  font-size: 26px;
-  border-radius: 14px;
-  background: rgba(255,255,255,0.10);
-  border:1px solid rgba(255,255,255,0.14);
+@media (max-width: 420px) {
+  .cell { height: 46px; font-size: 22px; border-radius: 12px; }
+  .hero h1 { font-size: 22px; }
 }
-.guestToken.angry { animation: shake 0.22s linear infinite; }
 
 
