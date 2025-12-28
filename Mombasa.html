@@ -6,7 +6,9 @@
   <title>Mombasa • Safari Stay</title>
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
+  <!-- ================= HEADER ================= -->
   <header class="topbar">
     <div class="brand">
       <a class="logo" href="index.html" title="Back to home">⬅️</a>
@@ -22,17 +24,22 @@
     </div>
   </header>
 
+  <!-- ================= MAIN ================= -->
   <main class="container">
+
+    <!-- ====== PREVIEW + STATUS ====== -->
     <section class="card cols">
+      <!-- Images -->
       <div class="preview">
-        <img src="images/reception.png" alt="Hotel reception" onerror="this.style.display='none'" />
-        <img src="images/staff.png" alt="Hotel staff" onerror="this.style.display='none'" />
-        <img src="images/room.png" alt="Hotel room" onerror="this.style.display='none'" />
+        <img src="images/reception.png" alt="Hotel reception" />
+        <img src="images/staff.png" alt="Hotel staff" />
+        <img src="images/room.png" alt="Hotel room" />
         <p class="muted">
-          If any image disappears, it means that file is not inside <b>/images</b> or the name is different.
+          Build rooms and hire staff to unlock hotel visuals.
         </p>
       </div>
 
+      <!-- Status -->
       <div>
         <h2>Status</h2>
         <div class="hr"></div>
@@ -45,17 +52,20 @@
 
         <div class="hr"></div>
 
+        <!-- ACTION BUTTONS -->
         <div class="row">
           <button class="btn" id="earnBtn">Earn +25 coins</button>
-          <button class="btn small" id="saveBtn" title="Save progress">Save</button>
+          <a class="btn" href="puzzle.html">Play Puzzle 🧩</a>
+          <button class="btn small" id="saveBtn">Save</button>
         </div>
 
         <p class="muted" style="margin-top:10px">
-          Tip: Use “Earn” to get coins, then buy upgrades below.
+          Tip: Play the puzzle to earn coins faster.
         </p>
       </div>
     </section>
 
+    <!-- ====== HOTEL SHOP ====== -->
     <section class="card">
       <h2>Hotel Shop</h2>
       <p class="muted">Spend coins to upgrade your Mombasa hotel.</p>
@@ -105,12 +115,15 @@
       <div class="hr"></div>
       <p class="muted" id="msg">Ready ✅</p>
     </section>
+
   </main>
 
+  <!-- ================= FOOTER ================= -->
   <footer class="footer muted">
     <a href="index.html">Home</a> • Safari Stay
   </footer>
 
+  <!-- ================= SCRIPT ================= -->
   <script src="Mombasa.js"></script>
 </body>
 </html>
