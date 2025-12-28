@@ -1,11 +1,12 @@
 /* ==========================================================
-   SAFARI STAY – HOTEL MANIA (MULTI-GUEST)
+   SAFARI STAY – HOTEL MANIA (MULTI-GUEST) – MOMBASA
    - 4 rooms
-   - up to 8 guests
+   - up to 8 guests moving
    - reception queue
    - requests: 🥤 🥥 🍍
    - bellboy AUTO serves (ONLY if hired)
    - cleaner MANUAL (ONLY if hired)
+   - Cartoon mode (Option A): single PNG sprites + fallback emojis
    ========================================================== */
 
 /* ---------- HUD ---------- */
@@ -48,6 +49,36 @@ const COIN_KEY = "coins";
 const KEY_BELL = "mombasaBellboy";
 const KEY_CLEAN = "mombasaCleaner";
 
+/* ---------- Sprites (Option A) ---------- */
+const SPRITES = {
+  guest:   "images/chars/guest.png",
+  bellboy: "images/chars/bellboy.png",
+  cleaner: "images/chars/cleaner.png",
+};
+
+function setSprite(el, type, fallbackEmoji){
+  if (!el) return;
+
+  // If already has an img, do nothing
+  const existing = el.querySelector("img.charSprite");
+  if (existing) return;
+
+  // Create img with fallback
+  const img = document.createElement("img");
+  img.className = "charSprite";
+  img.src = SPRITES[type];
+  img.alt = type;
+
+  img.onerror = () => {
+    // fallback to emoji if image missing
+    el.innerHTML = "";
+    el.textContent = fallbackEmoji;
+  };
+
+  el.innerHTML = "";
+  el.appendChild(img);
+}
+
 /* ---------- Rewards ---------- */
 const BASE_PAY_COINS = 5;
 const ITEMS = {
@@ -83,9 +114,10 @@ let cleanerHired = localStorage.getItem(KEY_CLEAN) === "true";
 
 /* ---------- Bellboy ---------- */
 let bellboy = {
+  el: bellboyEl,
   x: 210, y: 260,
   speed: 2.7,
-  state: "IDLE",
+  state: "IDLE", // IDLE, TO_SNACK, TO_GUEST, RETURNING
   target: null,
   carrying: null,
   targetGuestId: null,
@@ -93,9 +125,10 @@ let bellboy = {
 
 /* ---------- Cleaner ---------- */
 let cleaner = {
+  el: cleanerEl,
   x: 520, y: 280,
   speed: 2.4,
-  state: "IDLE",
+  state: "IDLE", // IDLE, GOT_DETERGENT, TO_ROOM, CLEANING, RETURNING
   target: null,
   carrying: false,
   selectedRoom: null,
@@ -110,21 +143,44 @@ function setPos(el, x, y){
   el.style.top = y + "px";
 }
 
+function setFacing(el, dx){
+  if (!el) return;
+  el.classList.toggle("faceLeft", dx < 0);
+  el.classList.toggle("faceRight", dx >= 0);
+}
+
+function setWalking(el, walking){
+  if (!el) return;
+  el.classList.toggle("walking", !!walking);
+}
+
 function centerOf(el){
   const mapRect = mapEl.getBoundingClientRect();
   const r = el.getBoundingClientRect();
+  // -22 keeps center aligned for 44px tokens
   return { x:(r.left-mapRect.left)+r.width/2-22, y:(r.top-mapRect.top)+r.height/2-22 };
 }
 
 function moveToward(entity){
-  if (!entity.target) return false;
+  if (!entity.target) {
+    if (entity.el) setWalking(entity.el, false);
+    return false;
+  }
+
   const dx = entity.target.x - entity.x;
   const dy = entity.target.y - entity.y;
   const dist = Math.hypot(dx, dy);
+
+  if (entity.el) {
+    setFacing(entity.el, dx);
+    setWalking(entity.el, true);
+  }
+
   if (dist < 2){
     entity.x = entity.target.x;
     entity.y = entity.target.y;
     entity.target = null;
+    if (entity.el) setWalking(entity.el, false);
     return true;
   }
   entity.x += (dx/dist) * entity.speed;
@@ -137,7 +193,7 @@ function addGlobalCoins(amount){
   localStorage.setItem(COIN_KEY, String(current + amount));
 }
 
-/* ---------- Hire sync (EVENT-BASED) ---------- */
+/* ---------- Hire sync + visibility ---------- */
 function setCleanerCarry(on){
   cleaner.carrying = on;
   if (!cleanerEl) return;
@@ -169,6 +225,7 @@ function syncHiresAndVisibility() {
 
   updateHUD();
 }
+
 window.addEventListener("staffUpdated", syncHiresAndVisibility);
 
 /* ---------- Requests rolling ---------- */
@@ -188,7 +245,7 @@ function rollRequests(){
   return picks;
 }
 
-/* ---------- Rooms ---------- */
+/* ---------- Room helpers ---------- */
 function roomsFreeCount(){ return rooms.filter(r => r.status === ROOM_FREE).length; }
 function findFreeRoomIndex(){ return rooms.findIndex(r => r.status === ROOM_FREE); }
 
@@ -210,17 +267,26 @@ function updateHUD(){
 
   if (!cleanerModeEl) return;
 
-  if (!cleanerHired) cleanerModeEl.textContent = "Hire Cleaner to clean";
-  else cleanerModeEl.textContent = cleanerStep === "TAP_STATION" ? "Tap 🧴 station" : "Tap 🧺 dirty room";
+  if (!cleanerHired) {
+    cleanerModeEl.textContent = "Hire Cleaner to clean";
+  } else {
+    cleanerModeEl.textContent = cleanerStep === "TAP_STATION"
+      ? "Tap 🧴 station"
+      : "Tap 🧺 dirty room";
+  }
 }
 
 /* ---------- Guests ---------- */
 function makeGuest(){
   const el = document.createElement("div");
   el.className = "guestToken";
-  el.textContent = "🧳";
+  el.textContent = "🧳"; // fallback
   guestLayer.appendChild(el);
 
+  // sprite (fallback to emoji if missing)
+  setSprite(el, "guest", "🧳");
+
+  // bubble
   const bubble = document.createElement("div");
   bubble.className = "bubble";
   const ring = document.createElement("div");
@@ -238,31 +304,47 @@ function makeGuest(){
     speed: 2.0,
     state: "SPAWN",
     target: null,
+
     roomIndex: null,
     requests: [],
     currentRequest: null,
     requestDeadline: 0,
     totalBonus: 0,
     angry: false,
+
+    // for queue
+    queuePosIndex: 0,
   };
 }
 
 function showGuestBubble(g, icon){
-  g.bubble.style.display = "grid";
-  [...g.bubble.childNodes].forEach(n => { if (n !== g.ring) g.bubble.removeChild(n); });
+  const bubble = g.bubble;
+  bubble.style.display = "grid";
+  bubble.classList.remove("pop");
+  // rebuild icon
+  [...bubble.childNodes].forEach(n => { if (n !== g.ring) bubble.removeChild(n); });
   const iconNode = document.createElement("div");
   iconNode.textContent = icon;
-  g.bubble.appendChild(iconNode);
+  bubble.appendChild(iconNode);
+
+  // little pop
+  requestAnimationFrame(() => bubble.classList.add("pop"));
 }
 
 function hideGuestBubble(g){
   g.bubble.style.display = "none";
 }
 
-/* ---------- Queue positions ---------- */
+/* ---------- Reception queue positions ---------- */
 function queueSpot(index){
   const base = centerOf(stReception);
   return { x: base.x - 40, y: base.y + 55 + index * 30 };
+}
+
+function refreshQueuePositions(){
+  queue.forEach((g, idx) => {
+    g.queuePosIndex = idx;
+  });
 }
 
 /* ---------- Flow ---------- */
@@ -277,12 +359,17 @@ function onArriveReception(g){
     g.state = "QUEUED";
     g.target = null;
     queue.push(g);
+    refreshQueuePositions();
     updateHUD();
     return;
   }
 
   g.roomIndex = freeRoom;
   setRoomStatus(freeRoom, ROOM_OCC);
+
+  // if they were queued, remove them from queue
+  queue = queue.filter(x => x.id !== g.id);
+  refreshQueuePositions();
 
   g.state = "TO_ROOM";
   g.target = centerOf(roomEls[freeRoom]);
@@ -331,6 +418,7 @@ function onArrivePay(g){
 
   g.state = "TO_EXIT";
   g.target = centerOf(stExit);
+  updateHUD();
 }
 
 function onArriveExit(g){
@@ -338,6 +426,7 @@ function onArriveExit(g){
   hideGuestBubble(g);
   g.el.remove();
   guests = guests.filter(x => x.id !== g.id);
+  updateHUD();
 }
 
 /* ---------- Patience ---------- */
@@ -367,7 +456,6 @@ function updatePatienceAll(){
 function findServeTargetGuest(){
   return guests.find(g => g.state === "WAITING" && !!g.currentRequest);
 }
-
 function getGuestById(id){ return guests.find(g => g.id === id); }
 
 function bellboyTryServe(){
@@ -439,7 +527,6 @@ function startCleaningRoom(i){
   cleaner.state = "TO_ROOM";
   cleaner.target = centerOf(roomEls[i]);
 }
-
 roomEls.forEach((el, i) => el?.addEventListener("click", () => startCleaningRoom(i)));
 
 function onCleanerArriveRoom(){
@@ -464,14 +551,17 @@ function onCleanerReturn(){
   updateHUD();
 }
 
-/* ---------- Spawn Guests ---------- */
+/* ---------- Spawning guests ---------- */
 function spawnGuest(){
   if (guests.length >= 8) return;
+
   const g = makeGuest();
   guests.push(g);
 
+  // entrance with small offsets
   g.x = 10 + (guests.length % 3) * 14;
   g.y = 10 + (guests.length % 3) * 14;
+
   setPos(g.el, g.x, g.y);
   hideGuestBubble(g);
 
@@ -480,8 +570,9 @@ function spawnGuest(){
 }
 spawnGuestBtn?.addEventListener("click", spawnGuest);
 
-/* ---------- Loop ---------- */
+/* ---------- Main loop ---------- */
 function loop(){
+  // Guests update
   guests.forEach(g => {
     const arrived = moveToward(g);
     setPos(g.el, g.x, g.y);
@@ -494,6 +585,7 @@ function loop(){
     }
   });
 
+  // Queue “stick” positions
   queue.forEach((g, idx) => {
     const p = queueSpot(idx);
     g.x += (p.x - g.x) * 0.08;
@@ -501,24 +593,30 @@ function loop(){
     setPos(g.el, g.x, g.y);
   });
 
+  // Bellboy update
   if (bellHired) {
     const bellArrived = moveToward(bellboy);
     setPos(bellboyEl, bellboy.x, bellboy.y);
+
     if (bellArrived){
       if (bellboy.state === "TO_SNACK") onBellboySnack();
       else if (bellboy.state === "TO_GUEST") onBellboyGuest();
       else if (bellboy.state === "RETURNING") onBellboyReturn();
     }
+
     bellboyTryServe();
   }
 
+  // Cleaner update
   if (cleanerHired) {
     const cleanArrived = moveToward(cleaner);
     setPos(cleanerEl, cleaner.x, cleaner.y);
+
     if (cleanArrived){
       if (cleaner.state === "TO_ROOM") onCleanerArriveRoom();
       else if (cleaner.state === "RETURNING") onCleanerReturn();
     }
+
     if (cleaner.state === "CLEANING" && Date.now() >= cleaner.cleanDoneAt){
       finishCleaning();
     }
@@ -532,16 +630,24 @@ function loop(){
 function start(){
   if (!mapEl || !guestLayer || !stReception || !stSnack || !stClean || !stExit) return;
 
+  // Worker sprites (fallback to emoji)
+  setSprite(bellboyEl, "bellboy", "🧑🏾‍💼");
+  setSprite(cleanerEl, "cleaner", "🧹");
+
+  // init room badges
   for (let i = 0; i < 4; i++) setRoomStatus(i, ROOM_FREE);
 
+  // place workers
   setPos(bellboyEl, bellboy.x, bellboy.y);
   setPos(cleanerEl, cleaner.x, cleaner.y);
+  setCleanerCarry(false);
 
   syncHiresAndVisibility();
   updateHUD();
   loop();
 }
 start();
+
 
 
 
