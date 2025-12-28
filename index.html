@@ -12,37 +12,39 @@
       <div class="logo">🦁</div>
       <div>
         <div class="title">Safari Stay</div>
-        <div class="subtitle">Kenya Hotel Tycoon + Puzzle</div>
+        <div class="subtitle">Hotel Tycoon + Match Puzzle</div>
       </div>
     </div>
-    <div class="pill">
-      Coins: <span id="coinsTop">0</span>
+
+    <div class="rightHeader">
+      <div class="pill">Coins: <span id="coinsTop">0</span></div>
+      <a class="btn small" href="Mombasa.html">▶ Play Mombasa</a>
     </div>
   </header>
 
   <main class="container">
     <section class="card hero">
-      <h1>Welcome to Safari Stay</h1>
-      <p>
-        Earn coins by playing the puzzle, then build your hotel across Kenya.
-        Start with <b>Mombasa</b>.
+      <h1>Build Kenya, one move at a time ✨</h1>
+      <p class="muted">
+        Play the puzzle to earn coins, then upgrade your hotel.
+        Your coins are saved even when you refresh.
       </p>
 
       <div class="actions">
-        <a class="btn" href="Mombasa.html">▶ Start Mombasa</a>
+        <a class="btn" href="Mombasa.html">Start Mombasa</a>
         <button class="btn ghost" id="resetBtn">Reset Coins</button>
       </div>
 
       <div class="note">
-        Tip: Each valid swap (move) in the puzzle gives you <b>+1 coin</b>.
+        💰 Coins system: <b>+1 coin per move</b> + bonus coins for tiles cleared.
       </div>
     </section>
 
     <section class="card">
-      <h2>Coming Levels</h2>
+      <h2>Levels (Roadmap)</h2>
       <div class="chips">
-        <span class="chip">🏝️ Mombasa</span>
-        <span class="chip">🦓 Maasai Mara</span>
+        <span class="chip">🌴 Mombasa (Hotel)</span>
+        <span class="chip">🦓 Maasai Mara (Camps)</span>
         <span class="chip">🌋 Naivasha</span>
         <span class="chip">🏔️ Mt. Kenya</span>
       </div>
@@ -61,8 +63,9 @@
       refreshCoins();
       alert("Coins reset to 0 ✅");
     });
+
+    window.addEventListener("focus", refreshCoins);
   </script>
 </body>
 </html>
-
 
