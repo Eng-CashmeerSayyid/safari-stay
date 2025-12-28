@@ -4,19 +4,18 @@
    - Real gravity drop
    - Cascades / combos
    - Coins: +1 per move + tiles-cleared bonus
-   - Simple hotel upgrades that spend coins
+   - Hotel upgrades that spend coins
+   - Emits "staffUpdated" event when hiring
    ========================================== */
 
 const WIDTH = 8;
 const TOTAL = WIDTH * WIDTH;
 
-// Tile set (stable + fun)
 const TILES = ["🍓", "🥥", "🌴", "🐚", "⭐", "🍍"];
 
-// Puzzle rules
 const START_MOVES = 30;
 const COIN_PER_MOVE = 1;
-const COIN_PER_TILE_CLEARED = 1; // bonus per tile cleared
+const COIN_PER_TILE_CLEARED = 1;
 
 // ---------- LocalStorage keys ----------
 const KEY_COINS = "coins";
@@ -24,7 +23,7 @@ const KEY_ROOM_LVL = "mombasaRoomLevel";
 const KEY_BELL = "mombasaBellboy";
 const KEY_CLEAN = "mombasaCleaner";
 
-// ---------- Elements (exist on Mombasa page only) ----------
+// ---------- Elements ----------
 const grid = document.getElementById("grid");
 const movesEl = document.getElementById("moves");
 const coinsEl = document.getElementById("coins");
@@ -66,7 +65,6 @@ function randomTile() {
 }
 
 function indexToRow(i) { return Math.floor(i / WIDTH); }
-function indexToCol(i) { return i % WIDTH; }
 
 function isAdjacent(a, b) {
   const ra = indexToRow(a), rb = indexToRow(b);
@@ -87,8 +85,11 @@ function updateTopUI() {
   localStorage.setItem(KEY_COINS, String(coins));
 }
 
+function getRoomCost() {
+  return Math.floor(20 + roomLevel * 15 + roomLevel * roomLevel * 5);
+}
+
 function refreshUpgradesUI() {
-  // If upgrades UI not on this page, skip safely
   if (!roomCostEl || !roomLevelEl || !buyRoomBtn) return;
 
   const cost = getRoomCost();
@@ -124,7 +125,7 @@ function render() {
   }
 }
 
-// ---------- Match detection (3+ any length) ----------
+// ---------- Match detection ----------
 function findAllMatches() {
   const toClear = new Set();
 
@@ -179,7 +180,7 @@ function findAllMatches() {
   return [...toClear];
 }
 
-// ---------- Gravity (real drop) ----------
+// ---------- Gravity ----------
 function applyGravity() {
   for (let c = 0; c < WIDTH; c++) {
     const colTiles = [];
@@ -188,7 +189,6 @@ function applyGravity() {
       if (board[i]) colTiles.push(board[i]);
     }
 
-    // Refill column bottom-up
     let writeRow = WIDTH - 1;
     for (let t = 0; t < colTiles.length; t++) {
       board[writeRow * WIDTH + c] = colTiles[t];
@@ -201,23 +201,20 @@ function applyGravity() {
   }
 }
 
-// ---------- Clear matches and cascade ----------
+// ---------- Cascade ----------
 function clearMatchesAndCascade() {
   const matches = findAllMatches();
   if (matches.length === 0) return false;
 
-  // Clear
   matches.forEach(i => board[i] = "");
   const clearedNow = matches.length;
   clearedTotal += clearedNow;
 
-  // Bonus coins per cleared tile
   coins += clearedNow * COIN_PER_TILE_CLEARED;
 
   updateAllUI();
   render();
 
-  // Gravity + next cascade
   setTimeout(() => {
     applyGravity();
     render();
@@ -225,14 +222,14 @@ function clearMatchesAndCascade() {
     setTimeout(() => {
       combo += 1;
       updateAllUI();
-      clearMatchesAndCascade(); // chain until no more matches
+      clearMatchesAndCascade();
     }, 140);
   }, 160);
 
   return true;
 }
 
-// ---------- Swap ----------
+// ---------- Swap / Move ----------
 function doSwap(a, b) {
   [board[a], board[b]] = [board[b], board[a]];
 }
@@ -245,18 +242,15 @@ function attemptMove(a, b) {
   doSwap(a, b);
   render();
 
-  // coins per move
   moves -= 1;
   coins += COIN_PER_MOVE;
 
-  // reset combo for new move
   combo = 0;
   updateAllUI();
 
   setTimeout(() => {
     const hadMatch = clearMatchesAndCascade();
 
-    // If no match, revert swap (but move + coin still counted)
     if (!hadMatch) {
       setTimeout(() => {
         doSwap(a, b);
@@ -264,7 +258,6 @@ function attemptMove(a, b) {
         isBusy = false;
       }, 140);
     } else {
-      // End busy after cascades settle
       setTimeout(() => {
         isBusy = false;
       }, 900);
@@ -272,7 +265,6 @@ function attemptMove(a, b) {
   }, 120);
 }
 
-// ---------- Click handling ----------
 function handleClick(i) {
   if (isBusy || moves <= 0) return;
 
@@ -288,7 +280,6 @@ function handleClick(i) {
     return;
   }
 
-  // valid adjacency => move
   clearHighlights();
   const a = selectedIndex;
   selectedIndex = null;
@@ -310,7 +301,6 @@ function buildBoard() {
 
   for (let i = 0; i < TOTAL; i++) {
     board.push(randomTile());
-
     const cell = document.createElement("div");
     cell.className = "cell";
     cell.addEventListener("click", () => handleClick(i));
@@ -320,16 +310,10 @@ function buildBoard() {
   render();
   updateAllUI();
 
-  // Remove any starting matches
   clearMatchesAndCascade();
 }
 
-// ---------- Upgrades ----------
-function getRoomCost() {
-  // Increases as you level up (20, 35, 55, 80...)
-  return Math.floor(20 + roomLevel * 15 + roomLevel * roomLevel * 5);
-}
-
+// ---------- Spending ----------
 function spendCoins(amount) {
   if (coins < amount) return false;
   coins -= amount;
@@ -338,6 +322,7 @@ function spendCoins(amount) {
   return true;
 }
 
+// ---------- Upgrades events ----------
 buyRoomBtn?.addEventListener("click", () => {
   const cost = getRoomCost();
   if (!spendCoins(cost)) return;
@@ -353,6 +338,7 @@ hireBellBtn?.addEventListener("click", () => {
 
   bellHired = true;
   localStorage.setItem(KEY_BELL, "true");
+  window.dispatchEvent(new Event("staffUpdated"));
   refreshUpgradesUI();
 });
 
@@ -362,6 +348,7 @@ hireCleanBtn?.addEventListener("click", () => {
 
   cleanerHired = true;
   localStorage.setItem(KEY_CLEAN, "true");
+  window.dispatchEvent(new Event("staffUpdated"));
   refreshUpgradesUI();
 });
 
@@ -375,6 +362,7 @@ resetCoinsBtn?.addEventListener("click", () => {
   coins = 0;
   localStorage.setItem(KEY_COINS, "0");
   updateAllUI();
+  window.dispatchEvent(new Event("staffUpdated"));
   alert("Coins reset to 0 ✅");
 });
 
