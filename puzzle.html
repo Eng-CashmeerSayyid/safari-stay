@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Puzzle • Safari Stay</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .puzzleWrap{display:grid; gap:14px;}
+    .hud{display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between;}
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap:8px;
+      user-select:none;
+    }
+    .cell{
+      aspect-ratio: 1 / 1;
+      display:grid;
+      place-items:center;
+      font-size:28px;
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:14px;
+      cursor:pointer;
+      transition: transform .08s ease, border-color .12s ease;
+    }
+    .cell.selected{
+      transform: scale(0.97);
+      border-color: rgba(255,209,102,.55);
+      box-shadow: 0 0 0 2px rgba(255,209,102,.20) inset;
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <a class="logo" href="Mombasa.html" title="Back to Mombasa">⬅️</a>
+      <div>
+        <h1>🧩 Match Puzzle</h1>
+        <p class="muted">Make matches • Score points • Convert to coins</p>
+      </div>
+    </div>
+
+    <div class="pill">
+      <span>💰 Coins:</span>
+      <strong id="coins">0</strong>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="card puzzleWrap">
+      <div class="hud">
+        <div class="muted">Score: <b id="score">0</b> • Moves: <b id="moves">20</b></div>
+        <div style="display:flex; gap:10px; align-items:center;">
+          <button class="btn small" id="cashOutBtn">Cash out</button>
+          <button class="btn small" id="resetPuzzle">New board</button>
+        </div>
+      </div>
+
+      <div class="grid" id="grid"></div>
+
+      <p class="muted" id="msg">
+        Tap one item, then tap a neighbor to swap. Make 3+ in a row/column.
+      </p>
+      <p class="muted">
+        Cash out converts score into coins: <b>+1 coin for every 10 score</b>.
+      </p>
+    </section>
+  </main>
+
+  <footer class="footer muted">
+    Back to <a href="Mombasa.html">Mombasa</a> • Safari Stay
+  </footer>
+
+  <script src="puzzle.js"></script>
+</body>
+</html>
