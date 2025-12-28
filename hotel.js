@@ -568,14 +568,34 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function finishCleaning(){
-    const i = cleaner.selectedRoom;
-    if (i !== null){
-      setRoomStatus(i, ROOM_FREE);
+  const i = cleaner.selectedRoom;
+
+  if (i !== null){
+    // 1) mark room as FREE
+    setRoomStatus(i, ROOM_FREE);
+
+    // 2) if there is someone waiting in the queue, move them into this room
+    if (queue.length > 0){
+      const g = queue.shift(); // take first guest in line
+
+      g.state = "TO_ROOM";
+      g.roomIndex = i;
+
+      // room becomes occupied again
+      setRoomStatus(i, ROOM_OCC);
+
+      // send guest to this room
+      g.target = centerOf(roomEls[i]);
+
+      updateHUD();
     }
-    cleaner.selectedRoom = null;
-    cleaner.state = "RETURNING";
-    cleaner.target = centerOf(stClean);
   }
+
+  cleaner.selectedRoom = null;
+  cleaner.state = "RETURNING";
+  cleaner.target = centerOf(stClean);
+}
+
 
   function onCleanerReturn(){
     cleaner.state = "IDLE";
