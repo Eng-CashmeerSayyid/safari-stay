@@ -1,13 +1,38 @@
 /* ==========================================================
-   SAFARI STAY – HOTEL MANIA (MULTI-GUEST) – MOMBASA
+   SAFARI STAY – MOMBASA HOTEL MANIA (with Ocean + Pool)
    - 4 rooms
-   - up to 8 guests moving
-   - reception queue
+   - up to 8 guests
+   - reception queue visuals
    - requests: 🥤 🥥 🍍
    - bellboy AUTO serves (ONLY if hired)
    - cleaner MANUAL (ONLY if hired)
-   - Cartoon mode (Option A): single PNG sprites + fallback emojis
+   - POOL + OCEAN inside map (A choice)
+   Pool unlock: Room Level >= 1 (mombasaRoomLevel)
    ========================================================== */
+
+/* ---------- Tabs (safe) ---------- */
+(function(){
+  const tabPuzzle = document.getElementById("tabPuzzle");
+  const tabHotel  = document.getElementById("tabHotel");
+  const viewPuzzle = document.getElementById("viewPuzzle");
+  const viewHotel  = document.getElementById("viewHotel");
+  if (!tabPuzzle || !tabHotel || !viewPuzzle || !viewHotel) return;
+
+  function showPuzzle(){
+    tabPuzzle.classList.add("active");
+    tabHotel.classList.remove("active");
+    viewPuzzle.classList.remove("hidden");
+    viewHotel.classList.add("hidden");
+  }
+  function showHotel(){
+    tabHotel.classList.add("active");
+    tabPuzzle.classList.remove("active");
+    viewHotel.classList.remove("hidden");
+    viewPuzzle.classList.add("hidden");
+  }
+  tabPuzzle.onclick = showPuzzle;
+  tabHotel.onclick = showHotel;
+})();
 
 /* ---------- HUD ---------- */
 const servedEl = document.getElementById("served");
@@ -25,6 +50,10 @@ const stReception = document.getElementById("stReception");
 const stSnack = document.getElementById("stSnack");
 const stClean = document.getElementById("stClean");
 const stExit = document.getElementById("stExit");
+
+/* Pool UI created by JS (so your HTML doesn’t need extra stuff) */
+let poolZoneEl = null;
+let poolLockedEl = null;
 
 /* ---------- Rooms ---------- */
 const roomEls = [
@@ -48,36 +77,7 @@ const cleanerEl = document.getElementById("cleaner");
 const COIN_KEY = "coins";
 const KEY_BELL = "mombasaBellboy";
 const KEY_CLEAN = "mombasaCleaner";
-
-/* ---------- Sprites (Option A) ---------- */
-const SPRITES = {
-  guest:   "images/chars/guest.png",
-  bellboy: "images/chars/bellboy.png",
-  cleaner: "images/chars/cleaner.png",
-};
-
-function setSprite(el, type, fallbackEmoji){
-  if (!el) return;
-
-  // If already has an img, do nothing
-  const existing = el.querySelector("img.charSprite");
-  if (existing) return;
-
-  // Create img with fallback
-  const img = document.createElement("img");
-  img.className = "charSprite";
-  img.src = SPRITES[type];
-  img.alt = type;
-
-  img.onerror = () => {
-    // fallback to emoji if image missing
-    el.innerHTML = "";
-    el.textContent = fallbackEmoji;
-  };
-
-  el.innerHTML = "";
-  el.appendChild(img);
-}
+const KEY_ROOM_LVL = "mombasaRoomLevel";
 
 /* ---------- Rewards ---------- */
 const BASE_PAY_COINS = 5;
@@ -87,6 +87,10 @@ const ITEMS = {
   pineapple: { icon:"🍍", seconds: 12, bonus: 5 }
 };
 const ITEM_KEYS = Object.keys(ITEMS);
+
+/* Pool bonuses (simple) */
+const POOL_STAY_MS = 3800;
+const POOL_TIP_BONUS = 2;
 
 /* ---------- Room State ---------- */
 const ROOM_FREE  = "FREE";
@@ -112,12 +116,19 @@ let nextGuestId = 1;
 let bellHired = localStorage.getItem(KEY_BELL) === "true";
 let cleanerHired = localStorage.getItem(KEY_CLEAN) === "true";
 
+/* Pool unlock by room level */
+function getRoomLevel(){
+  return Number(localStorage.getItem(KEY_ROOM_LVL)) || 0;
+}
+function poolUnlocked(){
+  return getRoomLevel() >= 1;
+}
+
 /* ---------- Bellboy ---------- */
 let bellboy = {
-  el: bellboyEl,
-  x: 210, y: 260,
+  x: 220, y: 290,
   speed: 2.7,
-  state: "IDLE", // IDLE, TO_SNACK, TO_GUEST, RETURNING
+  state: "IDLE",
   target: null,
   carrying: null,
   targetGuestId: null,
@@ -125,10 +136,9 @@ let bellboy = {
 
 /* ---------- Cleaner ---------- */
 let cleaner = {
-  el: cleanerEl,
-  x: 520, y: 280,
+  x: 620, y: 380,
   speed: 2.4,
-  state: "IDLE", // IDLE, GOT_DETERGENT, TO_ROOM, CLEANING, RETURNING
+  state: "IDLE",
   target: null,
   carrying: false,
   selectedRoom: null,
@@ -137,50 +147,23 @@ let cleaner = {
 let cleanerStep = "TAP_STATION";
 
 /* ---------- Helpers ---------- */
-function setPos(el, x, y){
-  if (!el) return;
-  el.style.left = x + "px";
-  el.style.top = y + "px";
-}
-
-function setFacing(el, dx){
-  if (!el) return;
-  el.classList.toggle("faceLeft", dx < 0);
-  el.classList.toggle("faceRight", dx >= 0);
-}
-
-function setWalking(el, walking){
-  if (!el) return;
-  el.classList.toggle("walking", !!walking);
-}
+function setPos(el, x, y){ if (el) { el.style.left = x + "px"; el.style.top = y + "px"; } }
 
 function centerOf(el){
   const mapRect = mapEl.getBoundingClientRect();
   const r = el.getBoundingClientRect();
-  // -22 keeps center aligned for 44px tokens
   return { x:(r.left-mapRect.left)+r.width/2-22, y:(r.top-mapRect.top)+r.height/2-22 };
 }
 
 function moveToward(entity){
-  if (!entity.target) {
-    if (entity.el) setWalking(entity.el, false);
-    return false;
-  }
-
+  if (!entity.target) return false;
   const dx = entity.target.x - entity.x;
   const dy = entity.target.y - entity.y;
   const dist = Math.hypot(dx, dy);
-
-  if (entity.el) {
-    setFacing(entity.el, dx);
-    setWalking(entity.el, true);
-  }
-
   if (dist < 2){
     entity.x = entity.target.x;
     entity.y = entity.target.y;
     entity.target = null;
-    if (entity.el) setWalking(entity.el, false);
     return true;
   }
   entity.x += (dx/dist) * entity.speed;
@@ -193,7 +176,61 @@ function addGlobalCoins(amount){
   localStorage.setItem(COIN_KEY, String(current + amount));
 }
 
-/* ---------- Hire sync + visibility ---------- */
+/* ---------- Ocean + Pool build (A) ---------- */
+function buildOceanAndPool(){
+  if (!mapEl) return;
+
+  // Ocean backdrop
+  if (!mapEl.querySelector(".oceanSky")){
+    const ocean = document.createElement("div");
+    ocean.className = "oceanSky";
+    mapEl.appendChild(ocean);
+  }
+
+  // Pool zone
+  if (!mapEl.querySelector(".poolZone")){
+    poolZoneEl = document.createElement("div");
+    poolZoneEl.className = "poolZone";
+
+    const water = document.createElement("div");
+    water.className = "poolWater";
+
+    const deck = document.createElement("div");
+    deck.className = "poolDeck";
+    deck.textContent = "POOL 🏊";
+
+    poolLockedEl = document.createElement("div");
+    poolLockedEl.className = "poolLockBadge";
+    poolLockedEl.textContent = "Locked 🔒 (Room Lvl 1)";
+
+    poolZoneEl.appendChild(water);
+    poolZoneEl.appendChild(deck);
+    poolZoneEl.appendChild(poolLockedEl);
+    mapEl.appendChild(poolZoneEl);
+  } else {
+    poolZoneEl = mapEl.querySelector(".poolZone");
+    poolLockedEl = mapEl.querySelector(".poolLockBadge");
+  }
+
+  refreshPoolUI();
+}
+
+function refreshPoolUI(){
+  if (!poolZoneEl) return;
+  const ok = poolUnlocked();
+  poolZoneEl.classList.toggle("locked", !ok);
+  if (poolLockedEl) poolLockedEl.style.display = ok ? "none" : "block";
+}
+
+function poolSpot(){
+  // A stable target inside pool zone (center-ish)
+  // We avoid centerOf() because pool is created by JS; but it works too.
+  const zr = poolZoneEl.getBoundingClientRect();
+  const mr = mapEl.getBoundingClientRect();
+  return { x: (zr.left - mr.left) + zr.width/2 - 22, y: (zr.top - mr.top) + zr.height/2 - 22 };
+}
+
+/* ---------- Cleaner carry UI ---------- */
 function setCleanerCarry(on){
   cleaner.carrying = on;
   if (!cleanerEl) return;
@@ -207,6 +244,7 @@ function setCleanerCarry(on){
   }
 }
 
+/* ---------- Hire sync + visibility ---------- */
 function syncHiresAndVisibility() {
   bellHired = localStorage.getItem(KEY_BELL) === "true";
   cleanerHired = localStorage.getItem(KEY_CLEAN) === "true";
@@ -214,6 +252,7 @@ function syncHiresAndVisibility() {
   if (bellboyEl) bellboyEl.style.display = bellHired ? "" : "none";
   if (cleanerEl) cleanerEl.style.display = cleanerHired ? "" : "none";
 
+  // Reset cleaner system if not hired
   if (!cleanerHired) {
     cleanerStep = "TAP_STATION";
     cleaner.state = "IDLE";
@@ -223,9 +262,11 @@ function syncHiresAndVisibility() {
     setCleanerCarry(false);
   }
 
+  refreshPoolUI();
   updateHUD();
 }
 
+// Optional: if your puzzle dispatches events later
 window.addEventListener("staffUpdated", syncHiresAndVisibility);
 
 /* ---------- Requests rolling ---------- */
@@ -245,7 +286,7 @@ function rollRequests(){
   return picks;
 }
 
-/* ---------- Room helpers ---------- */
+/* ---------- Rooms ---------- */
 function roomsFreeCount(){ return rooms.filter(r => r.status === ROOM_FREE).length; }
 function findFreeRoomIndex(){ return rooms.findIndex(r => r.status === ROOM_FREE); }
 
@@ -280,13 +321,9 @@ function updateHUD(){
 function makeGuest(){
   const el = document.createElement("div");
   el.className = "guestToken";
-  el.textContent = "🧳"; // fallback
+  el.textContent = "🧳";
   guestLayer.appendChild(el);
 
-  // sprite (fallback to emoji if missing)
-  setSprite(el, "guest", "🧳");
-
-  // bubble
   const bubble = document.createElement("div");
   bubble.className = "bubble";
   const ring = document.createElement("div");
@@ -312,39 +349,27 @@ function makeGuest(){
     totalBonus: 0,
     angry: false,
 
-    // for queue
-    queuePosIndex: 0,
+    poolDoneAt: 0,
+    usedPool: false,
   };
 }
 
 function showGuestBubble(g, icon){
-  const bubble = g.bubble;
-  bubble.style.display = "grid";
-  bubble.classList.remove("pop");
-  // rebuild icon
-  [...bubble.childNodes].forEach(n => { if (n !== g.ring) bubble.removeChild(n); });
+  g.bubble.style.display = "grid";
+  [...g.bubble.childNodes].forEach(n => { if (n !== g.ring) g.bubble.removeChild(n); });
   const iconNode = document.createElement("div");
   iconNode.textContent = icon;
-  bubble.appendChild(iconNode);
-
-  // little pop
-  requestAnimationFrame(() => bubble.classList.add("pop"));
+  g.bubble.appendChild(iconNode);
 }
 
 function hideGuestBubble(g){
   g.bubble.style.display = "none";
 }
 
-/* ---------- Reception queue positions ---------- */
+/* ---------- Queue positions ---------- */
 function queueSpot(index){
   const base = centerOf(stReception);
   return { x: base.x - 40, y: base.y + 55 + index * 30 };
-}
-
-function refreshQueuePositions(){
-  queue.forEach((g, idx) => {
-    g.queuePosIndex = idx;
-  });
 }
 
 /* ---------- Flow ---------- */
@@ -359,17 +384,12 @@ function onArriveReception(g){
     g.state = "QUEUED";
     g.target = null;
     queue.push(g);
-    refreshQueuePositions();
     updateHUD();
     return;
   }
 
   g.roomIndex = freeRoom;
   setRoomStatus(freeRoom, ROOM_OCC);
-
-  // if they were queued, remove them from queue
-  queue = queue.filter(x => x.id !== g.id);
-  refreshQueuePositions();
 
   g.state = "TO_ROOM";
   g.target = centerOf(roomEls[freeRoom]);
@@ -396,8 +416,44 @@ function startNextRequestOrCheckout(g){
 }
 
 function onArriveRoom(g){
+  // Optional pool visit (A)
+  if (poolUnlocked() && !g.usedPool){
+    g.usedPool = true;
+    g.state = "TO_POOL";
+    g.target = poolSpot();
+    return;
+  }
+
+  // Normal hotel flow
   g.requests = rollRequests();
   g.totalBonus = 0;
+  g.currentRequest = null;
+  startNextRequestOrCheckout(g);
+}
+
+function onArrivePool(g){
+  // guest relaxes a bit then returns to room to start requests
+  g.state = "POOLING";
+  g.poolDoneAt = Date.now() + POOL_STAY_MS;
+}
+
+function finishPool(g){
+  // small guaranteed bonus for mombasa vibes
+  g.totalBonus += POOL_TIP_BONUS;
+
+  // back to their room then start requests
+  if (g.roomIndex !== null){
+    g.state = "TO_ROOM_AFTER_POOL";
+    g.target = centerOf(roomEls[g.roomIndex]);
+  } else {
+    // fallback
+    g.requests = rollRequests();
+    startNextRequestOrCheckout(g);
+  }
+}
+
+function onArriveRoomAfterPool(g){
+  g.requests = rollRequests();
   g.currentRequest = null;
   startNextRequestOrCheckout(g);
 }
@@ -426,7 +482,6 @@ function onArriveExit(g){
   hideGuestBubble(g);
   g.el.remove();
   guests = guests.filter(x => x.id !== g.id);
-  updateHUD();
 }
 
 /* ---------- Patience ---------- */
@@ -551,17 +606,14 @@ function onCleanerReturn(){
   updateHUD();
 }
 
-/* ---------- Spawning guests ---------- */
+/* ---------- Spawn Guests ---------- */
 function spawnGuest(){
   if (guests.length >= 8) return;
-
   const g = makeGuest();
   guests.push(g);
 
-  // entrance with small offsets
   g.x = 10 + (guests.length % 3) * 14;
   g.y = 10 + (guests.length % 3) * 14;
-
   setPos(g.el, g.x, g.y);
   hideGuestBubble(g);
 
@@ -570,7 +622,7 @@ function spawnGuest(){
 }
 spawnGuestBtn?.addEventListener("click", spawnGuest);
 
-/* ---------- Main loop ---------- */
+/* ---------- Loop ---------- */
 function loop(){
   // Guests update
   guests.forEach(g => {
@@ -580,12 +632,18 @@ function loop(){
     if (arrived){
       if (g.state === "TO_RECEPTION") onArriveReception(g);
       else if (g.state === "TO_ROOM") onArriveRoom(g);
+      else if (g.state === "TO_POOL") onArrivePool(g);
+      else if (g.state === "TO_ROOM_AFTER_POOL") onArriveRoomAfterPool(g);
       else if (g.state === "TO_PAY") onArrivePay(g);
       else if (g.state === "TO_EXIT") onArriveExit(g);
     }
+
+    if (g.state === "POOLING" && Date.now() >= g.poolDoneAt){
+      finishPool(g);
+    }
   });
 
-  // Queue “stick” positions
+  // Queue sticking
   queue.forEach((g, idx) => {
     const p = queueSpot(idx);
     g.x += (p.x - g.x) * 0.08;
@@ -597,13 +655,11 @@ function loop(){
   if (bellHired) {
     const bellArrived = moveToward(bellboy);
     setPos(bellboyEl, bellboy.x, bellboy.y);
-
     if (bellArrived){
       if (bellboy.state === "TO_SNACK") onBellboySnack();
       else if (bellboy.state === "TO_GUEST") onBellboyGuest();
       else if (bellboy.state === "RETURNING") onBellboyReturn();
     }
-
     bellboyTryServe();
   }
 
@@ -611,12 +667,10 @@ function loop(){
   if (cleanerHired) {
     const cleanArrived = moveToward(cleaner);
     setPos(cleanerEl, cleaner.x, cleaner.y);
-
     if (cleanArrived){
       if (cleaner.state === "TO_ROOM") onCleanerArriveRoom();
       else if (cleaner.state === "RETURNING") onCleanerReturn();
     }
-
     if (cleaner.state === "CLEANING" && Date.now() >= cleaner.cleanDoneAt){
       finishCleaning();
     }
@@ -630,20 +684,21 @@ function loop(){
 function start(){
   if (!mapEl || !guestLayer || !stReception || !stSnack || !stClean || !stExit) return;
 
-  // Worker sprites (fallback to emoji)
-  setSprite(bellboyEl, "bellboy", "🧑🏾‍💼");
-  setSprite(cleanerEl, "cleaner", "🧹");
+  buildOceanAndPool();
 
-  // init room badges
   for (let i = 0; i < 4; i++) setRoomStatus(i, ROOM_FREE);
 
-  // place workers
+  // place workers (hidden if not hired)
   setPos(bellboyEl, bellboy.x, bellboy.y);
   setPos(cleanerEl, cleaner.x, cleaner.y);
   setCleanerCarry(false);
 
   syncHiresAndVisibility();
   updateHUD();
+
+  // refresh pool lock if you upgrade room level while game is open
+  setInterval(refreshPoolUI, 900);
+
   loop();
 }
 start();
