@@ -1,130 +1,60 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Mombasa • Safari Stay</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Safari Stay – Mombasa</title>
   <link rel="stylesheet" href="style.css" />
 </head>
-
-<body>
-  <!-- ================= HEADER ================= -->
+<body class="page">
   <header class="topbar">
     <div class="brand">
-      <a class="logo" href="index.html" title="Back to home">⬅️</a>
+      <div class="logo">🌴</div>
       <div>
-        <h1>🌊 Mombasa Hotel</h1>
-        <p class="muted">Build rooms • Hire staff • Serve guests</p>
+        <div class="title">Mombasa</div>
+        <div class="subtitle">Play puzzle → earn coins</div>
       </div>
     </div>
 
-    <div class="pill">
-      <span>💰 Coins:</span>
-      <strong id="coins">0</strong>
+    <div class="rightHeader">
+      <a class="btn small ghost" href="index.html">← Home</a>
+      <div class="pill">Moves: <span id="moves">30</span></div>
+      <div class="pill">Coins: <span id="coins">0</span></div>
     </div>
   </header>
 
-  <!-- ================= MAIN ================= -->
   <main class="container">
-
-    <!-- ====== PREVIEW + STATUS ====== -->
-    <section class="card cols">
-      <!-- Images -->
-      <div class="preview">
-        <img src="images/reception.png" alt="Hotel reception" />
-        <img src="images/staff.png" alt="Hotel staff" />
-        <img src="images/room.png" alt="Hotel room" />
-        <p class="muted">
-          Build rooms and hire staff to unlock hotel visuals.
-        </p>
-      </div>
-
-      <!-- Status -->
-      <div>
-        <h2>Status</h2>
-        <div class="hr"></div>
-
-        <p class="muted">Rooms built: <b id="rooms">0</b></p>
-        <p class="muted">Cleaner hired: <b id="cleaner">No</b></p>
-        <p class="muted">Bellboy hired: <b id="bellboy">No</b></p>
-        <p class="muted">Guests waiting: <b id="queue">0</b></p>
-        <p class="muted">Guests served: <b id="served">0</b></p>
-
-        <div class="hr"></div>
-
-        <!-- ACTION BUTTONS -->
-        <div class="row">
-          <button class="btn" id="earnBtn">Earn +25 coins</button>
-          <a class="btn" href="puzzle.html">Play Puzzle 🧩</a>
-          <button class="btn small" id="saveBtn">Save</button>
-        </div>
-
-        <p class="muted" style="margin-top:10px">
-          Tip: Play the puzzle to earn coins faster.
-        </p>
-      </div>
-    </section>
-
-    <!-- ====== HOTEL SHOP ====== -->
     <section class="card">
-      <h2>Hotel Shop</h2>
-      <p class="muted">Spend coins to upgrade your Mombasa hotel.</p>
+      <h2>Puzzle Board</h2>
+      <p class="muted">
+        Tap one tile, then tap a nearby tile to swap.
+        <b>Every move gives +1 coin.</b>
+      </p>
 
-      <div class="shop">
-        <div class="shopItem">
-          <div>
-            <strong>Build 1 Room</strong>
-            <div class="muted">+1 capacity • Cost: 100 coins</div>
-          </div>
-          <button class="btn" id="buyRoom">Buy</button>
-        </div>
+      <div id="grid" class="grid"></div>
 
-        <div class="shopItem">
-          <div>
-            <strong>Hire Cleaner</strong>
-            <div class="muted">Faster service • Cost: 150 coins</div>
-          </div>
-          <button class="btn" id="buyCleaner">Hire</button>
-        </div>
-
-        <div class="shopItem">
-          <div>
-            <strong>Hire Bellboy</strong>
-            <div class="muted">Serve more guests • Cost: 200 coins</div>
-          </div>
-          <button class="btn" id="buyBellboy">Hire</button>
-        </div>
-
-        <div class="shopItem">
-          <div>
-            <strong>Serve 1 Guest</strong>
-            <div class="muted">Earns 40 coins • Needs 1 room</div>
-          </div>
-          <button class="btn" id="serveGuest">Serve</button>
-        </div>
-
-        <div class="shopItem">
-          <div>
-            <strong>Call New Guests</strong>
-            <div class="muted">Adds +3 guests to the queue</div>
-          </div>
-          <button class="btn" id="callGuests">Call</button>
-        </div>
+      <div class="actions">
+        <button class="btn ghost" id="newGameBtn">New Board</button>
+        <button class="btn ghost" id="resetCoinsBtn">Reset Coins</button>
       </div>
-
-      <div class="hr"></div>
-      <p class="muted" id="msg">Ready ✅</p>
     </section>
 
+    <section class="card">
+      <h2>Hotel Progress (Next)</h2>
+      <p class="muted">
+        After we confirm puzzle is working perfectly, we’ll add:
+        reception image, staff image, room image, hiring, and building upgrades.
+      </p>
+      <div class="chips">
+        <span class="chip">🏨 Reception</span>
+        <span class="chip">🧑🏾‍💼 Bellboy</span>
+        <span class="chip">🧹 Cleaner</span>
+        <span class="chip">🛏️ Rooms</span>
+      </div>
+    </section>
   </main>
 
-  <!-- ================= FOOTER ================= -->
-  <footer class="footer muted">
-    <a href="index.html">Home</a> • Safari Stay
-  </footer>
-
-  <!-- ================= SCRIPT ================= -->
-  <script src="Mombasa.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
 
