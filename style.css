@@ -7,6 +7,7 @@ body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial
   color: #eaf0ff;
 }
 
+/* ===== TOP BAR ===== */
 .topbar {
   display: flex;
   justify-content: space-between;
@@ -106,90 +107,23 @@ body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial
   margin: 14px 0;
 }
 
-/* Hotel images */
-.hotelShots{
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  margin-top: 12px;
-}
-
-.shot{
-  margin: 0;
-  border-radius: 16px;
-  overflow: hidden;
-  border: 1px solid rgba(255,255,255,0.10);
-  background: rgba(255,255,255,0.05);
-}
-
-.shot img{
-  width: 100%;
-  height: 140px;
-  object-fit: cover;
-  display: block;
-}
-
-.shot figcaption{
-  padding: 8px 10px;
-  font-weight: 800;
-  font-size: 12px;
-  opacity: 0.9;
-}
-
-/* Upgrades */
+/* ===== UPGRADES ===== */
 .upgradeRow{
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;
   margin-top: 12px;
 }
-
 .upgradeItem{
   padding: 12px;
   border-radius: 16px;
   background: rgba(255,255,255,0.05);
   border: 1px solid rgba(255,255,255,0.10);
 }
-
 .upgradeTitle{ font-weight: 900; margin-bottom: 6px; }
 
-/* Puzzle grid */
-.grid {
-  margin-top: 14px;
-  display: grid;
-  grid-template-columns: repeat(8, 1fr);
-  gap: 8px;
-}
-
-.cell {
-  height: 54px;
-  border-radius: 14px;
-  display: grid;
-  place-items: center;
-  font-size: 26px;
-  background: rgba(255,255,255,0.07);
-  border: 1px solid rgba(255,255,255,0.10);
-  user-select: none;
-  cursor: pointer;
-  transition: transform 0.08s ease, outline 0.08s ease;
-}
-
-.cell:active { transform: scale(0.98); }
-
-.cell.selected {
-  outline: 3px solid rgba(245, 197, 66, 0.9);
-  background: rgba(245, 197, 66, 0.15);
-}
-
-.miniStats{
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-top: 10px;
-}
-
+/* ===== TABS ===== */
 .hidden { display: none; }
-
 .tabs{
   display:flex;
   gap:10px;
@@ -210,6 +144,38 @@ body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial
   color:#111;
 }
 
+/* ===== PUZZLE GRID ===== */
+.grid {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 8px;
+}
+.cell {
+  height: 54px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  font-size: 26px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.10);
+  user-select: none;
+  cursor: pointer;
+  transition: transform 0.08s ease, outline 0.08s ease;
+}
+.cell:active { transform: scale(0.98); }
+.cell.selected {
+  outline: 3px solid rgba(245, 197, 66, 0.9);
+  background: rgba(245, 197, 66, 0.15);
+}
+.miniStats{
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+/* ===== HOTEL HUD ===== */
 .hotelHud{
   display:flex;
   gap:10px;
@@ -217,16 +183,18 @@ body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial
   align-items:center;
   margin: 12px 0;
 }
+.tipRow { display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
 
-/* =======================================================
-   HOTEL MAP (RESPONSIVE FIX)
-   ======================================================= */
+/* ===== HOTEL MAP ===== */
 .hotelMap{
   position: relative;
-  height: 420px; /* a bit taller so everything fits */
+  height: 360px;
   border-radius: 18px;
   border: 1px solid rgba(255,255,255,0.10);
-  background: rgba(255,255,255,0.05);
+  background:
+    radial-gradient(900px 380px at 10% 40%, rgba(245,197,66,0.10), transparent 60%),
+    radial-gradient(700px 300px at 90% 10%, rgba(0,255,200,0.06), transparent 55%),
+    rgba(255,255,255,0.05);
   overflow: hidden;
 }
 
@@ -239,19 +207,60 @@ body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial
   border:1px solid rgba(255,255,255,0.12);
   font-weight:900;
   font-size: 12px;
-  z-index: 3; /* above guests */
+  user-select:none;
+}
+.station:hover{ filter: brightness(1.05); }
+
+.reception{ left: 22px; top: 140px; }
+.snack { left: 190px; top: 220px; }
+.clean { right: 22px; bottom: 22px; cursor:pointer; }
+.exit{ left: 22px; bottom: 22px; }
+
+/* Rooms */
+.roomTile{
+  position:absolute;
+  width: 160px;
+  height: 70px;
+  border-radius: 18px;
+  padding: 10px 12px;
+  font-weight: 900;
+  font-size: 13px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.12);
+  cursor: pointer;
+  display:flex;
+  align-items:flex-start;
+  justify-content: space-between;
+  gap:10px;
+  user-select:none;
+}
+.roomTile:hover{ filter: brightness(1.05); }
+.roomBadge{
+  font-size: 18px;
+  line-height: 1;
 }
 
-/* Keep stations always visible */
-.reception{ left: 14px; top: 14px; }
-.snack{ left: 14px; top: 74px; }
-.exit{ left: 14px; bottom: 14px; }
-.clean{ right: 14px; bottom: 14px; cursor:pointer; }
+/* Place rooms (top-down grid) */
+#room0{ left: 260px; top: 70px; }
+#room1{ left: 450px; top: 70px; }
+#room2{ left: 260px; top: 160px; }
+#room3{ left: 450px; top: 160px; }
 
-.tipRow { display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
+/* Layers */
+#guestLayer { position:absolute; inset:0; }
 
-/* Guest layer (must exist) */
-#guestLayer { position:absolute; inset:0; z-index: 2; }
+/* Characters (workers) */
+.character{
+  position:absolute;
+  width: 44px;
+  height: 44px;
+  display:grid;
+  place-items:center;
+  font-size: 26px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.10);
+  border:1px solid rgba(255,255,255,0.14);
+}
 
 /* Guests */
 .guestToken{
@@ -265,71 +274,8 @@ body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial
   background: rgba(255,255,255,0.10);
   border:1px solid rgba(255,255,255,0.14);
 }
-.guestToken.angry { animation: shake 0.22s linear infinite; }
 
-/* Workers */
-.character{
-  position:absolute;
-  width: 44px;
-  height: 44px;
-  display:grid;
-  place-items:center;
-  font-size: 26px;
-  border-radius: 14px;
-  background: rgba(255,255,255,0.10);
-  border:1px solid rgba(255,255,255,0.14);
-  z-index: 3;
-}
-
-.character.carrying::after{
-  content: attr(data-carry);
-  position:absolute;
-  top:-18px;
-  left:50%;
-  transform:translateX(-50%);
-  font-size:18px;
-}
-
-@keyframes shake {
-  0% { transform: translate(0,0); }
-  25% { transform: translate(1px,0); }
-  50% { transform: translate(0,0); }
-  75% { transform: translate(-1px,0); }
-  100% { transform: translate(0,0); }
-}
-
-/* Rooms */
-.roomTile{
-  position:absolute;
-  width: clamp(140px, 30vw, 170px);
-  height: 72px;
-  border-radius: 18px;
-  padding: 10px 12px;
-  font-weight: 900;
-  font-size: 13px;
-  background: rgba(255,255,255,0.07);
-  border: 1px solid rgba(255,255,255,0.12);
-  cursor: pointer;
-  display:flex;
-  align-items:flex-start;
-  justify-content: space-between;
-  gap:10px;
-  z-index: 1; /* under stations, above map background */
-}
-.roomBadge{
-  font-size: 18px;
-  line-height: 1;
-}
-
-/* Desktop/tablet room positions (inside map) */
-#room0{ left: 45%; top: 120px; transform: translateX(-50%); }
-#room1{ left: 75%; top: 120px; transform: translateX(-50%); }
-#room2{ left: 45%; top: 210px; transform: translateX(-50%); }
-#room3{ left: 75%; top: 210px; transform: translateX(-50%); }
-
-/* =======================================================
-   Bubbles / patience ring
-   ======================================================= */
+/* Request bubble */
 .bubble {
   position: absolute;
   top: -22px;
@@ -346,7 +292,6 @@ body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial
   border: 2px solid rgba(0,0,0,0.15);
   box-shadow: 0 10px 18px rgba(0,0,0,0.25);
 }
-
 .ring {
   position: absolute;
   inset: -5px;
@@ -355,29 +300,66 @@ body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial
   pointer-events: none;
 }
 
-/* =======================================================
-   Responsive tweaks
-   ======================================================= */
-@media (max-width: 960px){
-  .grid2{ grid-template-columns: 1fr; }
-  .hotelShots{ grid-template-columns: 1fr; }
-  .shot img{ height: 180px; }
-  .upgradeRow{ grid-template-columns: 1fr; }
+/* Angry shake */
+.guestToken.angry { animation: shake 0.22s linear infinite; }
+@keyframes shake {
+  0% { transform: translate(0,0); }
+  25% { transform: translate(1px,0); }
+  50% { transform: translate(0,0); }
+  75% { transform: translate(-1px,0); }
+  100% { transform: translate(0,0); }
 }
 
-/* Mobile: stack rooms into 1 centered column so nothing goes off-screen */
-@media (max-width: 560px){
-  .hotelMap{ height: 520px; }
+/* Cleaner carrying icon */
+.character.carrying::after{
+  content: attr(data-carry);
+  position:absolute;
+  top:-18px;
+  left:50%;
+  transform:translateX(-50%);
+  font-size:18px;
+}
 
-  #room0{ left: 50%; top: 150px; transform: translateX(-50%); }
-  #room1{ left: 50%; top: 235px; transform: translateX(-50%); }
-  #room2{ left: 50%; top: 320px; transform: translateX(-50%); }
-  #room3{ left: 50%; top: 405px; transform: translateX(-50%); }
+/* ===== CARTOON MODE (Option A) ===== */
+.charSprite{
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  display:block;
+  pointer-events:none;
+  user-select:none;
+}
+
+/* Smooth movement + bobbing like Hotel Mania */
+.guestToken, .character{
+  transition: left 0.06s linear, top 0.06s linear;
+  will-change: left, top;
+}
+
+.walking { animation: bob 0.35s ease-in-out infinite; }
+@keyframes bob {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+  100% { transform: translateY(0); }
+}
+
+.faceLeft { transform: scaleX(-1); }
+.faceRight { transform: scaleX(1); }
+
+.pop { animation: pop 0.18s ease-out; }
+@keyframes pop {
+  0% { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+
+/* ===== MOBILE ===== */
+@media (max-width: 960px){
+  .grid2{ grid-template-columns: 1fr; }
+  .upgradeRow{ grid-template-columns: 1fr; }
 }
 
 @media (max-width: 420px) {
   .cell { height: 46px; font-size: 22px; border-radius: 12px; }
-  .hero h1 { font-size: 22px; }
 }
 
 
