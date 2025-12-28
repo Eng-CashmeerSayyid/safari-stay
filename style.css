@@ -57,11 +57,12 @@ body {
   padding: 18px 14px 44px;
 }
 
-.grid2 {
+.grid2{
   display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
+  grid-template-columns: 1fr;
   gap: 14px;
 }
+
 
 .card {
   background: rgba(255,255,255,0.06);
