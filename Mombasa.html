@@ -114,18 +114,51 @@
       </div>
 
       <!-- ========== HOTEL VIEW ========== -->
-      <div id="viewHotel" class="hidden">
-        <h2>Hotel Simulation</h2>
-        <p class="muted">
-          Guests walk in, check in, go to rooms, pay, and leave.<br>
-          Bellboy handles snack delivery automatically.
-        </p>
+    <div id="viewHotel" class="hidden">
+  <h2>Hotel Simulation (Top-Down)</h2>
+  <p class="muted">
+    Guests check in, request drinks, pay, and leave.<br>
+    Cleaning is <b>MANUAL</b>: tap 🧴 Cleaning Station then tap a 🧺 dirty room.
+  </p>
 
-        <div class="hotelHud">
-          <div class="pill">Guests Served: <span id="served">0</span></div>
-          <div class="pill">Hotel Cash: <span id="hotelCash">0</span></div>
-          <button class="btn ghost small" id="spawnGuestBtn">+ Spawn Guest</button>
-        </div>
+  <div class="hotelHud">
+    <div class="pill">Guests Served: <span id="served">0</span></div>
+    <div class="pill">In Queue: <span id="queueCount">0</span></div>
+    <div class="pill">Hotel Cash: <span id="hotelCash">0</span></div>
+    <button class="btn ghost small" id="spawnGuestBtn">+ Spawn Guest</button>
+  </div>
+
+  <div class="tipRow">
+    <div class="pill">Cleaner: <span id="cleanerMode">Tap 🧴 station</span></div>
+    <div class="pill">Rooms Free: <span id="roomsFree">0</span>/4</div>
+  </div>
+
+  <!-- HOTEL MAP -->
+  <div id="hotelMap" class="hotelMap">
+    <!-- Stations -->
+    <div class="station reception" id="stReception">Reception</div>
+    <div class="station snack" id="stSnack">Snack Hut 🥥🥤🍍</div>
+    <div class="station clean" id="stClean">Cleaning Station 🧴</div>
+    <div class="station exit" id="stExit">Exit</div>
+
+    <!-- Rooms (tap these when dirty) -->
+    <div class="roomTile" id="room0">Room 1 <span class="roomBadge" id="badge0"></span></div>
+    <div class="roomTile" id="room1">Room 2 <span class="roomBadge" id="badge1"></span></div>
+    <div class="roomTile" id="room2">Room 3 <span class="roomBadge" id="badge2"></span></div>
+    <div class="roomTile" id="room3">Room 4 <span class="roomBadge" id="badge3"></span></div>
+
+    <!-- Characters -->
+    <div class="character guest" id="guest">🧳</div>
+    <div class="character bellboy" id="bellboy">🧑🏾‍💼</div>
+    <div class="character cleaner" id="cleaner">🧹</div>
+  </div>
+
+  <div class="note">
+    ✅ Cleaning is manual: <b>Tap Cleaning Station</b> then <b>tap a DIRTY room</b> (🧺).<br>
+    Next upgrade after this: multiple guests moving at once + reception line visuals.
+  </div>
+</div>
+
 
         <!-- HOTEL MAP -->
         <div id="hotelMap" class="hotelMap">
