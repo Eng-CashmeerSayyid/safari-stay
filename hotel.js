@@ -1,11 +1,11 @@
 /* ==========================================================
    SAFARI STAY – HOTEL MANIA (MULTI-GUEST)
    - 4 rooms
-   - up to 8 guests moving simultaneously
-   - reception queue (real positions)
-   - drink requests: 🥤 🥥 🍍 (🍍 slower + pays more)
-   - bellboy AUTO serves pending requests (ONLY if hired)
-   - cleaner MANUAL (ONLY if hired): tap 🧴 station then tap 🧺 dirty room
+   - up to 8 guests
+   - reception queue
+   - requests: 🥤 🥥 🍍
+   - bellboy AUTO serves (ONLY if hired)
+   - cleaner MANUAL (ONLY if hired)
    ========================================================== */
 
 /* ---------- Tabs ---------- */
@@ -74,7 +74,7 @@ const BASE_PAY_COINS = 5;
 const ITEMS = {
   soda:      { icon:"🥤", seconds: 7,  bonus: 2 },
   coconut:   { icon:"🥥", seconds: 8,  bonus: 3 },
-  pineapple: { icon:"🍍", seconds: 12, bonus: 5 } // slower + pays more
+  pineapple: { icon:"🍍", seconds: 12, bonus: 5 }
 };
 const ITEM_KEYS = Object.keys(ITEMS);
 
@@ -98,38 +98,11 @@ let guests = [];
 let queue = [];
 let nextGuestId = 1;
 
-/* ---------- Hire State (live) ---------- */
+/* ---------- Hire State ---------- */
 let bellHired = localStorage.getItem(KEY_BELL) === "true";
 let cleanerHired = localStorage.getItem(KEY_CLEAN) === "true";
 
-function syncHiresAndVisibility() {
-  const newBell = localStorage.getItem(KEY_BELL) === "true";
-  const newClean = localStorage.getItem(KEY_CLEAN) === "true";
-
-  const bellChanged = newBell !== bellHired;
-  const cleanChanged = newClean !== cleanerHired;
-
-  bellHired = newBell;
-  cleanerHired = newClean;
-
-  if (bellboyEl) bellboyEl.style.display = bellHired ? "" : "none";
-  if (cleanerEl) cleanerEl.style.display = cleanerHired ? "" : "none";
-
-  // If cleaner not hired, reset interaction mode to "hire first"
-  if (!cleanerHired) {
-    cleanerStep = "TAP_STATION";
-    cleaner.state = "IDLE";
-    cleaner.target = null;
-    cleaner.selectedRoom = null;
-    cleaner.cleanDoneAt = 0;
-    setCleanerCarry(false);
-  }
-
-  // If bellboy just got hired, he can start serving immediately
-  if (bellChanged || cleanChanged) updateHUD();
-}
-
-/* ---------- Bellboy AUTO ---------- */
+/* ---------- Bellboy ---------- */
 let bellboy = {
   x: 210, y: 260,
   speed: 2.7,
@@ -139,7 +112,7 @@ let bellboy = {
   targetGuestId: null,
 };
 
-/* ---------- Cleaner MANUAL ---------- */
+/* ---------- Cleaner ---------- */
 let cleaner = {
   x: 520, y: 280,
   speed: 2.4,
@@ -149,9 +122,9 @@ let cleaner = {
   selectedRoom: null,
   cleanDoneAt: 0
 };
-let cleanerStep = "TAP_STATION"; // TAP_STATION -> TAP_ROOM
+let cleanerStep = "TAP_STATION";
 
-/* ---------- Geometry helpers ---------- */
+/* ---------- Helpers ---------- */
 function setPos(el, x, y){ if (el) { el.style.left = x + "px"; el.style.top = y + "px"; } }
 
 function centerOf(el){
@@ -181,6 +154,42 @@ function addGlobalCoins(amount){
   localStorage.setItem(COIN_KEY, String(current + amount));
 }
 
+/* ---------- Hire sync (EVENT-BASED) ---------- */
+function setCleanerCarry(on){
+  cleaner.carrying = on;
+  if (!cleanerEl) return;
+
+  if (on){
+    cleanerEl.classList.add("carrying");
+    cleanerEl.dataset.carry = "🧴";
+  } else {
+    cleanerEl.classList.remove("carrying");
+    cleanerEl.dataset.carry = "";
+  }
+}
+
+function syncHiresAndVisibility() {
+  bellHired = localStorage.getItem(KEY_BELL) === "true";
+  cleanerHired = localStorage.getItem(KEY_CLEAN) === "true";
+
+  if (bellboyEl) bellboyEl.style.display = bellHired ? "" : "none";
+  if (cleanerEl) cleanerEl.style.display = cleanerHired ? "" : "none";
+
+  // Reset cleaner system if not hired
+  if (!cleanerHired) {
+    cleanerStep = "TAP_STATION";
+    cleaner.state = "IDLE";
+    cleaner.target = null;
+    cleaner.selectedRoom = null;
+    cleaner.cleanDoneAt = 0;
+    setCleanerCarry(false);
+  }
+
+  updateHUD();
+}
+
+window.addEventListener("staffUpdated", syncHiresAndVisibility);
+
 /* ---------- Requests rolling ---------- */
 function rollRequests(){
   const r = Math.random();
@@ -198,7 +207,7 @@ function rollRequests(){
   return picks;
 }
 
-/* ---------- Room helpers ---------- */
+/* ---------- Rooms ---------- */
 function roomsFreeCount(){ return rooms.filter(r => r.status === ROOM_FREE).length; }
 function findFreeRoomIndex(){ return rooms.findIndex(r => r.status === ROOM_FREE); }
 
@@ -229,14 +238,13 @@ function updateHUD(){
   }
 }
 
-/* ---------- Guest creation ---------- */
+/* ---------- Guests ---------- */
 function makeGuest(){
   const el = document.createElement("div");
   el.className = "guestToken";
   el.textContent = "🧳";
   guestLayer.appendChild(el);
 
-  // bubble
   const bubble = document.createElement("div");
   bubble.className = "bubble";
   const ring = document.createElement("div");
@@ -245,7 +253,7 @@ function makeGuest(){
   bubble.style.display = "none";
   el.appendChild(bubble);
 
-  const g = {
+  return {
     id: nextGuestId++,
     el,
     bubble,
@@ -261,42 +269,28 @@ function makeGuest(){
     requestDeadline: 0,
     totalBonus: 0,
     angry: false,
-
-    queuePosIndex: 0,
   };
-  return g;
 }
 
 function showGuestBubble(g, icon){
-  const bubble = g.bubble;
-  bubble.style.display = "grid";
-  [...bubble.childNodes].forEach(n => { if (n !== g.ring) bubble.removeChild(n); });
+  g.bubble.style.display = "grid";
+  [...g.bubble.childNodes].forEach(n => { if (n !== g.ring) g.bubble.removeChild(n); });
   const iconNode = document.createElement("div");
   iconNode.textContent = icon;
-  bubble.appendChild(iconNode);
+  g.bubble.appendChild(iconNode);
 }
 
 function hideGuestBubble(g){
   g.bubble.style.display = "none";
 }
 
-/* ---------- Reception queue positions ---------- */
+/* ---------- Queue positions ---------- */
 function queueSpot(index){
   const base = centerOf(stReception);
   return { x: base.x - 40, y: base.y + 55 + index * 30 };
 }
 
-function refreshQueuePositions(){
-  queue.forEach((g, idx) => {
-    g.queuePosIndex = idx;
-    if (g.state === "QUEUED" && !g.target){
-      g.x = queueSpot(idx).x;
-      g.y = queueSpot(idx).y;
-    }
-  });
-}
-
-/* ---------- Guest flow ---------- */
+/* ---------- Flow ---------- */
 function sendToReception(g){
   g.state = "TO_RECEPTION";
   g.target = centerOf(stReception);
@@ -308,20 +302,12 @@ function onArriveReception(g){
     g.state = "QUEUED";
     g.target = null;
     queue.push(g);
-    refreshQueuePositions();
     updateHUD();
     return;
   }
 
-  // assign room
   g.roomIndex = freeRoom;
-  rooms[freeRoom].status = ROOM_OCC;
-  rooms[freeRoom].guestId = g.id;
   setRoomStatus(freeRoom, ROOM_OCC);
-
-  // remove from queue if present
-  queue = queue.filter(x => x.id !== g.id);
-  refreshQueuePositions();
 
   g.state = "TO_ROOM";
   g.target = centerOf(roomEls[freeRoom]);
@@ -363,17 +349,13 @@ function onArrivePay(g){
   hotelCash += payCoins;
   addGlobalCoins(payCoins);
 
-  // room becomes dirty
   if (g.roomIndex !== null){
     setRoomStatus(g.roomIndex, ROOM_DIRTY);
-    rooms[g.roomIndex].guestId = null;
     g.roomIndex = null;
   }
 
   g.state = "TO_EXIT";
   g.target = centerOf(stExit);
-
-  updateHUD();
 }
 
 function onArriveExit(g){
@@ -381,26 +363,9 @@ function onArriveExit(g){
   hideGuestBubble(g);
   g.el.remove();
   guests = guests.filter(x => x.id !== g.id);
-
-  tryCheckInQueuedGuests();
 }
 
-/* ---------- Try to move queued guests into rooms if a room is FREE ---------- */
-function tryCheckInQueuedGuests(){
-  let freeRoom = findFreeRoomIndex();
-  while (freeRoom !== -1 && queue.length > 0){
-    const g = queue.shift();
-    refreshQueuePositions();
-
-    g.state = "TO_RECEPTION";
-    g.target = centerOf(stReception);
-
-    freeRoom = findFreeRoomIndex();
-  }
-  updateHUD();
-}
-
-/* ---------- Patience timers ---------- */
+/* ---------- Patience ---------- */
 function updatePatienceAll(){
   const now = Date.now();
   guests.forEach(g => {
@@ -428,6 +393,8 @@ function findServeTargetGuest(){
   return guests.find(g => g.state === "WAITING" && !!g.currentRequest);
 }
 
+function getGuestById(id){ return guests.find(g => g.id === id); }
+
 function bellboyTryServe(){
   if (!bellHired) return;
   if (bellboy.state !== "IDLE") return;
@@ -440,8 +407,6 @@ function bellboyTryServe(){
   bellboy.state = "TO_SNACK";
   bellboy.target = centerOf(stSnack);
 }
-
-function getGuestById(id){ return guests.find(g => g.id === id); }
 
 function onBellboySnack(){
   bellboy.state = "TO_GUEST";
@@ -476,21 +441,7 @@ function onBellboyGuest(){
 
 function onBellboyReturn(){ bellboy.state = "IDLE"; }
 
-/* ---------- Cleaner manual (ONLY if hired) ---------- */
-function setCleanerCarry(on){
-  cleaner.carrying = on;
-  if (!cleanerEl) return;
-
-  if (on){
-    cleanerEl.classList.add("carrying");
-    cleanerEl.dataset.carry = "🧴";
-  } else {
-    cleanerEl.classList.remove("carrying");
-    cleanerEl.dataset.carry = "";
-  }
-  updateHUD();
-}
-
+/* ---------- Cleaner MANUAL (ONLY if hired) ---------- */
 stClean?.addEventListener("click", () => {
   if (!cleanerHired) return;
   if (cleanerStep !== "TAP_STATION") return;
@@ -525,7 +476,6 @@ function finishCleaning(){
   const i = cleaner.selectedRoom;
   if (i !== null){
     setRoomStatus(i, ROOM_FREE);
-    rooms[i].guestId = null;
   }
   cleaner.selectedRoom = null;
   cleaner.state = "RETURNING";
@@ -537,11 +487,9 @@ function onCleanerReturn(){
   setCleanerCarry(false);
   cleanerStep = "TAP_STATION";
   updateHUD();
-
-  tryCheckInQueuedGuests();
 }
 
-/* ---------- Spawning guests ---------- */
+/* ---------- Spawn Guests ---------- */
 function spawnGuest(){
   if (guests.length >= 8) return;
   const g = makeGuest();
@@ -549,8 +497,6 @@ function spawnGuest(){
 
   g.x = 10 + (guests.length % 3) * 14;
   g.y = 10 + (guests.length % 3) * 14;
-  g.target = null;
-
   setPos(g.el, g.x, g.y);
   hideGuestBubble(g);
 
@@ -559,11 +505,8 @@ function spawnGuest(){
 }
 spawnGuestBtn?.addEventListener("click", spawnGuest);
 
-/* ---------- Main loop ---------- */
+/* ---------- Loop ---------- */
 function loop(){
-  // Always keep hire state in sync (so hiring from puzzle instantly affects hotel)
-  syncHiresAndVisibility();
-
   // Guests update
   guests.forEach(g => {
     const arrived = moveToward(g);
@@ -577,7 +520,7 @@ function loop(){
     }
   });
 
-  // Queue guests stay at queue slots
+  // Queue sticking
   queue.forEach((g, idx) => {
     const p = queueSpot(idx);
     g.x += (p.x - g.x) * 0.08;
@@ -585,7 +528,7 @@ function loop(){
     setPos(g.el, g.x, g.y);
   });
 
-  // Bellboy update (only if hired)
+  // Bellboy update
   if (bellHired) {
     const bellArrived = moveToward(bellboy);
     setPos(bellboyEl, bellboy.x, bellboy.y);
@@ -597,7 +540,7 @@ function loop(){
     bellboyTryServe();
   }
 
-  // Cleaner update (only if hired)
+  // Cleaner update
   if (cleanerHired) {
     const cleanArrived = moveToward(cleaner);
     setPos(cleanerEl, cleaner.x, cleaner.y);
@@ -616,21 +559,21 @@ function loop(){
 
 /* ---------- Start ---------- */
 function start(){
+  // if these are missing, nothing moves
   if (!mapEl || !guestLayer || !stReception || !stSnack || !stClean || !stExit) return;
 
-  // init room badges
   for (let i = 0; i < 4; i++) setRoomStatus(i, ROOM_FREE);
 
-  // place workers (they will be hidden if not hired)
+  // place workers (hidden if not hired)
   setPos(bellboyEl, bellboy.x, bellboy.y);
   setPos(cleanerEl, cleaner.x, cleaner.y);
-  setCleanerCarry(false);
 
   syncHiresAndVisibility();
   updateHUD();
   loop();
 }
 start();
+
 
 
 
