@@ -566,30 +566,41 @@ document.addEventListener("DOMContentLoaded", () => {
     cleaner.state = "CLEANING";
     cleaner.cleanDoneAt = Date.now() + 6000;
   }
+function seatQueueIntoFreeRooms(){
+  // keep filling as long as we have a free room and someone waiting
+  while (queue.length > 0){
+    const freeRoom = findFreeRoomIndex();
+    if (freeRoom === -1) break;
+
+    const g = queue.shift(); // take first in line
+
+    // assign room
+    g.roomIndex = freeRoom;
+    setRoomStatus(freeRoom, ROOM_OCC);
+
+    // send them straight to the room
+    g.state = "TO_ROOM";
+    g.target = centerOf(roomEls[freeRoom]);
+
+    updateHUD();
+  }
+}
 
   function finishCleaning(){
   const i = cleaner.selectedRoom;
 
   if (i !== null){
-    // 1) mark room as FREE
     setRoomStatus(i, ROOM_FREE);
 
-    // 2) if there is someone waiting in the queue, move them into this room
-    if (queue.length > 0){
-      const g = queue.shift(); // take first guest in line
-
-      g.state = "TO_ROOM";
-      g.roomIndex = i;
-
-      // room becomes occupied again
-      setRoomStatus(i, ROOM_OCC);
-
-      // send guest to this room
-      g.target = centerOf(roomEls[i]);
-
-      updateHUD();
-    }
+    // ✅ immediately bring guests from queue into any free rooms
+    seatQueueIntoFreeRooms();
   }
+
+  cleaner.selectedRoom = null;
+  cleaner.state = "RETURNING";
+  cleaner.target = centerOf(stClean);
+}
+
 
   cleaner.selectedRoom = null;
   cleaner.state = "RETURNING";
