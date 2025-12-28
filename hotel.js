@@ -1,18 +1,21 @@
 /* ==========================================================
-   SAFARI STAY – MOMBASA HOTEL MANIA (SAFE VERSION)
-   - Works with your current Mombasa.html + style.css
-   - Fixes "spawn guest doesn't work" by:
-     ✅ waiting for DOM load
-     ✅ not crashing if something is missing
-     ✅ attaching button handler reliably
+   SAFARI STAY – MOMBASA HOTEL MANIA (FULL)
+   Includes:
+   ✅ VIP guests + priority queue
+   ✅ Room cooldown (⏳) after cleaning before next check-in
+   ✅ Pool + ocean visuals inside map
+   ✅ Bellboy AUTO serve (if hired)
+   ✅ Cleaner MANUAL (if hired) + queue auto-seating after cleaning
+   ✅ Progression unlock to Masai Mara
+   ✅ Optional sounds toggle (safe)
    ========================================================== */
 
 document.addEventListener("DOMContentLoaded", () => {
 
-  /* ---------- Tabs (safe) ---------- */
+  /* ---------- Tabs ---------- */
   (function(){
-    const tabPuzzle  = document.getElementById("tabPuzzle");
-    const tabHotel   = document.getElementById("tabHotel");
+    const tabPuzzle = document.getElementById("tabPuzzle");
+    const tabHotel  = document.getElementById("tabHotel");
     const viewPuzzle = document.getElementById("viewPuzzle");
     const viewHotel  = document.getElementById("viewHotel");
     if (!tabPuzzle || !tabHotel || !viewPuzzle || !viewHotel) return;
@@ -33,22 +36,48 @@ document.addEventListener("DOMContentLoaded", () => {
     tabHotel.onclick = showHotel;
   })();
 
-  /* ---------- HUD ---------- */
-  const servedEl      = document.getElementById("served");
-  const queueCountEl  = document.getElementById("queueCount");
-  const roomsFreeEl   = document.getElementById("roomsFree");
-  const hotelCashEl   = document.getElementById("hotelCash");
+  /* ---------- Elements ---------- */
+  const servedEl = document.getElementById("served");
+  const queueCountEl = document.getElementById("queueCount");
+  const roomsFreeEl = document.getElementById("roomsFree");
+  const hotelCashEl = document.getElementById("hotelCash");
   const cleanerModeEl = document.getElementById("cleanerMode");
   const spawnGuestBtn = document.getElementById("spawnGuestBtn");
 
+  const coinsTopEl = document.getElementById("coins"); // shared coins display
+
+  // Upgrades UI
+  const roomCostEl = document.getElementById("roomCost");
+  const buyRoomBtn = document.getElementById("buyRoomBtn");
+  const roomLevelEl = document.getElementById("roomLevel");
+
+  const hireBellBtn = document.getElementById("hireBellBtn");
+  const bellStatusEl = document.getElementById("bellStatus");
+
+  const hireCleanBtn = document.getElementById("hireCleanBtn");
+  const cleanStatusEl = document.getElementById("cleanStatus");
+
+  const poolStatusEl = document.getElementById("poolStatus");
+  const poolHudEl = document.getElementById("poolHud");
+
+  // Progression UI
+  const needServedEl = document.getElementById("needServed");
+  const needCoinsEl = document.getElementById("needCoins");
+  const maraStatusEl = document.getElementById("maraStatus");
+  const goMaraBtn = document.getElementById("goMaraBtn");
+
+  // Sound UI
+  const soundBtn = document.getElementById("soundBtn");
+  const soundStateEl = document.getElementById("soundState");
+
   /* ---------- Map / Stations ---------- */
-  const mapEl      = document.getElementById("hotelMap");
+  const mapEl = document.getElementById("hotelMap");
   const guestLayer = document.getElementById("guestLayer");
 
   const stReception = document.getElementById("stReception");
-  const stSnack     = document.getElementById("stSnack");
-  const stClean     = document.getElementById("stClean");
-  const stExit      = document.getElementById("stExit");
+  const stSnack = document.getElementById("stSnack");
+  const stClean = document.getElementById("stClean");
+  const stExit = document.getElementById("stExit");
 
   /* ---------- Rooms ---------- */
   const roomEls = [
@@ -65,17 +94,28 @@ document.addEventListener("DOMContentLoaded", () => {
   ];
 
   /* ---------- Workers ---------- */
-  const bellboyEl  = document.getElementById("bellboy");
-  const cleanerEl  = document.getElementById("cleaner");
+  const bellboyEl = document.getElementById("bellboy");
+  const cleanerEl = document.getElementById("cleaner");
 
   /* ---------- Storage Keys ---------- */
-  const COIN_KEY     = "coins";
-  const KEY_BELL     = "mombasaBellboy";
-  const KEY_CLEAN    = "mombasaCleaner";
+  const COIN_KEY = "coins";
+  const KEY_BELL = "mombasaBellboy";
+  const KEY_CLEAN = "mombasaCleaner";
   const KEY_ROOM_LVL = "mombasaRoomLevel";
+  const KEY_SOUND = "soundOn";
+  const KEY_MARA = "unlockMara";
 
-  /* ---------- Rewards ---------- */
+  /* ---------- Economy / rules ---------- */
   const BASE_PAY_COINS = 5;
+
+  // room cooldown after cleaning (prevents instant flip)
+  const ROOM_COOLDOWN_MS = 1400;
+
+  // progression
+  const NEED_SERVED = 10;
+  const NEED_COINS = 200;
+
+  /* Requests */
   const ITEMS = {
     soda:      { icon:"🥤", seconds: 7,  bonus: 2 },
     coconut:   { icon:"🥥", seconds: 8,  bonus: 3 },
@@ -87,73 +127,84 @@ document.addEventListener("DOMContentLoaded", () => {
   const POOL_STAY_MS = 3800;
   const POOL_TIP_BONUS = 2;
 
+  /* ---------- Guest types ---------- */
+  // VIP: more patient and pays more
+  const GUEST_TYPES = [
+    { name: "VIP", badge: "👑", payMult: 1.6, patienceMult: 1.25, chance: 0.18 },
+    { name: "Regular", badge: "🙂", payMult: 1.0, patienceMult: 1.0, chance: 0.62 },
+    { name: "Budget", badge: "🎒", payMult: 0.85, patienceMult: 0.85, chance: 0.20 },
+  ];
+
+  function rollGuestType(){
+    const r = Math.random();
+    let acc = 0;
+    for (const t of GUEST_TYPES){
+      acc += t.chance;
+      if (r <= acc) return t;
+    }
+    return GUEST_TYPES[1];
+  }
+
   /* ---------- Room State ---------- */
   const ROOM_FREE  = "FREE";
   const ROOM_OCC   = "OCCUPIED";
   const ROOM_DIRTY = "DIRTY";
 
   let rooms = [
-    { status: ROOM_FREE,  guestId: null },
-    { status: ROOM_FREE,  guestId: null },
-    { status: ROOM_FREE,  guestId: null },
-    { status: ROOM_FREE,  guestId: null },
+    { status: ROOM_FREE,  guestId: null, cooldownUntil: 0 },
+    { status: ROOM_FREE,  guestId: null, cooldownUntil: 0 },
+    { status: ROOM_FREE,  guestId: null, cooldownUntil: 0 },
+    { status: ROOM_FREE,  guestId: null, cooldownUntil: 0 },
   ];
 
   /* ---------- World ---------- */
   let served = 0;
   let hotelCash = 0;
+
   let guests = [];
   let queue = [];
   let nextGuestId = 1;
 
-  /* ---------- Hire State ---------- */
+  /* ---------- Hire state ---------- */
   let bellHired = localStorage.getItem(KEY_BELL) === "true";
   let cleanerHired = localStorage.getItem(KEY_CLEAN) === "true";
 
-  /* Pool unlock by room level */
-  function getRoomLevel(){
-    return Number(localStorage.getItem(KEY_ROOM_LVL)) || 0;
+  /* ---------- Sound (safe) ---------- */
+  let soundOn = (localStorage.getItem(KEY_SOUND) ?? "true") === "true";
+  function setSoundUI(){
+    if (soundStateEl) soundStateEl.textContent = soundOn ? "ON" : "OFF";
   }
-  function poolUnlocked(){
-    return getRoomLevel() >= 1;
+  function playSound(name){
+    if (!soundOn) return;
+    // optional files (won't crash if missing)
+    const map = {
+      click: "sounds/swap.mp3",
+      coin: "sounds/coin.mp3",
+      match: "sounds/match.mp3"
+    };
+    const src = map[name];
+    if (!src) return;
+    try {
+      const a = new Audio(src);
+      a.volume = 0.6;
+      a.play().catch(()=>{});
+    } catch {}
   }
-
-  /* ---------- Bellboy ---------- */
-  let bellboy = {
-    x: 220, y: 290,
-    speed: 2.7,
-    state: "IDLE",
-    target: null,
-    carrying: null,
-    targetGuestId: null,
-  };
-
-  /* ---------- Cleaner ---------- */
-  let cleaner = {
-    x: 620, y: 380,
-    speed: 2.4,
-    state: "IDLE",
-    target: null,
-    carrying: false,
-    selectedRoom: null,
-    cleanDoneAt: 0
-  };
-  let cleanerStep = "TAP_STATION";
+  soundBtn?.addEventListener("click", () => {
+    soundOn = !soundOn;
+    localStorage.setItem(KEY_SOUND, String(soundOn));
+    setSoundUI();
+    playSound("click");
+  });
+  setSoundUI();
 
   /* ---------- Helpers ---------- */
-  function setPos(el, x, y){
-    if (!el) return;
-    el.style.left = x + "px";
-    el.style.top  = y + "px";
-  }
+  function setPos(el, x, y){ if (el){ el.style.left = x+"px"; el.style.top = y+"px"; } }
 
   function centerOf(el){
     const mapRect = mapEl.getBoundingClientRect();
     const r = el.getBoundingClientRect();
-    return {
-      x: (r.left - mapRect.left) + r.width/2 - 22,
-      y: (r.top  - mapRect.top)  + r.height/2 - 22
-    };
+    return { x:(r.left-mapRect.left)+r.width/2-22, y:(r.top-mapRect.top)+r.height/2-22 };
   }
 
   function moveToward(entity){
@@ -172,12 +223,28 @@ document.addEventListener("DOMContentLoaded", () => {
     return false;
   }
 
+  function getCoins(){
+    return Number(localStorage.getItem(COIN_KEY)) || 0;
+  }
   function addGlobalCoins(amount){
-    const current = Number(localStorage.getItem(COIN_KEY)) || 0;
+    const current = getCoins();
     localStorage.setItem(COIN_KEY, String(current + amount));
+    if (coinsTopEl) coinsTopEl.textContent = String(current + amount);
+  }
+  function spendCoins(amount){
+    const current = getCoins();
+    if (current < amount) return false;
+    localStorage.setItem(COIN_KEY, String(current - amount));
+    if (coinsTopEl) coinsTopEl.textContent = String(current - amount);
+    return true;
   }
 
-  /* ---------- Ocean + Pool build ---------- */
+  /* ---------- Room Level + Pool unlock ---------- */
+  function getRoomLevel(){ return Number(localStorage.getItem(KEY_ROOM_LVL)) || 0; }
+  function setRoomLevel(v){ localStorage.setItem(KEY_ROOM_LVL, String(v)); }
+  function poolUnlocked(){ return getRoomLevel() >= 1; }
+
+  /* ---------- Pool build ---------- */
   let poolZoneEl = null;
   let poolLockedEl = null;
 
@@ -218,55 +285,21 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function refreshPoolUI(){
-    if (!poolZoneEl) return;
     const ok = poolUnlocked();
-    poolZoneEl.classList.toggle("locked", !ok);
+    if (poolZoneEl) poolZoneEl.classList.toggle("locked", !ok);
     if (poolLockedEl) poolLockedEl.style.display = ok ? "none" : "block";
+
+    if (poolStatusEl) poolStatusEl.textContent = ok ? "Unlocked ✅" : "Locked 🔒";
+    if (poolHudEl) poolHudEl.textContent = ok ? "Unlocked ✅" : "Locked 🔒";
   }
 
   function poolSpot(){
     const zr = poolZoneEl.getBoundingClientRect();
     const mr = mapEl.getBoundingClientRect();
-    return { x: (zr.left - mr.left) + zr.width/2 - 22, y: (zr.top - mr.top) + zr.height/2 - 22 };
+    return { x:(zr.left-mr.left)+zr.width/2-22, y:(zr.top-mr.top)+zr.height/2-22 };
   }
 
-  /* ---------- Cleaner carry UI ---------- */
-  function setCleanerCarry(on){
-    cleaner.carrying = on;
-    if (!cleanerEl) return;
-
-    if (on){
-      cleanerEl.classList.add("carrying");
-      cleanerEl.dataset.carry = "🧴";
-    } else {
-      cleanerEl.classList.remove("carrying");
-      cleanerEl.dataset.carry = "";
-    }
-  }
-
-  /* ---------- Hire sync + visibility ---------- */
-  function syncHiresAndVisibility() {
-    bellHired = localStorage.getItem(KEY_BELL) === "true";
-    cleanerHired = localStorage.getItem(KEY_CLEAN) === "true";
-
-    if (bellboyEl) bellboyEl.style.display = bellHired ? "" : "none";
-    if (cleanerEl) cleanerEl.style.display = cleanerHired ? "" : "none";
-
-    if (!cleanerHired) {
-      cleanerStep = "TAP_STATION";
-      cleaner.state = "IDLE";
-      cleaner.target = null;
-      cleaner.selectedRoom = null;
-      cleaner.cleanDoneAt = 0;
-      setCleanerCarry(false);
-    }
-
-    refreshPoolUI();
-    updateHUD();
-  }
-  window.addEventListener("staffUpdated", syncHiresAndVisibility);
-
-  /* ---------- Requests ---------- */
+  /* ---------- Requests rolling ---------- */
   function rollRequests(){
     const r = Math.random();
     let count = 0;
@@ -276,25 +309,61 @@ document.addEventListener("DOMContentLoaded", () => {
     else count = 3;
 
     const picks = [];
-    for (let i = 0; i < count; i++){
-      const k = ITEM_KEYS[Math.floor(Math.random() * ITEM_KEYS.length)];
-      picks.push(k);
+    for (let i=0;i<count;i++){
+      picks.push(ITEM_KEYS[Math.floor(Math.random()*ITEM_KEYS.length)]);
     }
     return picks;
   }
 
-  /* ---------- Rooms ---------- */
-  function roomsFreeCount(){ return rooms.filter(r => r.status === ROOM_FREE).length; }
-  function findFreeRoomIndex(){ return rooms.findIndex(r => r.status === ROOM_FREE); }
+  /* ---------- Rooms helpers ---------- */
+  function roomUsable(i){
+    return rooms[i].status === ROOM_FREE && Date.now() >= (rooms[i].cooldownUntil || 0);
+  }
+  function roomsFreeCount(){
+    return rooms.filter((r, i) => roomUsable(i)).length;
+  }
+  function findFreeRoomIndex(){
+    for (let i=0;i<rooms.length;i++){
+      if (roomUsable(i)) return i;
+    }
+    return -1;
+  }
 
   function setRoomStatus(i, status){
     rooms[i].status = status;
+
+    // badge shows status + cooldown
     if (badgeEls[i]) {
       if (status === ROOM_FREE)  badgeEls[i].textContent = "✅";
       if (status === ROOM_OCC)   badgeEls[i].textContent = "🧳";
       if (status === ROOM_DIRTY) badgeEls[i].textContent = "🧺";
     }
+
     updateHUD();
+  }
+
+  function setRoomCooldown(i, ms){
+    rooms[i].cooldownUntil = Date.now() + ms;
+    // show ⏳ while cooling
+    if (badgeEls[i]) badgeEls[i].textContent = "⏳";
+  }
+
+  /* ---------- HUD + Progression ---------- */
+  function updateProgressionUI(){
+    if (needServedEl) needServedEl.textContent = String(NEED_SERVED);
+    if (needCoinsEl) needCoinsEl.textContent = String(NEED_COINS);
+
+    const coins = getCoins();
+    const unlocked = (served >= NEED_SERVED && coins >= NEED_COINS) || localStorage.getItem(KEY_MARA)==="true";
+
+    if (unlocked){
+      localStorage.setItem(KEY_MARA, "true");
+      if (maraStatusEl) maraStatusEl.textContent = "Unlocked ✅";
+      if (goMaraBtn) goMaraBtn.classList.remove("hidden");
+    } else {
+      if (maraStatusEl) maraStatusEl.textContent = "Locked 🔒";
+      if (goMaraBtn) goMaraBtn.classList.add("hidden");
+    }
   }
 
   function updateHUD(){
@@ -303,15 +372,90 @@ document.addEventListener("DOMContentLoaded", () => {
     if (servedEl) servedEl.textContent = String(served);
     if (hotelCashEl) hotelCashEl.textContent = String(hotelCash);
 
-    if (!cleanerModeEl) return;
-
-    if (!cleanerHired) {
-      cleanerModeEl.textContent = "Hire Cleaner to clean";
-    } else {
-      cleanerModeEl.textContent = cleanerStep === "TAP_STATION"
-        ? "Tap 🧴 station"
-        : "Tap 🧺 dirty room";
+    if (cleanerModeEl){
+      if (!cleanerHired) cleanerModeEl.textContent = "Hire Cleaner to clean";
+      else cleanerModeEl.textContent = (cleanerStep === "TAP_STATION") ? "Tap 🧴 station" : "Tap 🧺 dirty room";
     }
+
+    // top coins refresh (in case puzzle changed it)
+    if (coinsTopEl) coinsTopEl.textContent = String(getCoins());
+
+    refreshPoolUI();
+    updateProgressionUI();
+    syncUpgradeUI();
+  }
+
+  /* ---------- Upgrade UI + logic ---------- */
+  function roomUpgradeCost(){
+    // scales a bit
+    const lvl = getRoomLevel();
+    return 20 + (lvl * 15);
+  }
+
+  function syncUpgradeUI(){
+    const lvl = getRoomLevel();
+    if (roomLevelEl) roomLevelEl.textContent = String(lvl);
+    if (roomCostEl) roomCostEl.textContent = String(roomUpgradeCost());
+
+    bellHired = localStorage.getItem(KEY_BELL) === "true";
+    cleanerHired = localStorage.getItem(KEY_CLEAN) === "true";
+
+    if (bellStatusEl) bellStatusEl.textContent = bellHired ? "Hired ✅" : "Not hired";
+    if (cleanStatusEl) cleanStatusEl.textContent = cleanerHired ? "Hired ✅" : "Not hired";
+
+    if (bellboyEl) bellboyEl.style.display = bellHired ? "" : "none";
+    if (cleanerEl) cleanerEl.style.display = cleanerHired ? "" : "none";
+  }
+
+  buyRoomBtn?.addEventListener("click", () => {
+    playSound("click");
+    const cost = roomUpgradeCost();
+    if (!spendCoins(cost)) return;
+    setRoomLevel(getRoomLevel() + 1);
+    updateHUD();
+  });
+
+  hireBellBtn?.addEventListener("click", () => {
+    playSound("click");
+    if (bellHired) return;
+    if (!spendCoins(30)) return;
+    localStorage.setItem(KEY_BELL, "true");
+    updateHUD();
+    window.dispatchEvent(new Event("staffUpdated"));
+  });
+
+  hireCleanBtn?.addEventListener("click", () => {
+    playSound("click");
+    if (cleanerHired) return;
+    if (!spendCoins(30)) return;
+    localStorage.setItem(KEY_CLEAN, "true");
+    updateHUD();
+    window.dispatchEvent(new Event("staffUpdated"));
+  });
+
+  /* ---------- Queue priority (VIP first) ---------- */
+  function dequeueNextGuest(){
+    // VIP priority
+    const vipIndex = queue.findIndex(g => g.type?.name === "VIP");
+    if (vipIndex !== -1) return queue.splice(vipIndex, 1)[0];
+    return queue.shift();
+  }
+
+  function seatQueueIntoFreeRooms(){
+    while (queue.length > 0){
+      const freeRoom = findFreeRoomIndex();
+      if (freeRoom === -1) break;
+
+      const g = dequeueNextGuest();
+      if (!g) break;
+
+      g.roomIndex = freeRoom;
+      setRoomStatus(freeRoom, ROOM_OCC);
+
+      g.state = "TO_ROOM";
+      g.target = centerOf(roomEls[freeRoom]);
+    }
+    updateHUD();
   }
 
   /* ---------- Guests ---------- */
@@ -329,6 +473,9 @@ document.addEventListener("DOMContentLoaded", () => {
     bubble.style.display = "none";
     el.appendChild(bubble);
 
+    const type = rollGuestType();
+    el.dataset.badge = type.badge;
+
     return {
       id: nextGuestId++,
       el, bubble, ring,
@@ -337,6 +484,7 @@ document.addEventListener("DOMContentLoaded", () => {
       state: "SPAWN",
       target: null,
 
+      type,
       roomIndex: null,
       requests: [],
       currentRequest: null,
@@ -377,8 +525,10 @@ document.addEventListener("DOMContentLoaded", () => {
       updateHUD();
       return;
     }
+
     g.roomIndex = freeRoom;
     setRoomStatus(freeRoom, ROOM_OCC);
+
     g.state = "TO_ROOM";
     g.target = centerOf(roomEls[freeRoom]);
   }
@@ -392,10 +542,14 @@ document.addEventListener("DOMContentLoaded", () => {
       g.target = centerOf(stReception);
       return;
     }
+
     const next = g.requests.shift();
     g.currentRequest = next;
     const def = ITEMS[next];
-    g.requestDeadline = Date.now() + def.seconds * 1000;
+
+    const patienceMs = def.seconds * 1000 * (g.type?.patienceMult ?? 1);
+    g.requestDeadline = Date.now() + patienceMs;
+
     g.state = "WAITING";
     g.angry = false;
     g.el.classList.remove("angry");
@@ -409,6 +563,7 @@ document.addEventListener("DOMContentLoaded", () => {
       g.target = poolSpot();
       return;
     }
+
     g.requests = rollRequests();
     g.totalBonus = 0;
     g.currentRequest = null;
@@ -439,8 +594,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function onArrivePay(g){
     served += 1;
+    playSound("coin");
+
+    const payMult = g.type?.payMult ?? 1;
     const base = g.angry ? Math.max(1, BASE_PAY_COINS - 3) : BASE_PAY_COINS;
-    const payCoins = base + g.totalBonus;
+    const payCoins = Math.max(1, Math.round((base + g.totalBonus) * payMult));
 
     hotelCash += payCoins;
     addGlobalCoins(payCoins);
@@ -452,6 +610,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     g.state = "TO_EXIT";
     g.target = centerOf(stExit);
+
     updateHUD();
   }
 
@@ -462,12 +621,14 @@ document.addEventListener("DOMContentLoaded", () => {
     guests = guests.filter(x => x.id !== g.id);
   }
 
+  /* ---------- Patience + ring ---------- */
   function updatePatienceAll(){
     const now = Date.now();
     guests.forEach(g => {
       if (g.state !== "WAITING" || !g.currentRequest) return;
 
-      const total = ITEMS[g.currentRequest].seconds * 1000;
+      const def = ITEMS[g.currentRequest];
+      const total = def.seconds * 1000 * (g.type?.patienceMult ?? 1);
       const left = g.requestDeadline - now;
       const pct = Math.max(0, Math.min(1, left / total));
 
@@ -479,20 +640,25 @@ document.addEventListener("DOMContentLoaded", () => {
         g.el.classList.add("angry");
         g.currentRequest = null;
         hideGuestBubble(g);
-        setTimeout(() => startNextRequestOrCheckout(g), 250);
+        setTimeout(() => startNextRequestOrCheckout(g), 200);
       }
     });
   }
 
-  /* ---------- Bellboy AUTO ---------- */
+  /* ---------- Bellboy AUTO serve ---------- */
   function findServeTargetGuest(){
-    return guests.find(g => g.state === "WAITING" && !!g.currentRequest);
+    // prioritize VIP waiting first
+    return guests.find(g => g.state==="WAITING" && g.currentRequest && g.type?.name==="VIP")
+        || guests.find(g => g.state==="WAITING" && g.currentRequest);
   }
-  function getGuestById(id){ return guests.find(g => g.id === id); }
+  function getGuestById(id){ return guests.find(g => g.id===id); }
+
+  let bellboy = { x: 220, y: 290, speed: 2.7, state: "IDLE", target: null, carrying: null, targetGuestId: null };
 
   function bellboyTryServe(){
     if (!bellHired) return;
     if (bellboy.state !== "IDLE") return;
+
     const targetGuest = findServeTargetGuest();
     if (!targetGuest) return;
 
@@ -522,7 +688,8 @@ document.addEventListener("DOMContentLoaded", () => {
       hideGuestBubble(g);
       g.el.classList.remove("angry");
       g.angry = false;
-      setTimeout(() => startNextRequestOrCheckout(g), 350);
+      playSound("match");
+      setTimeout(() => startNextRequestOrCheckout(g), 250);
     }
     bellboy.carrying = null;
     bellboy.targetGuestId = null;
@@ -532,18 +699,32 @@ document.addEventListener("DOMContentLoaded", () => {
   function onBellboyReturn(){ bellboy.state = "IDLE"; }
 
   /* ---------- Cleaner MANUAL ---------- */
-  if (stClean) {
-    stClean.addEventListener("click", () => {
-      if (!cleanerHired) return;
-      if (cleanerStep !== "TAP_STATION") return;
-      if (cleaner.state !== "IDLE") return;
+  let cleaner = { x: 620, y: 380, speed: 2.4, state: "IDLE", target: null, carrying: false, selectedRoom: null, cleanDoneAt: 0 };
+  let cleanerStep = "TAP_STATION";
 
-      cleaner.state = "GOT_DETERGENT";
-      setCleanerCarry(true);
-      cleanerStep = "TAP_ROOM";
-      updateHUD();
-    });
+  function setCleanerCarry(on){
+    cleaner.carrying = on;
+    if (!cleanerEl) return;
+    if (on){
+      cleanerEl.classList.add("carrying");
+      cleanerEl.dataset.carry = "🧴";
+    } else {
+      cleanerEl.classList.remove("carrying");
+      cleanerEl.dataset.carry = "";
+    }
   }
+
+  stClean?.addEventListener("click", () => {
+    if (!cleanerHired) return;
+    if (cleanerStep !== "TAP_STATION") return;
+    if (cleaner.state !== "IDLE") return;
+
+    playSound("click");
+    cleaner.state = "GOT_DETERGENT";
+    setCleanerCarry(true);
+    cleanerStep = "TAP_ROOM";
+    updateHUD();
+  });
 
   function startCleaningRoom(i){
     if (!cleanerHired) return;
@@ -552,61 +733,29 @@ document.addEventListener("DOMContentLoaded", () => {
     if (cleaner.state !== "GOT_DETERGENT" && cleaner.state !== "IDLE") return;
     if (rooms[i].status !== ROOM_DIRTY) return;
 
+    playSound("click");
     cleaner.selectedRoom = i;
     cleaner.state = "TO_ROOM";
     cleaner.target = centerOf(roomEls[i]);
   }
-
-  roomEls.forEach((el, i) => {
-    if (!el) return;
-    el.addEventListener("click", () => startCleaningRoom(i));
-  });
+  roomEls.forEach((el, i) => el?.addEventListener("click", () => startCleaningRoom(i)));
 
   function onCleanerArriveRoom(){
     cleaner.state = "CLEANING";
     cleaner.cleanDoneAt = Date.now() + 6000;
   }
-function seatQueueIntoFreeRooms(){
-  // keep filling as long as we have a free room and someone waiting
-  while (queue.length > 0){
-    const freeRoom = findFreeRoomIndex();
-    if (freeRoom === -1) break;
-
-    const g = queue.shift(); // take first in line
-
-    // assign room
-    g.roomIndex = freeRoom;
-    setRoomStatus(freeRoom, ROOM_OCC);
-
-    // send them straight to the room
-    g.state = "TO_ROOM";
-    g.target = centerOf(roomEls[freeRoom]);
-
-    updateHUD();
-  }
-}
 
   function finishCleaning(){
-  const i = cleaner.selectedRoom;
-
-  if (i !== null){
-    setRoomStatus(i, ROOM_FREE);
-
-    // ✅ immediately bring guests from queue into any free rooms
-    seatQueueIntoFreeRooms();
+    const i = cleaner.selectedRoom;
+    if (i !== null){
+      setRoomStatus(i, ROOM_FREE);
+      setRoomCooldown(i, ROOM_COOLDOWN_MS);
+      setTimeout(() => { seatQueueIntoFreeRooms(); }, ROOM_COOLDOWN_MS + 30);
+    }
+    cleaner.selectedRoom = null;
+    cleaner.state = "RETURNING";
+    cleaner.target = centerOf(stClean);
   }
-
-  cleaner.selectedRoom = null;
-  cleaner.state = "RETURNING";
-  cleaner.target = centerOf(stClean);
-}
-
-
-  cleaner.selectedRoom = null;
-  cleaner.state = "RETURNING";
-  cleaner.target = centerOf(stClean);
-}
-
 
   function onCleanerReturn(){
     cleaner.state = "IDLE";
@@ -615,9 +764,11 @@ function seatQueueIntoFreeRooms(){
     updateHUD();
   }
 
-  /* ---------- Spawn Guests ---------- */
+  /* ---------- Spawn guests ---------- */
   function spawnGuest(){
     if (guests.length >= 8) return;
+    if (!guestLayer) return;
+
     const g = makeGuest();
     guests.push(g);
 
@@ -626,16 +777,25 @@ function seatQueueIntoFreeRooms(){
     setPos(g.el, g.x, g.y);
     hideGuestBubble(g);
 
+    playSound("click");
     sendToReception(g);
     updateHUD();
   }
+  spawnGuestBtn?.addEventListener("click", spawnGuest);
 
-  if (spawnGuestBtn) {
-    spawnGuestBtn.addEventListener("click", spawnGuest);
+  /* ---------- Queue positions ---------- */
+  function updateQueuePositions(){
+    queue.forEach((g, idx) => {
+      const p = queueSpot(idx);
+      g.x += (p.x - g.x) * 0.08;
+      g.y += (p.y - g.y) * 0.08;
+      setPos(g.el, g.x, g.y);
+    });
   }
 
   /* ---------- Loop ---------- */
   function loop(){
+    // Guests
     guests.forEach(g => {
       const arrived = moveToward(g);
       setPos(g.el, g.x, g.y);
@@ -654,14 +814,11 @@ function seatQueueIntoFreeRooms(){
       }
     });
 
-    queue.forEach((g, idx) => {
-      const p = queueSpot(idx);
-      g.x += (p.x - g.x) * 0.08;
-      g.y += (p.y - g.y) * 0.08;
-      setPos(g.el, g.x, g.y);
-    });
+    // Queue
+    updateQueuePositions();
 
-    if (bellHired) {
+    // Bellboy
+    if (bellHired){
       const bellArrived = moveToward(bellboy);
       setPos(bellboyEl, bellboy.x, bellboy.y);
       if (bellArrived){
@@ -672,7 +829,8 @@ function seatQueueIntoFreeRooms(){
       bellboyTryServe();
     }
 
-    if (cleanerHired) {
+    // Cleaner
+    if (cleanerHired){
       const cleanArrived = moveToward(cleaner);
       setPos(cleanerEl, cleaner.x, cleaner.y);
       if (cleanArrived){
@@ -684,43 +842,45 @@ function seatQueueIntoFreeRooms(){
       }
     }
 
+    // room cooldown badge update
+    for (let i=0;i<rooms.length;i++){
+      if (rooms[i].status===ROOM_FREE && Date.now() < (rooms[i].cooldownUntil||0)){
+        if (badgeEls[i]) badgeEls[i].textContent = "⏳";
+      } else if (rooms[i].status===ROOM_FREE){
+        if (badgeEls[i]) badgeEls[i].textContent = "✅";
+      }
+    }
+
     updatePatienceAll();
     requestAnimationFrame(loop);
   }
 
-  /* ---------- START ---------- */
+  /* ---------- Start ---------- */
   function start(){
-    // Hard fail message if essentials are missing
-    const essentialsOk =
-      mapEl && guestLayer && stReception && stSnack && stClean && stExit &&
-      roomEls.every(Boolean);
-
-    if (!essentialsOk) {
-      // Show a clear signal in the UI
-      if (cleanerModeEl) cleanerModeEl.textContent = "hotel.js loaded ✅ but missing elements";
-      console.error("Hotel essentials missing. Check IDs in Mombasa.html:", {
-        mapEl, guestLayer, stReception, stSnack, stClean, stExit, roomEls
-      });
-      return;
-    }
-
-    // UI signal that hotel.js is alive
-    if (cleanerModeEl) cleanerModeEl.textContent = "hotel.js loaded ✅ tap 🧴 station";
+    const essentialsOk = mapEl && guestLayer && stReception && stSnack && stClean && stExit && roomEls.every(Boolean);
+    if (!essentialsOk) return;
 
     buildOceanAndPool();
 
-    for (let i = 0; i < 4; i++) setRoomStatus(i, ROOM_FREE);
+    // initial room badges
+    for (let i=0;i<4;i++) setRoomStatus(i, ROOM_FREE);
 
+    // place workers
     setPos(bellboyEl, bellboy.x, bellboy.y);
     setPos(cleanerEl, cleaner.x, cleaner.y);
     setCleanerCarry(false);
 
-    syncHiresAndVisibility();
     updateHUD();
-
-    setInterval(refreshPoolUI, 900);
     loop();
   }
+
+  // Keep top coins synced if puzzle changes it while hotel open
+  setInterval(() => {
+    if (coinsTopEl) coinsTopEl.textContent = String(getCoins());
+    updateProgressionUI();
+    refreshPoolUI();
+    syncUpgradeUI();
+  }, 900);
 
   start();
 });
