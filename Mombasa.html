@@ -11,8 +11,8 @@
     <div class="brand">
       <div class="logo">🌴</div>
       <div>
-        <div class="title">Mombasa</div>
-        <div class="subtitle">Play puzzle → earn coins</div>
+        <div class="title">Mombasa Hotel</div>
+        <div class="subtitle">Puzzle → Coins → Upgrades</div>
       </div>
     </div>
 
@@ -23,13 +23,72 @@
     </div>
   </header>
 
-  <main class="container">
+  <main class="container grid2">
+    <!-- LEFT: HOTEL UI + IMAGES -->
     <section class="card">
-      <h2>Puzzle Board</h2>
+      <h2>Your Hotel (Visuals)</h2>
+      <p class="muted">These images must be inside <b>images/</b> folder.</p>
+
+      <div class="hotelShots">
+        <figure class="shot">
+          <img src="images/reception.png" alt="Reception lobby" />
+          <figcaption>Reception Lobby</figcaption>
+        </figure>
+
+        <figure class="shot">
+          <img src="images/staff.png" alt="Hotel staff" />
+          <figcaption>Staff: Bellboy & Cleaner</figcaption>
+        </figure>
+
+        <figure class="shot">
+          <img src="images/room.png" alt="Hotel room" />
+          <figcaption>Guest Room</figcaption>
+        </figure>
+      </div>
+
+      <hr class="line" />
+
+      <h3>Upgrades (uses your coins)</h3>
+      <div class="upgradeRow">
+        <div class="upgradeItem">
+          <div class="upgradeTitle">🛏️ Room Level</div>
+          <div class="muted smallText">Cost: <span id="roomCost">20</span> coins</div>
+          <button class="btn ghost small" id="buyRoomBtn">Upgrade</button>
+          <div class="muted smallText">Level: <span id="roomLevel">0</span></div>
+        </div>
+
+        <div class="upgradeItem">
+          <div class="upgradeTitle">🧑🏾‍💼 Hire Bellboy</div>
+          <div class="muted smallText">Cost: 30 coins</div>
+          <button class="btn ghost small" id="hireBellBtn">Hire</button>
+          <div class="muted smallText">Status: <span id="bellStatus">Not hired</span></div>
+        </div>
+
+        <div class="upgradeItem">
+          <div class="upgradeTitle">🧹 Hire Cleaner</div>
+          <div class="muted smallText">Cost: 30 coins</div>
+          <button class="btn ghost small" id="hireCleanBtn">Hire</button>
+          <div class="muted smallText">Status: <span id="cleanStatus">Not hired</span></div>
+        </div>
+      </div>
+
+      <div class="note">
+        ✅ This upgrade system is already wired. Play puzzle, earn coins, then buy upgrades.
+      </div>
+    </section>
+
+    <!-- RIGHT: PUZZLE -->
+    <section class="card">
+      <h2>Upgraded Puzzle</h2>
       <p class="muted">
-        Tap one tile, then tap a nearby tile to swap.
-        <b>Every move gives +1 coin.</b>
+        Tap a tile, then tap an adjacent tile to swap.
+        <b>+1 coin per move</b> + bonus coins for tiles cleared.
       </p>
+
+      <div class="miniStats">
+        <div class="pill">Combo: <span id="combo">0</span></div>
+        <div class="pill">Cleared: <span id="cleared">0</span></div>
+      </div>
 
       <div id="grid" class="grid"></div>
 
@@ -38,25 +97,12 @@
         <button class="btn ghost" id="resetCoinsBtn">Reset Coins</button>
       </div>
     </section>
-
-    <section class="card">
-      <h2>Hotel Progress (Next)</h2>
-      <p class="muted">
-        After we confirm puzzle is working perfectly, we’ll add:
-        reception image, staff image, room image, hiring, and building upgrades.
-      </p>
-      <div class="chips">
-        <span class="chip">🏨 Reception</span>
-        <span class="chip">🧑🏾‍💼 Bellboy</span>
-        <span class="chip">🧹 Cleaner</span>
-        <span class="chip">🛏️ Rooms</span>
-      </div>
-    </section>
   </main>
 
   <script src="script.js"></script>
 </body>
 </html>
+
 
 
 
