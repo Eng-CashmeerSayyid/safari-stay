@@ -1,11 +1,12 @@
-/* ==========================================
-   SAFARI STAY – HOTEL MANIA (Top-Down)
-   + 4 rooms + queue
-   + Drinks (🥤🥥🍍), pineapple slower but pays more
-   + Bellboy AUTO serves drink requests
-   + Cleaner MANUAL:
-       Tap 🧴 station -> tap dirty room to clean
-   ========================================== */
+/* ==========================================================
+   SAFARI STAY – HOTEL MANIA (MULTI-GUEST)
+   - 4 rooms
+   - up to 8 guests moving simultaneously
+   - reception queue (real positions)
+   - drink requests: 🥤 🥥 🍍 (🍍 slower + pays more)
+   - bellboy AUTO serves pending requests
+   - cleaner MANUAL: tap 🧴 station then tap 🧺 dirty room
+   ========================================================== */
 
 /* ---------- Tabs ---------- */
 const tabPuzzle = document.getElementById("tabPuzzle");
@@ -38,6 +39,8 @@ const spawnGuestBtn = document.getElementById("spawnGuestBtn");
 
 /* ---------- Map / Stations ---------- */
 const mapEl = document.getElementById("hotelMap");
+const guestLayer = document.getElementById("guestLayer");
+
 const stReception = document.getElementById("stReception");
 const stSnack = document.getElementById("stSnack");
 const stClean = document.getElementById("stClean");
@@ -57,8 +60,7 @@ const badgeEls = [
   document.getElementById("badge3"),
 ];
 
-/* ---------- Characters ---------- */
-const guestEl = document.getElementById("guest");
+/* ---------- Workers ---------- */
 const bellboyEl = document.getElementById("bellboy");
 const cleanerEl = document.getElementById("cleaner");
 
@@ -67,66 +69,44 @@ const COIN_KEY = "coins";
 
 /* ---------- Rewards ---------- */
 const BASE_PAY_COINS = 5;
-const SERVICE_BONUS = { soda:2, coconut:3, pineapple:5 };
-
-/* ---------- Request definitions ---------- */
 const ITEMS = {
-  soda:      { icon:"🥤", seconds: 7,  bonus: SERVICE_BONUS.soda },
-  coconut:   { icon:"🥥", seconds: 8,  bonus: SERVICE_BONUS.coconut },
-  pineapple: { icon:"🍍", seconds:12,  bonus: SERVICE_BONUS.pineapple } // slower + pays more
+  soda:      { icon:"🥤", seconds: 7,  bonus: 2 },
+  coconut:   { icon:"🥥", seconds: 8,  bonus: 3 },
+  pineapple: { icon:"🍍", seconds: 12, bonus: 5 } // slower + pays more
 };
 const ITEM_KEYS = Object.keys(ITEMS);
 
 /* ---------- Room State ---------- */
-const ROOM_FREE = "FREE";
-const ROOM_OCC  = "OCCUPIED";
-const ROOM_DIRTY= "DIRTY";
+const ROOM_FREE  = "FREE";
+const ROOM_OCC   = "OCCUPIED";
+const ROOM_DIRTY = "DIRTY";
 
-/* Each room stores status + who is inside */
 let rooms = [
-  { status: ROOM_FREE, guestId: null },
-  { status: ROOM_FREE, guestId: null },
-  { status: ROOM_FREE, guestId: null },
-  { status: ROOM_FREE, guestId: null },
+  { status: ROOM_FREE,  guestId: null },
+  { status: ROOM_FREE,  guestId: null },
+  { status: ROOM_FREE,  guestId: null },
+  { status: ROOM_FREE,  guestId: null },
 ];
 
-/* ---------- World state ---------- */
+/* ---------- World ---------- */
 let served = 0;
 let hotelCash = 0;
 
-let queue = [];          // guest objects waiting to check in
-let currentGuest = null; // single animated guest token (we simulate one at a time visually)
-
-/* ---------- Guest template ---------- */
-function makeGuest(id){
-  return {
-    id,
-    x: 10, y: 10,
-    speed: 2.0,
-    state: "IDLE",
-    target: null,
-
-    roomIndex: null,
-    requests: [],
-    currentRequest: null,
-    requestDeadline: 0,
-    totalBonus: 0,
-    angry: false,
-  };
-}
-
+let guests = [];    // active moving guests (array)
+let queue = [];     // waiting guests at reception (subset of guests)
 let nextGuestId = 1;
 
-/* ---------- Bellboy ---------- */
+/* ---------- Bellboy AUTO ---------- */
 let bellboy = {
   x: 210, y: 260,
-  speed: 2.6,
-  state: "IDLE",      // IDLE, TO_SNACK, TO_GUEST, RETURNING
+  speed: 2.7,
+  state: "IDLE", // IDLE, TO_SNACK, TO_GUEST, RETURNING
   target: null,
   carrying: null,
+  targetGuestId: null,
 };
 
-/* ---------- Cleaner (MANUAL) ---------- */
+/* ---------- Cleaner MANUAL ---------- */
 let cleaner = {
   x: 520, y: 280,
   speed: 2.4,
@@ -136,47 +116,16 @@ let cleaner = {
   selectedRoom: null,
   cleanDoneAt: 0
 };
-
 let cleanerStep = "TAP_STATION"; // TAP_STATION -> TAP_ROOM
-updateCleanerModeText();
 
-/* ---------- Bubble UI (above guest) ---------- */
-let bubbleEl = null;
-let ringEl = null;
-
-function ensureBubble() {
-  if (bubbleEl) return;
-  bubbleEl = document.createElement("div");
-  bubbleEl.className = "bubble";
-  ringEl = document.createElement("div");
-  ringEl.className = "ring";
-  bubbleEl.appendChild(ringEl);
-  guestEl.appendChild(bubbleEl);
-  hideBubble();
-}
-function showBubble(icon){
-  ensureBubble();
-  bubbleEl.style.display = "grid";
-  // remove old icon nodes (keep ring)
-  [...bubbleEl.childNodes].forEach(n => { if (n !== ringEl) bubbleEl.removeChild(n); });
-  const iconNode = document.createElement("div");
-  iconNode.textContent = icon;
-  bubbleEl.appendChild(iconNode);
-}
-function hideBubble(){
-  ensureBubble();
-  bubbleEl.style.display = "none";
-}
-
-/* ---------- Geometry ---------- */
+/* ---------- Geometry helpers ---------- */
 function setPos(el, x, y){ el.style.left = x + "px"; el.style.top = y + "px"; }
+
 function centerOf(el){
   const mapRect = mapEl.getBoundingClientRect();
   const r = el.getBoundingClientRect();
-  return { x:(r.left - mapRect.left)+r.width/2-22, y:(r.top - mapRect.top)+r.height/2-22 };
+  return { x:(r.left-mapRect.left)+r.width/2-22, y:(r.top-mapRect.top)+r.height/2-22 };
 }
-
-function setTarget(entity, p){ entity.target = p; }
 
 function moveToward(entity){
   if (!entity.target) return false;
@@ -194,70 +143,132 @@ function moveToward(entity){
   return false;
 }
 
-/* ---------- Requests rolling ---------- */
-function rollRequests(){
-  const r = Math.random();
-  let count = 0;
-  if (r < 0.30) count = 0;      // 30% none
-  else if (r < 0.68) count = 1; // 38% one
-  else if (r < 0.92) count = 2; // 24% two
-  else count = 3;              // 8% three
-
-  const picks = [];
-  for (let i = 0; i < count; i++){
-    const key = ITEM_KEYS[Math.floor(Math.random() * ITEM_KEYS.length)];
-    picks.push(key);
-  }
-  return picks;
-}
-
-/* ---------- Room helpers ---------- */
-function roomsFreeCount(){
-  return rooms.filter(r => r.status === ROOM_FREE).length;
-}
-
-function findFreeRoomIndex(){
-  return rooms.findIndex(r => r.status === ROOM_FREE);
-}
-
-function setRoomStatus(i, status){
-  rooms[i].status = status;
-  const badge = badgeEls[i];
-  if (status === ROOM_FREE) badge.textContent = "✅";
-  if (status === ROOM_OCC)  badge.textContent = "🧳";
-  if (status === ROOM_DIRTY)badge.textContent = "🧺";
-  updateRoomsUI();
-}
-
-function updateRoomsUI(){
-  roomsFreeEl.textContent = String(roomsFreeCount());
-  queueCountEl.textContent = String(queue.length);
-}
-
-/* ---------- Economy ---------- */
 function addGlobalCoins(amount){
   const current = Number(localStorage.getItem(COIN_KEY)) || 0;
   localStorage.setItem(COIN_KEY, String(current + amount));
 }
 
+/* ---------- Requests rolling ---------- */
+function rollRequests(){
+  const r = Math.random();
+  let count = 0;
+  if (r < 0.30) count = 0;
+  else if (r < 0.68) count = 1;
+  else if (r < 0.92) count = 2;
+  else count = 3;
+
+  const picks = [];
+  for (let i = 0; i < count; i++){
+    const k = ITEM_KEYS[Math.floor(Math.random() * ITEM_KEYS.length)];
+    picks.push(k);
+  }
+  return picks;
+}
+
+/* ---------- Room helpers ---------- */
+function roomsFreeCount(){ return rooms.filter(r => r.status === ROOM_FREE).length; }
+function findFreeRoomIndex(){ return rooms.findIndex(r => r.status === ROOM_FREE); }
+
+function setRoomStatus(i, status){
+  rooms[i].status = status;
+  if (status === ROOM_FREE)  badgeEls[i].textContent = "✅";
+  if (status === ROOM_OCC)   badgeEls[i].textContent = "🧳";
+  if (status === ROOM_DIRTY) badgeEls[i].textContent = "🧺";
+  updateHUD();
+}
+
+function updateHUD(){
+  roomsFreeEl.textContent = String(roomsFreeCount());
+  queueCountEl.textContent = String(queue.length);
+  servedEl.textContent = String(served);
+  hotelCashEl.textContent = String(hotelCash);
+  cleanerModeEl.textContent = cleanerStep === "TAP_STATION" ? "Tap 🧴 station" : "Tap 🧺 dirty room";
+}
+
+/* ---------- Guest creation ---------- */
+function makeGuest(){
+  const el = document.createElement("div");
+  el.className = "guestToken";
+  el.textContent = "🧳";
+  guestLayer.appendChild(el);
+
+  // bubble
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+  const ring = document.createElement("div");
+  ring.className = "ring";
+  bubble.appendChild(ring);
+  bubble.style.display = "none";
+  el.appendChild(bubble);
+
+  const g = {
+    id: nextGuestId++,
+    el,
+    bubble,
+    ring,
+    x: 10, y: 10,
+    speed: 2.0,
+    state: "SPAWN",     // SPAWN, TO_RECEPTION, QUEUED, TO_ROOM, WAITING, TO_PAY, TO_EXIT, DONE
+    target: null,
+
+    roomIndex: null,
+    requests: [],
+    currentRequest: null,
+    requestDeadline: 0,
+    totalBonus: 0,
+    angry: false,
+
+    queuePosIndex: 0,
+  };
+  return g;
+}
+
+function showGuestBubble(g, icon){
+  // remove old icon nodes except ring
+  const bubble = g.bubble;
+  bubble.style.display = "grid";
+  [...bubble.childNodes].forEach(n => { if (n !== g.ring) bubble.removeChild(n); });
+  const iconNode = document.createElement("div");
+  iconNode.textContent = icon;
+  bubble.appendChild(iconNode);
+}
+
+function hideGuestBubble(g){
+  g.bubble.style.display = "none";
+}
+
+/* ---------- Reception queue positions ---------- */
+function queueSpot(index){
+  // stack behind reception downward
+  const base = centerOf(stReception);
+  return { x: base.x - 40, y: base.y + 55 + index * 30 };
+}
+
+function refreshQueuePositions(){
+  queue.forEach((g, idx) => {
+    g.queuePosIndex = idx;
+    // if queued, keep them at their slot
+    if (g.state === "QUEUED" && !g.target){
+      g.x = queueSpot(idx).x;
+      g.y = queueSpot(idx).y;
+    }
+  });
+}
+
 /* ---------- Guest flow ---------- */
-function startGuestWalkIn(g){
+function sendToReception(g){
   g.state = "TO_RECEPTION";
-  setTarget(g, centerOf(stReception));
+  g.target = centerOf(stReception);
 }
 
 function onArriveReception(g){
-  // If there is a free room, assign now; else queue at reception
   const freeRoom = findFreeRoomIndex();
   if (freeRoom === -1){
     g.state = "QUEUED";
-    // parked at reception (slight offset based on queue size)
-    const p = centerOf(stReception);
-    g.x = p.x + 0;
-    g.y = p.y + 0;
     g.target = null;
     queue.push(g);
-    updateRoomsUI();
+    refreshQueuePositions();
+    updateHUD();
     return;
   }
 
@@ -267,17 +278,21 @@ function onArriveReception(g){
   rooms[freeRoom].guestId = g.id;
   setRoomStatus(freeRoom, ROOM_OCC);
 
+  // remove from queue if present
+  queue = queue.filter(x => x.id !== g.id);
+  refreshQueuePositions();
+
   g.state = "TO_ROOM";
-  setTarget(g, centerOf(roomEls[freeRoom]));
+  g.target = centerOf(roomEls[freeRoom]);
 }
 
 function startNextRequestOrCheckout(g){
   if (g.requests.length === 0){
     g.state = "TO_PAY";
-    hideBubble();
-    guestEl.classList.remove("angry");
+    hideGuestBubble(g);
+    g.el.classList.remove("angry");
     g.angry = false;
-    setTarget(g, centerOf(stReception));
+    g.target = centerOf(stReception);
     return;
   }
 
@@ -285,11 +300,10 @@ function startNextRequestOrCheckout(g){
   g.currentRequest = next;
   const def = ITEMS[next];
   g.requestDeadline = Date.now() + def.seconds * 1000;
-
-  g.state = "WAITING_FOR_ITEM";
+  g.state = "WAITING";
   g.angry = false;
-  guestEl.classList.remove("angry");
-  showBubble(def.icon);
+  g.el.classList.remove("angry");
+  showGuestBubble(g, def.icon);
 }
 
 function onArriveRoom(g){
@@ -302,124 +316,127 @@ function onArriveRoom(g){
 function onArrivePay(g){
   served += 1;
 
-  // If angry, reduce base
   const base = g.angry ? Math.max(1, BASE_PAY_COINS - 3) : BASE_PAY_COINS;
   const payCoins = base + g.totalBonus;
 
   hotelCash += payCoins;
-  servedEl.textContent = String(served);
-  hotelCashEl.textContent = String(hotelCash);
-
   addGlobalCoins(payCoins);
 
-  // room becomes DIRTY now
+  // room becomes dirty
   if (g.roomIndex !== null){
     setRoomStatus(g.roomIndex, ROOM_DIRTY);
     rooms[g.roomIndex].guestId = null;
+    g.roomIndex = null;
   }
 
   g.state = "TO_EXIT";
-  setTarget(g, centerOf(stExit));
+  g.target = centerOf(stExit);
+
+  updateHUD();
 }
 
 function onArriveExit(g){
   g.state = "DONE";
-  hideBubble();
-  guestEl.classList.remove("angry");
+  hideGuestBubble(g);
+  g.el.remove(); // remove from DOM
+  guests = guests.filter(x => x.id !== g.id);
 
-  // If queue has guests AND there is a free room, allow next to proceed
-  // (Room becomes FREE only after cleaning, so queue won't move until cleaned)
-  maybeStartNextFromQueue();
+  // when someone leaves, see if queued guests can claim a FREE room (after cleaning)
+  tryCheckInQueuedGuests();
 }
 
-function maybeStartNextFromQueue(){
-  if (currentGuest && currentGuest.state !== "DONE") return;
-  if (queue.length === 0) return;
+/* ---------- Try to move queued guests into rooms if a room is FREE ---------- */
+function tryCheckInQueuedGuests(){
+  let freeRoom = findFreeRoomIndex();
+  while (freeRoom !== -1 && queue.length > 0){
+    const g = queue.shift();
+    refreshQueuePositions();
 
-  // Only move from queue if a room is FREE
-  const freeRoom = findFreeRoomIndex();
-  if (freeRoom === -1) return;
+    // send this queued guest to reception (they will get assigned immediately on arrival)
+    g.state = "TO_RECEPTION";
+    g.target = centerOf(stReception);
 
-  currentGuest = queue.shift();
-  updateRoomsUI();
-  startGuestWalkIn(currentGuest); // they’ll re-check at reception and get a room
+    freeRoom = findFreeRoomIndex();
+  }
+  updateHUD();
 }
 
-/* ---------- Bellboy auto serve ---------- */
+/* ---------- Patience timers for all waiting guests ---------- */
+function updatePatienceAll(){
+  const now = Date.now();
+  guests.forEach(g => {
+    if (g.state !== "WAITING" || !g.currentRequest) return;
+
+    const total = ITEMS[g.currentRequest].seconds * 1000;
+    const left = g.requestDeadline - now;
+    const pct = Math.max(0, Math.min(1, left / total));
+
+    g.ring.style.borderWidth = (3 + (1 - pct) * 2) + "px";
+    g.ring.style.opacity = String(0.6 + (1 - pct) * 0.4);
+
+    if (left <= 0 && !g.angry){
+      g.angry = true;
+      g.el.classList.add("angry");
+      g.currentRequest = null;
+      hideGuestBubble(g);
+      setTimeout(() => startNextRequestOrCheckout(g), 250);
+    }
+  });
+}
+
+/* ---------- Bellboy AUTO: serve the oldest waiting request ---------- */
+function findServeTargetGuest(){
+  // choose first guest in WAITING with currentRequest
+  return guests.find(g => g.state === "WAITING" && !!g.currentRequest);
+}
+
 function bellboyTryServe(){
-  if (!currentGuest) return;
   if (bellboy.state !== "IDLE") return;
+  const targetGuest = findServeTargetGuest();
+  if (!targetGuest) return;
 
-  const g = currentGuest;
-  if (g.state !== "WAITING_FOR_ITEM") return;
-  if (!g.currentRequest) return;
-
-  bellboy.carrying = g.currentRequest;
+  bellboy.targetGuestId = targetGuest.id;
+  bellboy.carrying = targetGuest.currentRequest;
   bellboy.state = "TO_SNACK";
-  setTarget(bellboy, centerOf(stSnack));
+  bellboy.target = centerOf(stSnack);
 }
+
+function getGuestById(id){ return guests.find(g => g.id === id); }
 
 function onBellboySnack(){
   bellboy.state = "TO_GUEST";
-  // go to guest position
-  setTarget(bellboy, { x: currentGuest.x, y: currentGuest.y });
+  const g = getGuestById(bellboy.targetGuestId);
+  if (!g){
+    bellboy.state = "RETURNING";
+    bellboy.target = centerOf(stSnack);
+    return;
+  }
+  bellboy.target = { x: g.x, y: g.y };
 }
 
 function onBellboyGuest(){
-  const g = currentGuest;
-  if (g && g.state === "WAITING_FOR_ITEM" && g.currentRequest === bellboy.carrying){
+  const g = getGuestById(bellboy.targetGuestId);
+  if (g && g.state === "WAITING" && g.currentRequest === bellboy.carrying){
     const def = ITEMS[bellboy.carrying];
     g.totalBonus += def.bonus;
 
     g.currentRequest = null;
-    hideBubble();
-    guestEl.classList.remove("angry");
+    hideGuestBubble(g);
+    g.el.classList.remove("angry");
     g.angry = false;
 
-    setTimeout(() => startNextRequestOrCheckout(g), 450);
+    setTimeout(() => startNextRequestOrCheckout(g), 350);
   }
 
   bellboy.carrying = null;
+  bellboy.targetGuestId = null;
   bellboy.state = "RETURNING";
-  setTarget(bellboy, centerOf(stSnack));
+  bellboy.target = centerOf(stSnack);
 }
 
-function onBellboyReturn(){
-  bellboy.state = "IDLE";
-}
+function onBellboyReturn(){ bellboy.state = "IDLE"; }
 
-/* ---------- Patience timer ---------- */
-function updatePatience(){
-  if (!currentGuest) return;
-  const g = currentGuest;
-  if (g.state !== "WAITING_FOR_ITEM" || !g.currentRequest) return;
-
-  const total = ITEMS[g.currentRequest].seconds * 1000;
-  const left = g.requestDeadline - Date.now();
-  const pct = Math.max(0, Math.min(1, left / total));
-
-  if (ringEl){
-    ringEl.style.borderWidth = (3 + (1 - pct) * 2) + "px";
-    ringEl.style.opacity = String(0.6 + (1 - pct) * 0.4);
-  }
-
-  if (left <= 0 && !g.angry){
-    g.angry = true;
-    guestEl.classList.add("angry");
-    g.currentRequest = null;
-    hideBubble();
-
-    setTimeout(() => startNextRequestOrCheckout(g), 300);
-  }
-}
-
-/* ---------- Cleaner manual system ---------- */
-function updateCleanerModeText(){
-  if (!cleanerModeEl) return;
-  if (cleanerStep === "TAP_STATION") cleanerModeEl.textContent = "Tap 🧴 station";
-  else cleanerModeEl.textContent = "Tap 🧺 dirty room";
-}
-
+/* ---------- Cleaner manual: tap station then tap dirty room ---------- */
 function setCleanerCarry(on){
   cleaner.carrying = on;
   if (on){
@@ -429,27 +446,33 @@ function setCleanerCarry(on){
     cleanerEl.classList.remove("carrying");
     cleanerEl.dataset.carry = "";
   }
+  updateHUD();
 }
 
-function isRoomDirty(i){
-  return rooms[i].status === ROOM_DIRTY;
-}
+stClean?.addEventListener("click", () => {
+  if (cleanerStep !== "TAP_STATION") return;
+  if (cleaner.state !== "IDLE") return;
+  cleaner.state = "GOT_DETERGENT";
+  setCleanerCarry(true);
+  cleanerStep = "TAP_ROOM";
+  updateHUD();
+});
 
 function startCleaningRoom(i){
-  // Must have detergent picked
   if (cleanerStep !== "TAP_ROOM") return;
   if (!cleaner.carrying) return;
-  if (!isRoomDirty(i)) return;
   if (cleaner.state !== "GOT_DETERGENT" && cleaner.state !== "IDLE") return;
+  if (rooms[i].status !== ROOM_DIRTY) return;
 
   cleaner.selectedRoom = i;
   cleaner.state = "TO_ROOM";
-  setTarget(cleaner, centerOf(roomEls[i]));
+  cleaner.target = centerOf(roomEls[i]);
 }
+
+roomEls.forEach((el, i) => el?.addEventListener("click", () => startCleaningRoom(i)));
 
 function onCleanerArriveRoom(){
   cleaner.state = "CLEANING";
-  // cleaning time (can later upgrade)
   cleaner.cleanDoneAt = Date.now() + 6000; // 6 seconds
 }
 
@@ -459,77 +482,65 @@ function finishCleaning(){
     setRoomStatus(i, ROOM_FREE);
     rooms[i].guestId = null;
   }
-
   cleaner.selectedRoom = null;
   cleaner.state = "RETURNING";
-  setTarget(cleaner, centerOf(stClean));
+  cleaner.target = centerOf(stClean);
 }
 
 function onCleanerReturn(){
   cleaner.state = "IDLE";
   setCleanerCarry(false);
   cleanerStep = "TAP_STATION";
-  updateCleanerModeText();
+  updateHUD();
 
-  // now queue may move if a room became free
-  maybeStartNextFromQueue();
+  // now that room is FREE, pull from queue
+  tryCheckInQueuedGuests();
 }
 
-/* Tap station -> pick detergent */
-stClean?.addEventListener("click", () => {
-  if (cleanerStep !== "TAP_STATION") return;
-  if (cleaner.state !== "IDLE") return;
-
-  cleaner.state = "GOT_DETERGENT";
-  setCleanerCarry(true);
-  cleanerStep = "TAP_ROOM";
-  updateCleanerModeText();
-});
-
-/* Tap rooms -> clean if dirty */
-roomEls.forEach((el, i) => {
-  el?.addEventListener("click", () => startCleaningRoom(i));
-});
-
-/* ---------- Spawning ---------- */
+/* ---------- Spawning guests ---------- */
 function spawnGuest(){
-  const g = makeGuest(nextGuestId++);
-  // Only one visible guest token; but queue stores extra guests “logically”
-  // If no current guest, animate this one; else just queue it at reception immediately
-  if (!currentGuest || currentGuest.state === "DONE" || currentGuest.state === "IDLE"){
-    currentGuest = g;
-    // place at entrance
-    g.x = 10; g.y = 10;
-    g.target = null;
-    guestEl.classList.remove("angry");
-    hideBubble();
-    startGuestWalkIn(g);
-  } else {
-    // push into queue immediately (they are “waiting”)
-    g.state = "QUEUED";
-    queue.push(g);
-    updateRoomsUI();
-  }
-}
+  if (guests.length >= 8) return; // cap 8
+  const g = makeGuest();
+  guests.push(g);
 
+  // entrance position + small offset so multiple guests don't overlap
+  g.x = 10 + (guests.length % 3) * 14;
+  g.y = 10 + (guests.length % 3) * 14;
+  g.target = null;
+
+  setPos(g.el, g.x, g.y);
+  hideGuestBubble(g);
+
+  sendToReception(g);
+  updateHUD();
+}
 spawnGuestBtn?.addEventListener("click", spawnGuest);
 
-/* ---------- Loop ---------- */
+/* ---------- Main loop ---------- */
 function loop(){
-  // Guest movement
-  if (currentGuest){
-    const arrived = moveToward(currentGuest);
-    setPos(guestEl, currentGuest.x, currentGuest.y);
+  // Guests update
+  guests.forEach(g => {
+    const arrived = moveToward(g);
+    setPos(g.el, g.x, g.y);
 
     if (arrived){
-      if (currentGuest.state === "TO_RECEPTION") onArriveReception(currentGuest);
-      else if (currentGuest.state === "TO_ROOM") onArriveRoom(currentGuest);
-      else if (currentGuest.state === "TO_PAY") onArrivePay(currentGuest);
-      else if (currentGuest.state === "TO_EXIT") onArriveExit(currentGuest);
+      if (g.state === "TO_RECEPTION") onArriveReception(g);
+      else if (g.state === "TO_ROOM") onArriveRoom(g);
+      else if (g.state === "TO_PAY") onArrivePay(g);
+      else if (g.state === "TO_EXIT") onArriveExit(g);
     }
-  }
+  });
 
-  // Bellboy movement
+  // Queue guests stay at queue slots
+  queue.forEach((g, idx) => {
+    const p = queueSpot(idx);
+    // gently “stick” them to their queue position
+    g.x += (p.x - g.x) * 0.08;
+    g.y += (p.y - g.y) * 0.08;
+    setPos(g.el, g.x, g.y);
+  });
+
+  // Bellboy update
   const bellArrived = moveToward(bellboy);
   setPos(bellboyEl, bellboy.x, bellboy.y);
   if (bellArrived){
@@ -538,7 +549,7 @@ function loop(){
     else if (bellboy.state === "RETURNING") onBellboyReturn();
   }
 
-  // Cleaner movement
+  // Cleaner update
   const cleanArrived = moveToward(cleaner);
   setPos(cleanerEl, cleaner.x, cleaner.y);
   if (cleanArrived){
@@ -546,13 +557,11 @@ function loop(){
     else if (cleaner.state === "RETURNING") onCleanerReturn();
   }
 
-  // Cleaner cleaning timer
   if (cleaner.state === "CLEANING" && Date.now() >= cleaner.cleanDoneAt){
     finishCleaning();
   }
 
-  // Patience + auto-bellboy serve
-  updatePatience();
+  updatePatienceAll();
   bellboyTryServe();
 
   requestAnimationFrame(loop);
@@ -562,26 +571,18 @@ function loop(){
 function start(){
   if (!mapEl) return;
 
-  ensureBubble();
+  // init room badges
+  for (let i = 0; i < 4; i++) setRoomStatus(i, ROOM_FREE);
 
-  // init badges
-  for (let i = 0; i < 4; i++){
-    setRoomStatus(i, ROOM_FREE);
-  }
-
-  servedEl.textContent = "0";
-  hotelCashEl.textContent = "0";
-  queueCountEl.textContent = "0";
-  updateRoomsUI();
-
-  // initial positions
-  setPos(guestEl, 10, 10);
+  // place workers
   setPos(bellboyEl, bellboy.x, bellboy.y);
   setPos(cleanerEl, cleaner.x, cleaner.y);
   setCleanerCarry(false);
 
+  updateHUD();
   loop();
 }
 start();
+
 
 
