@@ -8,27 +8,6 @@
    - cleaner MANUAL (ONLY if hired)
    ========================================================== */
 
-/* ---------- Tabs ---------- */
-const tabPuzzle = document.getElementById("tabPuzzle");
-const tabHotel  = document.getElementById("tabHotel");
-const viewPuzzle = document.getElementById("viewPuzzle");
-const viewHotel  = document.getElementById("viewHotel");
-
-function showPuzzle(){
-  tabPuzzle?.classList.add("active");
-  tabHotel?.classList.remove("active");
-  viewPuzzle?.classList.remove("hidden");
-  viewHotel?.classList.add("hidden");
-}
-function showHotel(){
-  tabHotel?.classList.add("active");
-  tabPuzzle?.classList.remove("active");
-  viewHotel?.classList.remove("hidden");
-  viewPuzzle?.classList.add("hidden");
-}
-tabPuzzle?.addEventListener("click", showPuzzle);
-tabHotel?.addEventListener("click", showHotel);
-
 /* ---------- HUD ---------- */
 const servedEl = document.getElementById("served");
 const queueCountEl = document.getElementById("queueCount");
@@ -125,7 +104,11 @@ let cleaner = {
 let cleanerStep = "TAP_STATION";
 
 /* ---------- Helpers ---------- */
-function setPos(el, x, y){ if (el) { el.style.left = x + "px"; el.style.top = y + "px"; } }
+function setPos(el, x, y){
+  if (!el) return;
+  el.style.left = x + "px";
+  el.style.top = y + "px";
+}
 
 function centerOf(el){
   const mapRect = mapEl.getBoundingClientRect();
@@ -175,7 +158,6 @@ function syncHiresAndVisibility() {
   if (bellboyEl) bellboyEl.style.display = bellHired ? "" : "none";
   if (cleanerEl) cleanerEl.style.display = cleanerHired ? "" : "none";
 
-  // Reset cleaner system if not hired
   if (!cleanerHired) {
     cleanerStep = "TAP_STATION";
     cleaner.state = "IDLE";
@@ -187,7 +169,6 @@ function syncHiresAndVisibility() {
 
   updateHUD();
 }
-
 window.addEventListener("staffUpdated", syncHiresAndVisibility);
 
 /* ---------- Requests rolling ---------- */
@@ -229,13 +210,8 @@ function updateHUD(){
 
   if (!cleanerModeEl) return;
 
-  if (!cleanerHired) {
-    cleanerModeEl.textContent = "Hire Cleaner to clean";
-  } else {
-    cleanerModeEl.textContent = cleanerStep === "TAP_STATION"
-      ? "Tap 🧴 station"
-      : "Tap 🧺 dirty room";
-  }
+  if (!cleanerHired) cleanerModeEl.textContent = "Hire Cleaner to clean";
+  else cleanerModeEl.textContent = cleanerStep === "TAP_STATION" ? "Tap 🧴 station" : "Tap 🧺 dirty room";
 }
 
 /* ---------- Guests ---------- */
@@ -262,7 +238,6 @@ function makeGuest(){
     speed: 2.0,
     state: "SPAWN",
     target: null,
-
     roomIndex: null,
     requests: [],
     currentRequest: null,
@@ -507,7 +482,6 @@ spawnGuestBtn?.addEventListener("click", spawnGuest);
 
 /* ---------- Loop ---------- */
 function loop(){
-  // Guests update
   guests.forEach(g => {
     const arrived = moveToward(g);
     setPos(g.el, g.x, g.y);
@@ -520,7 +494,6 @@ function loop(){
     }
   });
 
-  // Queue sticking
   queue.forEach((g, idx) => {
     const p = queueSpot(idx);
     g.x += (p.x - g.x) * 0.08;
@@ -528,7 +501,6 @@ function loop(){
     setPos(g.el, g.x, g.y);
   });
 
-  // Bellboy update
   if (bellHired) {
     const bellArrived = moveToward(bellboy);
     setPos(bellboyEl, bellboy.x, bellboy.y);
@@ -540,7 +512,6 @@ function loop(){
     bellboyTryServe();
   }
 
-  // Cleaner update
   if (cleanerHired) {
     const cleanArrived = moveToward(cleaner);
     setPos(cleanerEl, cleaner.x, cleaner.y);
@@ -559,12 +530,10 @@ function loop(){
 
 /* ---------- Start ---------- */
 function start(){
-  // if these are missing, nothing moves
   if (!mapEl || !guestLayer || !stReception || !stSnack || !stClean || !stExit) return;
 
   for (let i = 0; i < 4; i++) setRoomStatus(i, ROOM_FREE);
 
-  // place workers (hidden if not hired)
   setPos(bellboyEl, bellboy.x, bellboy.y);
   setPos(cleanerEl, cleaner.x, cleaner.y);
 
