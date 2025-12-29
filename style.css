@@ -335,6 +335,29 @@ body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial
   .cell{ height:46px; font-size:22px; border-radius:12px; }
   .hotelMap{ height: 440px; }
 }
+/* ===== CLICK FIX: keep stations/rooms ABOVE overlays ===== */
+.hotelMap { position: relative; }
+
+.oceanSky { z-index: 1; }
+.poolZone { z-index: 1; pointer-events: none; }
+
+.station, .roomTile { 
+  z-index: 5; 
+  position: absolute;
+}
+
+#guestLayer { 
+  z-index: 3; 
+  pointer-events: none; 
+}
+
+.guestToken, .bubble, .ring { 
+  pointer-events: none; 
+}
+
+.character { 
+  z-index: 6; 
+}
 
 
 
