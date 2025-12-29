@@ -2,207 +2,155 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Safari Stay – Mombasa</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Safari Stay — Mombasa Hotel</title>
   <link rel="stylesheet" href="style.css" />
 </head>
+<body>
 
-<body class="page">
-
-  <!-- ================= TOP BAR ================= -->
   <header class="topbar">
     <div class="brand">
-      <div class="logo">🌴</div>
+      <div class="logo">🐚</div>
       <div>
-        <div class="title">Mombasa Hotel</div>
-        <div class="subtitle">Puzzle → Hotel Mania</div>
+        <div class="title">Safari Stay</div>
+        <div class="subtitle">Mombasa Hotel</div>
       </div>
     </div>
 
-    <div class="rightHeader">
-      <a class="btn small ghost" href="index.html">← Home</a>
-
-      <button class="btn small ghost" id="soundBtn" type="button" title="Toggle sound">
-        🔊 Sound: <span id="soundState">ON</span>
-      </button>
-
-      <div class="pill">Moves: <span id="moves">30</span></div>
-      <div class="pill">Coins: <span id="coins">0</span></div>
+    <div class="hud">
+      <div class="hud-card"><span>🪙</span> <b id="coinsText">0</b></div>
+      <div class="hud-card"><span>⭐</span> <b id="ratingText">5.0</b></div>
+      <div class="hud-card"><span>👥 Queue</span> <b id="queueText">0</b></div>
     </div>
+
+    <nav class="tabs">
+      <button class="tab active" id="tabHotel">Hotel</button>
+      <button class="tab" id="tabPuzzle">Puzzle</button>
+    </nav>
   </header>
 
-  <!-- ================= MAIN ================= -->
-  <main class="container grid2">
+  <!-- ================== HOTEL VIEW ================== -->
+  <main id="viewHotel" class="view active">
 
-    <!-- ===== LEFT COLUMN: VISUALS + UPGRADES ===== -->
-    <section class="card">
-      <h2>Your Hotel (Visuals)</h2>
-      <p class="muted">
-        Mombasa vibes: ocean + pool, Hotel-Mania flow, VIP guests, and progression to Masai Mara.
-      </p>
+    <section class="hotel-grid">
 
-      <!-- HOTEL IMAGES (optional preview images) -->
-      <div class="hotelShots">
-        <figure class="shot">
-          <img src="images/reception.png" alt="Reception lobby" onerror="this.style.display='none'" />
-          <figcaption>Reception</figcaption>
-        </figure>
-        <figure class="shot">
-          <img src="images/staff.png" alt="Hotel staff" onerror="this.style.display='none'" />
-          <figcaption>Bellboy & Cleaner</figcaption>
-        </figure>
-        <figure class="shot">
-          <img src="images/room.png" alt="Hotel room" onerror="this.style.display='none'" />
-          <figcaption>Guest Room</figcaption>
-        </figure>
-      </div>
-
-      <hr class="line" />
-
-      <h3>Hotel Upgrades</h3>
-      <div class="upgradeRow">
-
-        <div class="upgradeItem">
-          <div class="upgradeTitle">🛏️ Room Level</div>
-          <div class="smallText">Cost: <span id="roomCost">20</span> coins</div>
-          <button class="btn ghost small" id="buyRoomBtn" type="button">Upgrade</button>
-          <div class="smallText">Level: <span id="roomLevel">0</span></div>
-          <div class="smallText">Effect: unlock pool at level 1 ✅</div>
+      <!-- Left: Lobby + Controls -->
+      <div class="card lobby">
+        <div class="card-head">
+          <h2>Reception Lobby</h2>
+          <div class="small">Check-in • Rooms • Cleaning • Upgrades</div>
         </div>
 
-        <div class="upgradeItem">
-          <div class="upgradeTitle">🧑🏾‍💼 Bellboy</div>
-          <div class="smallText">Auto-delivers snacks</div>
-          <button class="btn ghost small" id="hireBellBtn" type="button">Hire (30)</button>
-          <div class="smallText">Status: <span id="bellStatus">Not hired</span></div>
-        </div>
+        <div class="lobby-scene">
+          <div class="scene-row">
+            <div class="npc">
+              <div class="npc-emoji" id="bellBoy">🧳</div>
+              <div class="npc-name">Bell Boy</div>
+            </div>
+            <div class="npc">
+              <div class="npc-emoji" id="cleanerGirl">🧹</div>
+              <div class="npc-name">Cleaner</div>
+            </div>
+          </div>
 
-        <div class="upgradeItem">
-          <div class="upgradeTitle">🧹 Cleaner</div>
-          <div class="smallText">Manual cleaning</div>
-          <button class="btn ghost small" id="hireCleanBtn" type="button">Hire (30)</button>
-          <div class="smallText">Status: <span id="cleanStatus">Not hired</span></div>
-          <div class="smallText">Tip: Tap 🧴 then tap 🧺 room</div>
-        </div>
+          <div class="queue-box">
+            <div class="queue-title">Queue</div>
+            <div class="queue-line" id="queueLine"></div>
+            <div class="queue-hint">Guests will auto-check in when rooms are available.</div>
+          </div>
 
-      </div>
+          <div class="controls">
+            <button class="btn primary" id="btnSpawn">➕ Spawn Guest</button>
+            <button class="btn" id="btnServeNext">🛎️ Serve Next</button>
+            <button class="btn warn" id="btnCleanAll">🧼 Clean Dirty Rooms</button>
+          </div>
 
-      <hr class="line" />
-
-      <div class="upgradeItem">
-        <div class="upgradeTitle">🏊🏾 Pool (Mombasa Vibes)</div>
-        <div class="smallText">
-          Unlock requirement: <b>Room Level ≥ 1</b><br/>
-          Status: <span id="poolStatus">Locked 🔒</span>
-        </div>
-        <div class="note" style="margin-top:10px;">
-          Pool gives small tip bonus when guests visit 🏖️
+          <div class="mini-note" id="hintText"></div>
         </div>
       </div>
 
-      <hr class="line" />
+      <!-- Middle: Rooms -->
+      <div class="card rooms">
+        <div class="card-head">
+          <h2>Rooms</h2>
+          <div class="small">Tap room actions below each room.</div>
+        </div>
 
-      <div class="upgradeItem">
-        <div class="upgradeTitle">🦁 Progression</div>
-        <div class="smallText">
-          Unlock Masai Mara when you reach:<br/>
-          • <b>Served ≥ <span id="needServed">10</span></b> and
-          • <b>Coins ≥ <span id="needCoins">200</span></b><br/>
-          Status: <span id="maraStatus">Locked 🔒</span>
-        </div>
-        <div class="note" style="margin-top:10px;">
-          When unlocked, you’ll see a button to go to Masai Mara (next level).
-        </div>
-        <div class="actions">
-          <a class="btn ghost small hidden" id="goMaraBtn" href="MasaiMara.html">Go to Masai Mara →</a>
+        <div class="rooms-grid" id="roomsGrid"></div>
+
+        <div class="upgrade-row">
+          <button class="btn" id="btnAddRoom">➕ Build Room (Cost: <span id="roomCostText">50</span>🪙)</button>
+          <button class="btn ghost" id="btnReset">♻️ Reset (Testing)</button>
         </div>
       </div>
 
-      <div class="note">
-        VIP guests 👑 pay more and get priority in the queue.
-      </div>
-    </section>
-
-    <!-- ===== RIGHT COLUMN: GAME TABS ===== -->
-    <section class="card">
-
-      <div class="tabs">
-        <button class="tabBtn active" id="tabPuzzle" type="button">🧩 Puzzle</button>
-        <button class="tabBtn" id="tabHotel" type="button">🏨 Hotel</button>
-      </div>
-
-      <!-- ========== PUZZLE VIEW ========== -->
-      <div id="viewPuzzle">
-        <h2>Upgraded Puzzle</h2>
-        <p class="muted">
-          <b>+1 coin per move</b> + bonus coins per cleared tile.<br/>
-          (Coins are shared with the hotel.)
-        </p>
-
-        <div class="miniStats">
-          <div class="pill">Combo: <span id="combo">0</span></div>
-          <div class="pill">Cleared: <span id="cleared">0</span></div>
+      <!-- Right: Snack + Upgrades -->
+      <div class="card side">
+        <div class="card-head">
+          <h2>Snack Corner</h2>
+          <div class="small">Earn small coins from happy guests.</div>
         </div>
 
-        <div id="grid" class="grid"></div>
-
-        <div class="actions">
-          <button class="btn ghost" id="newGameBtn" type="button">New Board</button>
-          <button class="btn ghost" id="resetCoinsBtn" type="button">Reset Coins</button>
-        </div>
-      </div>
-
-      <!-- ========== HOTEL VIEW ========== -->
-      <div id="viewHotel" class="hidden">
-        <h2>Hotel Simulation (Mombasa Coast)</h2>
-        <p class="muted">
-          Flow: check-in → requests → pay → room gets dirty 🧺 → you clean → next guest enters.
-        </p>
-
-        <div class="hotelHud">
-          <div class="pill">Guests Served: <span id="served">0</span></div>
-          <div class="pill">In Queue: <span id="queueCount">0</span></div>
-          <div class="pill">Hotel Cash: <span id="hotelCash">0</span></div>
-          <button class="btn ghost small" id="spawnGuestBtn" type="button">+ Spawn Guest</button>
+        <div class="snack-area">
+          <div class="snack-item">🥭 Mango Juice <button class="btn tiny" id="btnSnack1">Sell +2🪙</button></div>
+          <div class="snack-item">🍍 Pineapple Slice <button class="btn tiny" id="btnSnack2">Sell +2🪙</button></div>
+          <div class="snack-item">🍦 Ice Cream <button class="btn tiny" id="btnSnack3">Sell +3🪙</button></div>
+          <div class="snack-note">Tip: Sell snacks while guests are checked in.</div>
         </div>
 
-        <div class="tipRow">
-          <div class="pill">Cleaner: <span id="cleanerMode">Tap 🧴 station</span></div>
-          <div class="pill">Rooms Free: <span id="roomsFree">0</span>/4</div>
-          <div class="pill">Pool: <span id="poolHud">Locked 🔒</span></div>
+        <div class="divider"></div>
+
+        <div class="card-head">
+          <h2>Mombasa Vibes</h2>
+          <div class="small">Unlock with coins</div>
         </div>
 
-        <div id="hotelMap" class="hotelMap">
-
-          <!-- Stations -->
-          <div class="station reception" id="stReception">Reception</div>
-          <div class="station snack" id="stSnack">Snack Hut 🥥🥤🍍</div>
-          <div class="station clean" id="stClean">Cleaning 🧴</div>
-          <div class="station exit" id="stExit">Exit</div>
-
-          <!-- Rooms -->
-          <div class="roomTile" id="room0">Room 1 <span class="roomBadge" id="badge0"></span></div>
-          <div class="roomTile" id="room1">Room 2 <span class="roomBadge" id="badge1"></span></div>
-          <div class="roomTile" id="room2">Room 3 <span class="roomBadge" id="badge2"></span></div>
-          <div class="roomTile" id="room3">Room 4 <span class="roomBadge" id="badge3"></span></div>
-
-          <!-- Guests -->
-          <div id="guestLayer"></div>
-
-          <!-- Workers -->
-          <div class="character bellboy" id="bellboy">🧑🏾‍💼</div>
-          <div class="character cleaner" id="cleaner">🧹</div>
+        <div class="unlock-box" id="oceanBox">
+          <div class="unlock-top">
+            <div class="unlock-title">🌊 Ocean View</div>
+            <div class="unlock-status" id="oceanStatus">LOCKED</div>
+          </div>
+          <div class="unlock-desc">Adds ocean background + bonus coin rate.</div>
+          <button class="btn" id="btnUnlockOcean">Unlock (Cost: <span id="oceanCostText">120</span>🪙)</button>
         </div>
 
-        <div class="note">
-          ✅ VIP 👑 priority, room cooldown ⏳, pool bonus tips 🏊🏾
+        <div class="unlock-box" id="poolBox">
+          <div class="unlock-top">
+            <div class="unlock-title">🏊 Pool Area</div>
+            <div class="unlock-status" id="poolStatus">LOCKED</div>
+          </div>
+          <div class="unlock-desc">Adds pool zone + happy guests give more coins.</div>
+          <button class="btn" id="btnUnlockPool">Unlock (Cost: <span id="poolCostText">200</span>🪙)</button>
+        </div>
+
+        <div class="vibes-preview" id="vibesPreview">
+          <div class="vibes-placeholder">🔒 Unlock Ocean/Pool to see the vibe here</div>
         </div>
       </div>
 
     </section>
   </main>
 
-  <script src="script.js"></script>
+  <!-- ================== PUZZLE VIEW ================== -->
+  <main id="viewPuzzle" class="view">
+    <section class="card puzzle-card">
+      <div class="card-head">
+        <h2>Puzzle (Earn Coins)</h2>
+        <div class="small">Each valid move gives coins. Match 3+ clears tiles.</div>
+      </div>
+
+      <div class="puzzle-hud">
+        <div class="hud-card"><span>Moves</span> <b id="movesText">30</b></div>
+        <div class="hud-card"><span>Score</span> <b id="scoreText">0</b></div>
+        <div class="hud-card"><span>Coins Earned</span> <b id="puzzleCoinsText">0</b></div>
+        <button class="btn primary" id="btnNewPuzzle">🔁 New Puzzle</button>
+      </div>
+
+      <div class="grid" id="grid"></div>
+      <div class="mini-note">Tip: Click a tile then an adjacent tile to swap.</div>
+    </section>
+  </main>
+
   <script src="hotel.js"></script>
 </body>
 </html>
