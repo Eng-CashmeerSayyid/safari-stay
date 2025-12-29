@@ -1,331 +1,702 @@
-* { box-sizing: border-box; }
-:root{
-  --bg:#0b1220;
-  --card:#0f1b33;
-  --card2:#122244;
-  --text:#eaf1ff;
-  --muted:#9fb3d6;
-  --accent:#ffd36e;
-  --accent2:#65d6ff;
-  --danger:#ff7b7b;
-  --ok:#7dffb2;
-  --shadow: 0 12px 30px rgba(0,0,0,.35);
-  --radius: 18px;
+/* =========================================================
+   SAFARI STAY — MOMBASA (Hotel + Puzzle)
+   Full copy-paste working version with:
+   - Puzzle tab
+   - Spawn animation
+   - Auto check-in
+   - Clean -> auto fill
+   - Unlocks
+   ========================================================= */
+
+/* ---------- Safe element getter ---------- */
+const $ = (id) => document.getElementById(id);
+
+/* ---------- Storage keys ---------- */
+const KEY = {
+  coins: "mombasaCoins",
+  rooms: "mombasaRooms",
+  queue: "mombasaQueue",
+  ocean: "mombasaOceanUnlocked",
+  pool: "mombasaPoolUnlocked",
+  rating: "mombasaRating"
+};
+
+/* ---------- Balance ---------- */
+const ROOM_BUILD_COST = 50;
+const OCEAN_COST = 120;
+const POOL_COST  = 200;
+
+const CHECKIN_REWARD = 3;
+const CHECKOUT_REWARD = 5;
+const CLEAN_REWARD = 1;
+
+const SNACK1 = 2, SNACK2 = 2, SNACK3 = 3;
+
+/* ---------- Hotel state ---------- */
+let coins = Number(localStorage.getItem(KEY.coins)) || 0;
+let rating = Number(localStorage.getItem(KEY.rating)) || 5.0;
+
+let roomCount = Number(localStorage.getItem(KEY.rooms)) || 2;
+let queueCount = Number(localStorage.getItem(KEY.queue)) || 0;
+
+let oceanUnlocked = localStorage.getItem(KEY.ocean) === "true";
+let poolUnlocked  = localStorage.getItem(KEY.pool) === "true";
+
+let rooms = []; // {id,status:"free"|"busy"|"dirty", guestEmoji:"" }
+const GUESTS = ["🧍🏾‍♂️","🧍🏾‍♀️","👩🏾‍🦱","👨🏾‍🦱","🧕🏾","👩🏾‍🦳","👨🏾‍🦰","🧑🏾‍🦱"];
+
+/* ---------- Puzzle state ---------- */
+const WIDTH = 8;
+const TOTAL = WIDTH * WIDTH;
+const TILES = ["🍍","🥥","🌴","🐚","⭐","🍓"];
+
+let board = new Array(TOTAL).fill(null);
+let selectedIndex = null;
+let isBusy = false;
+
+let score = 0;
+let moves = 30;
+let puzzleCoinsEarned = 0;
+
+/* ---------- Elements ---------- */
+const el = {
+  coinsText: $("coinsText"),
+  queueText: $("queueText"),
+  ratingText: $("ratingText"),
+
+  tabHotel: $("tabHotel"),
+  tabPuzzle: $("tabPuzzle"),
+  viewHotel: $("viewHotel"),
+  viewPuzzle: $("viewPuzzle"),
+
+  queueLine: $("queueLine"),
+  roomsGrid: $("roomsGrid"),
+  hintText: $("hintText"),
+
+  bellBoy: $("bellBoy"),
+  cleanerGirl: $("cleanerGirl"),
+
+  btnSpawn: $("btnSpawn"),
+  btnServeNext: $("btnServeNext"),
+  btnCleanAll: $("btnCleanAll"),
+  btnAddRoom: $("btnAddRoom"),
+  btnReset: $("btnReset"),
+
+  btnSnack1: $("btnSnack1"),
+  btnSnack2: $("btnSnack2"),
+  btnSnack3: $("btnSnack3"),
+
+  oceanStatus: $("oceanStatus"),
+  poolStatus: $("poolStatus"),
+  btnUnlockOcean: $("btnUnlockOcean"),
+  btnUnlockPool: $("btnUnlockPool"),
+  vibesPreview: $("vibesPreview"),
+
+  grid: $("grid"),
+  movesText: $("movesText"),
+  scoreText: $("scoreText"),
+  puzzleCoinsText: $("puzzleCoinsText"),
+  btnNewPuzzle: $("btnNewPuzzle")
+};
+
+/* ---------- Init ---------- */
+$("roomCostText").textContent = ROOM_BUILD_COST;
+$("oceanCostText").textContent = OCEAN_COST;
+$("poolCostText").textContent  = POOL_COST;
+
+initRooms();
+renderAll();
+
+initPuzzle(true);
+wireEvents();
+
+// auto-serve loop
+setInterval(() => {
+  autoServeIfPossible();
+  updateButtons();
+}, 700);
+
+/* =======================
+   Tabs
+   ======================= */
+function showHotel(){
+  el.tabHotel.classList.add("active");
+  el.tabPuzzle.classList.remove("active");
+  el.viewHotel.classList.add("active");
+  el.viewPuzzle.classList.remove("active");
+}
+function showPuzzle(){
+  el.tabPuzzle.classList.add("active");
+  el.tabHotel.classList.remove("active");
+  el.viewPuzzle.classList.add("active");
+  el.viewHotel.classList.remove("active");
 }
 
-body{
-  margin:0;
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-  background: radial-gradient(1200px 600px at 20% 10%, #132a66 0%, #0b1220 55%, #07101f 100%);
-  color: var(--text);
+function wireEvents(){
+  el.tabHotel.addEventListener("click", showHotel);
+  el.tabPuzzle.addEventListener("click", showPuzzle);
+
+  el.btnSpawn.addEventListener("click", spawnGuest);
+  el.btnServeNext.addEventListener("click", serveNext);
+  el.btnCleanAll.addEventListener("click", cleanAllDirty);
+  el.btnAddRoom.addEventListener("click", addRoom);
+  el.btnReset.addEventListener("click", hardReset);
+
+  el.btnSnack1.addEventListener("click", () => sellSnack(SNACK1));
+  el.btnSnack2.addEventListener("click", () => sellSnack(SNACK2));
+  el.btnSnack3.addEventListener("click", () => sellSnack(SNACK3));
+
+  el.btnUnlockOcean.addEventListener("click", unlockOcean);
+  el.btnUnlockPool.addEventListener("click", unlockPool);
+
+  el.btnNewPuzzle.addEventListener("click", () => initPuzzle(true));
 }
 
-.topbar{
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  display:flex;
-  gap:14px;
-  align-items:center;
-  justify-content:space-between;
-  padding: 14px 16px;
-  background: rgba(11,18,32,.78);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255,255,255,.07);
+/* =======================
+   Hotel logic
+   ======================= */
+function initRooms(){
+  rooms = [];
+  for(let i=1;i<=roomCount;i++){
+    rooms.push({ id:i, status:"free", guestEmoji:"" });
+  }
 }
 
-.brand{ display:flex; gap:10px; align-items:center; }
-.logo{
-  width:42px;height:42px;border-radius:14px;
-  display:grid;place-items:center;
-  background: linear-gradient(135deg, rgba(255,211,110,.25), rgba(101,214,255,.18));
-  border:1px solid rgba(255,255,255,.10);
-}
-.title{ font-weight:800; letter-spacing:.2px; }
-.subtitle{ font-size:12px; color: var(--muted); margin-top:2px; }
-
-.hud{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
-.hud-card{
-  display:flex; gap:8px; align-items:center;
-  padding: 8px 10px;
-  border-radius: 14px;
-  background: rgba(255,255,255,.06);
-  border:1px solid rgba(255,255,255,.08);
-  font-size: 13px;
+function saveState(){
+  localStorage.setItem(KEY.coins, String(coins));
+  localStorage.setItem(KEY.queue, String(queueCount));
+  localStorage.setItem(KEY.rooms, String(roomCount));
+  localStorage.setItem(KEY.ocean, String(oceanUnlocked));
+  localStorage.setItem(KEY.pool, String(poolUnlocked));
+  localStorage.setItem(KEY.rating, String(rating.toFixed(1)));
 }
 
-.tabs{ display:flex; gap:8px; }
-.tab{
-  padding: 10px 12px;
-  border-radius: 14px;
-  border:1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.06);
-  color: var(--text);
-  cursor:pointer;
-  font-weight:700;
-}
-.tab.active{
-  background: linear-gradient(135deg, rgba(255,211,110,.25), rgba(101,214,255,.18));
-  border-color: rgba(255,211,110,.35);
+function renderAll(){
+  el.coinsText.textContent = coins;
+  el.queueText.textContent = queueCount;
+  el.ratingText.textContent = rating.toFixed(1);
+
+  renderQueue();
+  renderRooms();
+  renderUnlocks();
+  updateButtons();
+  saveState();
 }
 
-.view{ display:none; padding: 16px; }
-.view.active{ display:block; }
+function renderQueue(){
+  el.queueLine.innerHTML = "";
+  for(let i=0;i<queueCount;i++){
+    const span = document.createElement("span");
+    span.textContent = "🧍🏾";
+    span.style.fontSize = "22px";
 
-.hotel-grid{
-  display:grid;
-  grid-template-columns: 1.1fr 1.5fr 0.9fr;
-  gap: 14px;
-  align-items: start;
-}
-
-@media (max-width: 1100px){
-  .hotel-grid{ grid-template-columns: 1fr; }
-}
-
-.card{
-  background: linear-gradient(180deg, rgba(15,27,51,.94), rgba(10,18,35,.94));
-  border:1px solid rgba(255,255,255,.08);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  overflow:hidden;
+    // NEW: newest guest bounces
+    if(i === queueCount - 1){
+      span.classList.add("bounce");
+    }
+    el.queueLine.appendChild(span);
+  }
 }
 
-.card-head{
-  padding: 14px 14px 10px;
-  border-bottom: 1px solid rgba(255,255,255,.07);
-}
-.card-head h2{ margin:0; font-size: 16px; }
-.small{ color: var(--muted); font-size: 12px; margin-top: 4px; }
+function renderRooms(){
+  el.roomsGrid.innerHTML = "";
 
-.lobby-scene{ padding: 14px; display:flex; flex-direction:column; gap: 14px; }
-.scene-row{ display:flex; gap: 12px; }
-.npc{
-  flex:1;
-  padding: 12px;
-  border-radius: 16px;
-  background: rgba(255,255,255,.05);
-  border:1px solid rgba(255,255,255,.08);
-}
-.npc-emoji{ font-size: 32px; display:inline-block; }
-.npc-name{ font-weight:700; margin-top: 6px; }
-.queue-box{
-  padding: 12px;
-  border-radius: 16px;
-  background: rgba(255,255,255,.05);
-  border:1px solid rgba(255,255,255,.08);
-}
-.queue-title{ font-weight:800; }
-.queue-line{
-  min-height: 44px;
-  display:flex; gap:6px; align-items:center; flex-wrap:wrap;
-  padding-top: 8px;
-}
-.queue-hint{ color: var(--muted); font-size: 12px; padding-top: 6px; }
+  rooms.forEach((r, idx) => {
+    const roomEl = document.createElement("div");
+    roomEl.className = "room";
 
-.controls{ display:flex; gap:10px; flex-wrap:wrap; }
+    const top = document.createElement("div");
+    top.className = "room-top";
 
-.btn{
-  padding: 10px 12px;
-  border-radius: 14px;
-  border:1px solid rgba(255,255,255,.12);
-  background: rgba(255,255,255,.06);
-  color: var(--text);
-  cursor:pointer;
-  font-weight:800;
-}
-.btn:hover{ filter: brightness(1.06); }
-.btn:disabled{ opacity:.5; cursor:not-allowed; }
-.btn.primary{
-  background: linear-gradient(135deg, rgba(255,211,110,.32), rgba(101,214,255,.20));
-  border-color: rgba(255,211,110,.35);
-}
-.btn.warn{
-  background: rgba(255,123,123,.12);
-  border-color: rgba(255,123,123,.30);
-}
-.btn.ghost{
-  background: transparent;
-}
-.btn.tiny{
-  padding: 6px 10px;
-  border-radius: 12px;
-  font-size: 12px;
+    const name = document.createElement("div");
+    name.className = "room-name";
+    name.textContent = `Room ${r.id}`;
+
+    const badge = document.createElement("div");
+    badge.className = "badge " + (r.status === "free" ? "ok" : (r.status === "dirty" ? "dirty" : "busy"));
+    badge.textContent = (r.status === "free") ? "READY" : (r.status === "busy") ? "OCCUPIED" : "DIRTY";
+
+    top.appendChild(name);
+    top.appendChild(badge);
+
+    const guest = document.createElement("div");
+    guest.className = "room-guest";
+    guest.textContent = (r.status === "busy") ? r.guestEmoji : (r.status === "dirty") ? "🧼" : "✨";
+
+    const actions = document.createElement("div");
+    actions.className = "room-actions";
+
+    const btnCheckin = document.createElement("button");
+    btnCheckin.className = "btn tiny";
+    btnCheckin.textContent = "Check-in";
+    btnCheckin.disabled = !(r.status === "free" && queueCount > 0);
+    btnCheckin.addEventListener("click", () => checkInToRoom(idx));
+
+    const btnCheckout = document.createElement("button");
+    btnCheckout.className = "btn tiny";
+    btnCheckout.textContent = "Checkout";
+    btnCheckout.disabled = (r.status !== "busy");
+    btnCheckout.addEventListener("click", () => checkoutGuest(idx));
+
+    const btnClean = document.createElement("button");
+    btnClean.className = "btn tiny";
+    btnClean.textContent = "Clean";
+    btnClean.disabled = (r.status !== "dirty");
+    btnClean.addEventListener("click", () => cleanRoom(idx));
+
+    actions.appendChild(btnCheckin);
+    actions.appendChild(btnCheckout);
+    actions.appendChild(btnClean);
+
+    roomEl.appendChild(top);
+    roomEl.appendChild(guest);
+    roomEl.appendChild(actions);
+
+    el.roomsGrid.appendChild(roomEl);
+  });
 }
 
-.mini-note{
-  color: var(--muted);
-  font-size: 12px;
-  min-height: 18px;
+function hint(msg){
+  el.hintText.textContent = msg;
+  clearTimeout(hint._t);
+  hint._t = setTimeout(() => (el.hintText.textContent = ""), 2200);
 }
 
-.rooms-grid{
-  padding: 14px;
-  display:grid;
-  grid-template-columns: repeat(2, minmax(0,1fr));
-  gap: 12px;
-}
-@media (max-width: 520px){
-  .rooms-grid{ grid-template-columns: 1fr; }
+function bounce(node){
+  if(!node) return;
+  node.classList.remove("bounce");
+  void node.offsetWidth;
+  node.classList.add("bounce");
 }
 
-.room{
-  padding: 12px;
-  border-radius: 16px;
-  background: rgba(255,255,255,.05);
-  border:1px solid rgba(255,255,255,.08);
-  position: relative;
-}
-.room-top{
-  display:flex; justify-content:space-between; align-items:center;
-  margin-bottom: 8px;
-}
-.room-name{ font-weight:900; }
-.badge{
-  font-size: 12px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  border:1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.06);
-}
-.badge.ok{ border-color: rgba(125,255,178,.35); background: rgba(125,255,178,.10); }
-.badge.dirty{ border-color: rgba(255,123,123,.35); background: rgba(255,123,123,.10); }
-.badge.busy{ border-color: rgba(255,211,110,.35); background: rgba(255,211,110,.12); }
-
-.room-guest{
-  font-size: 28px;
-  margin: 8px 0 10px;
-  height: 34px;
-}
-.room-actions{
-  display:flex; gap:8px; flex-wrap:wrap;
+function scrub(node){
+  if(!node) return;
+  node.classList.remove("scrub");
+  void node.offsetWidth;
+  node.classList.add("scrub");
 }
 
-.upgrade-row{
-  padding: 0 14px 14px;
-  display:flex; gap:10px; flex-wrap:wrap;
+function clamp(x,min,max){ return Math.max(min, Math.min(max, x)); }
+
+function findFirstRoom(status){
+  return rooms.findIndex(r => r.status === status);
 }
 
-.side{
-  padding-bottom: 14px;
+function spawnGuest(){
+  queueCount++;
+  hint(`Guest arrived! Queue: ${queueCount}`);
+  bounce(el.bellBoy); // bellboy animation is back
+  renderAll();
+  autoServeIfPossible();
 }
 
-.snack-area{
-  padding: 14px;
-  display:flex;
-  flex-direction:column;
-  gap: 10px;
-}
-.snack-item{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 16px;
-  background: rgba(255,255,255,.05);
-  border:1px solid rgba(255,255,255,.08);
-}
-.snack-note{ color: var(--muted); font-size: 12px; }
-
-.divider{
-  height:1px;
-  background: rgba(255,255,255,.08);
-  margin: 6px 14px 14px;
+function serveNext(){
+  if(queueCount <= 0){
+    hint("No guests in queue. Spawn a guest.");
+    return;
+  }
+  const freeIndex = findFirstRoom("free");
+  if(freeIndex === -1){
+    hint("No free rooms. Checkout/clean first.");
+    return;
+  }
+  checkInToRoom(freeIndex);
 }
 
-.unlock-box{
-  margin: 0 14px 12px;
-  padding: 12px;
-  border-radius: 16px;
-  background: rgba(255,255,255,.05);
-  border:1px solid rgba(255,255,255,.08);
-}
-.unlock-top{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:10px;
-}
-.unlock-title{ font-weight:900; }
-.unlock-status{
-  font-weight:900;
-  font-size: 12px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  border:1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.06);
-}
-.unlock-status.on{
-  border-color: rgba(125,255,178,.35);
-  background: rgba(125,255,178,.10);
-}
-.unlock-desc{ color: var(--muted); font-size: 12px; margin: 8px 0 10px; }
-
-.vibes-preview{
-  margin: 0 14px;
-  min-height: 120px;
-  border-radius: 18px;
-  border:1px dashed rgba(255,255,255,.16);
-  background: rgba(101,214,255,.06);
-  display:grid;
-  place-items:center;
-  padding: 14px;
-}
-.vibes-placeholder{ color: var(--muted); text-align:center; }
-
-.vibes-on{
-  background:
-    radial-gradient(700px 240px at 50% 0%, rgba(101,214,255,.35), rgba(101,214,255,.10)),
-    linear-gradient(180deg, rgba(255,211,110,.10), rgba(15,27,51,.0));
-  border-style: solid;
-  border-color: rgba(101,214,255,.22);
-}
-.vibes-on .vibes-placeholder{ color: var(--text); }
-
-.puzzle-card{ max-width: 980px; margin: 0 auto; }
-.puzzle-hud{
-  padding: 14px;
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-  align-items:center;
+function autoServeIfPossible(){
+  while(queueCount > 0){
+    const freeIndex = findFirstRoom("free");
+    if(freeIndex === -1) break;
+    checkInToRoom(freeIndex);
+  }
 }
 
-.grid{
-  padding: 14px;
-  display:grid;
-  grid-template-columns: repeat(8, 1fr);
-  gap: 8px;
-  user-select:none;
-}
-.cell{
-  aspect-ratio: 1/1;
-  border-radius: 16px;
-  display:grid;
-  place-items:center;
-  font-size: 26px;
-  border:1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.06);
-  cursor:pointer;
-}
-.cell.selected{
-  outline: 3px solid rgba(255,211,110,.55);
-  transform: scale(1.03);
+function checkInToRoom(roomIndex){
+  const r = rooms[roomIndex];
+  if(queueCount <= 0 || r.status !== "free") return;
+
+  queueCount--;
+  r.status = "busy";
+  r.guestEmoji = GUESTS[Math.floor(Math.random() * GUESTS.length)];
+
+  const bonus = (oceanUnlocked ? 1 : 0) + (poolUnlocked ? 1 : 0);
+  coins += (CHECKIN_REWARD + bonus);
+  rating = clamp(rating + 0.05, 1.0, 5.0);
+
+  hint(`Check-in complete! +${CHECKIN_REWARD + bonus}🪙`);
+  bounce(el.bellBoy);
+  renderAll();
 }
 
-@keyframes bounce {
-  0%,100%{ transform: translateY(0); }
-  50%{ transform: translateY(-6px); }
-}
-.bounce{ animation: bounce .55s ease-in-out; }
+function checkoutGuest(roomIndex){
+  const r = rooms[roomIndex];
+  if(r.status !== "busy") return;
 
-@keyframes scrub {
-  0%{ transform: rotate(0deg); }
-  50%{ transform: rotate(-10deg); }
-  100%{ transform: rotate(0deg); }
+  r.status = "dirty";
+  r.guestEmoji = "";
+
+  const bonus = poolUnlocked ? 2 : 0;
+  coins += (CHECKOUT_REWARD + bonus);
+  rating = clamp(rating + 0.03, 1.0, 5.0);
+
+  hint(`Checked out. Room dirty. +${CHECKOUT_REWARD + bonus}🪙`);
+  renderAll();
 }
-.scrub{ animation: scrub .5s ease-in-out; }
+
+function cleanRoom(roomIndex){
+  const r = rooms[roomIndex];
+  if(r.status !== "dirty") return;
+
+  scrub(el.cleanerGirl);
+  r.status = "free";
+  coins += CLEAN_REWARD;
+
+  hint(`Room cleaned! +${CLEAN_REWARD}🪙`);
+  renderAll();
+
+  // KEY: after clean -> auto fill
+  autoServeIfPossible();
+}
+
+function cleanAllDirty(){
+  const dirty = rooms.filter(r => r.status === "dirty").length;
+  if(dirty === 0){
+    hint("No dirty rooms.");
+    return;
+  }
+  scrub(el.cleanerGirl);
+  rooms.forEach(r => {
+    if(r.status === "dirty"){
+      r.status = "free";
+      coins += CLEAN_REWARD;
+    }
+  });
+  hint(`Cleaned ${dirty} room(s)! +${dirty * CLEAN_REWARD}🪙`);
+  renderAll();
+  autoServeIfPossible();
+}
+
+function addRoom(){
+  if(coins < ROOM_BUILD_COST){
+    hint(`Need ${ROOM_BUILD_COST}🪙 to build a room.`);
+    return;
+  }
+  coins -= ROOM_BUILD_COST;
+  roomCount++;
+  rooms.push({ id:roomCount, status:"free", guestEmoji:"" });
+  hint(`Built Room ${roomCount}!`);
+  renderAll();
+  autoServeIfPossible();
+}
+
+/* =======================
+   Snacks
+   ======================= */
+function busyRooms(){
+  return rooms.filter(r => r.status === "busy").length;
+}
+
+function sellSnack(amount){
+  if(busyRooms() <= 0){
+    hint("No guests checked in. Check-in guests first.");
+    rating = clamp(rating - 0.05, 1.0, 5.0);
+    renderAll();
+    return;
+  }
+  const bonus = (oceanUnlocked ? 1 : 0) + (poolUnlocked ? 1 : 0);
+  const gain = amount + bonus;
+  coins += gain;
+  rating = clamp(rating + 0.02, 1.0, 5.0);
+  hint(`Snack sold! +${gain}🪙`);
+  renderAll();
+}
+
+/* =======================
+   Unlocks
+   ======================= */
+function renderUnlocks(){
+  el.oceanStatus.textContent = oceanUnlocked ? "UNLOCKED" : "LOCKED";
+  el.poolStatus.textContent  = poolUnlocked ? "UNLOCKED" : "LOCKED";
+  el.oceanStatus.classList.toggle("on", oceanUnlocked);
+  el.poolStatus.classList.toggle("on", poolUnlocked);
+
+  el.btnUnlockOcean.disabled = oceanUnlocked;
+  el.btnUnlockPool.disabled  = poolUnlocked;
+
+  if(oceanUnlocked || poolUnlocked){
+    el.vibesPreview.classList.add("vibes-on");
+    const lines = [];
+    if(oceanUnlocked) lines.push("🌊 Ocean View Active");
+    if(poolUnlocked) lines.push("🏊 Pool Area Active");
+    el.vibesPreview.innerHTML =
+      `<div class="vibes-placeholder">${lines.join("<br>")}<br><br>Bonus coins enabled ✨</div>`;
+  }else{
+    el.vibesPreview.classList.remove("vibes-on");
+    el.vibesPreview.innerHTML =
+      `<div class="vibes-placeholder">🔒 Unlock Ocean/Pool to see the vibe here</div>`;
+  }
+}
+
+function unlockOcean(){
+  if(oceanUnlocked) return;
+  if(coins < OCEAN_COST){
+    hint(`Need ${OCEAN_COST}🪙 for Ocean View.`);
+    return;
+  }
+  coins -= OCEAN_COST;
+  oceanUnlocked = true;
+  hint("Ocean View unlocked! 🌊");
+  renderAll();
+}
+
+function unlockPool(){
+  if(poolUnlocked) return;
+  if(coins < POOL_COST){
+    hint(`Need ${POOL_COST}🪙 for Pool Area.`);
+    return;
+  }
+  coins -= POOL_COST;
+  poolUnlocked = true;
+  hint("Pool Area unlocked! 🏊");
+  renderAll();
+}
+
+/* =======================
+   Buttons
+   ======================= */
+function updateButtons(){
+  el.btnServeNext.disabled = (queueCount <= 0 || findFirstRoom("free") === -1);
+  el.btnCleanAll.disabled = rooms.every(r => r.status !== "dirty");
+  el.btnAddRoom.disabled = coins < ROOM_BUILD_COST;
+}
+
+/* =======================
+   Puzzle (Match-3)
+   - Each valid move: +1 coin
+   ======================= */
+function initPuzzle(forceNew=false){
+  if(forceNew){
+    score = 0;
+    moves = 30;
+    puzzleCoinsEarned = 0;
+  }
+
+  board = new Array(TOTAL).fill(null).map(randTile);
+
+  // avoid starting matches
+  for(let i=0;i<TOTAL;i++){
+    while(hasMatchAt(i)){
+      board[i] = randTile();
+    }
+  }
+
+  renderPuzzle();
+  updatePuzzleHud();
+}
+
+function renderPuzzle(){
+  if(!el.grid) return; // safety
+  el.grid.innerHTML = "";
+  for(let i=0;i<TOTAL;i++){
+    const cell = document.createElement("div");
+    cell.className = "cell";
+    cell.textContent = board[i];
+    cell.addEventListener("click", () => onCellClick(i));
+    el.grid.appendChild(cell);
+  }
+}
+
+function updatePuzzleHud(){
+  if(el.movesText) el.movesText.textContent = moves;
+  if(el.scoreText) el.scoreText.textContent = score;
+  if(el.puzzleCoinsText) el.puzzleCoinsText.textContent = puzzleCoinsEarned;
+}
+
+function onCellClick(i){
+  if(isBusy || moves <= 0) return;
+
+  if(selectedIndex === null){
+    selectedIndex = i;
+    highlightSelected();
+    return;
+  }
+
+  if(selectedIndex === i){
+    selectedIndex = null;
+    highlightSelected();
+    return;
+  }
+
+  if(!isAdjacent(selectedIndex, i)){
+    selectedIndex = i;
+    highlightSelected();
+    return;
+  }
+
+  isBusy = true;
+  const a = selectedIndex, b = i;
+  swap(a,b);
+
+  if(!hasAnyMatch()){
+    swap(a,b);
+    selectedIndex = null;
+    isBusy = false;
+    highlightSelected();
+    return;
+  }
+
+  // valid move -> coin
+  moves--;
+  coins += 1;
+  puzzleCoinsEarned += 1;
+
+  selectedIndex = null;
+  renderAll();
+  cascadeClear().then(() => {
+    isBusy = false;
+  });
+}
+
+function highlightSelected(){
+  // re-render, then mark selected
+  renderPuzzle();
+  if(selectedIndex !== null && el.grid && el.grid.children[selectedIndex]){
+    el.grid.children[selectedIndex].classList.add("selected");
+  }
+}
+
+async function cascadeClear(){
+  let did = true;
+  while(did){
+    const matches = findMatches();
+    if(matches.size === 0){
+      did = false;
+      break;
+    }
+
+    score += matches.size * 2;
+    matches.forEach(idx => board[idx] = null);
+
+    dropTiles();
+    refillTiles();
+
+    highlightSelected();
+    updatePuzzleHud();
+    await sleep(120);
+  }
+  renderAll();
+}
+
+function findMatches(){
+  const matched = new Set();
+
+  // horizontal
+  for(let r=0;r<WIDTH;r++){
+    let start = r*WIDTH;
+    let len = 1;
+    for(let c=1;c<WIDTH;c++){
+      const idx = r*WIDTH + c;
+      const prev = r*WIDTH + (c-1);
+      if(board[idx] && board[idx] === board[prev]) len++;
+      else{
+        if(len >= 3) for(let k=0;k<len;k++) matched.add(start+k);
+        start = idx; len = 1;
+      }
+    }
+    if(len >= 3) for(let k=0;k<len;k++) matched.add(start+k);
+  }
+
+  // vertical
+  for(let c=0;c<WIDTH;c++){
+    let start = c;
+    let len = 1;
+    for(let r=1;r<WIDTH;r++){
+      const idx = r*WIDTH + c;
+      const prev = (r-1)*WIDTH + c;
+      if(board[idx] && board[idx] === board[prev]) len++;
+      else{
+        if(len >= 3) for(let k=0;k<len;k++) matched.add(start + k*WIDTH);
+        start = idx; len = 1;
+      }
+    }
+    if(len >= 3) for(let k=0;k<len;k++) matched.add(start + k*WIDTH);
+  }
+
+  return matched;
+}
+
+function hasAnyMatch(){ return findMatches().size > 0; }
+
+function hasMatchAt(i){
+  const r = Math.floor(i/WIDTH), c = i%WIDTH;
+  const v = board[i];
+  if(!v) return false;
+
+  if(c>=2 && board[i-1]===v && board[i-2]===v) return true;
+  if(c>=1 && c<=WIDTH-2 && board[i-1]===v && board[i+1]===v) return true;
+  if(c<=WIDTH-3 && board[i+1]===v && board[i+2]===v) return true;
+
+  if(r>=2 && board[i-WIDTH]===v && board[i-2*WIDTH]===v) return true;
+  if(r>=1 && r<=WIDTH-2 && board[i-WIDTH]===v && board[i+WIDTH]===v) return true;
+  if(r<=WIDTH-3 && board[i+WIDTH]===v && board[i+2*WIDTH]===v) return true;
+
+  return false;
+}
+
+function dropTiles(){
+  for(let c=0;c<WIDTH;c++){
+    for(let r=WIDTH-1;r>=0;r--){
+      const idx = r*WIDTH + c;
+      if(board[idx] === null){
+        for(let rr=r-1; rr>=0; rr--){
+          const above = rr*WIDTH + c;
+          if(board[above] !== null){
+            board[idx] = board[above];
+            board[above] = null;
+            break;
+          }
+        }
+      }
+    }
+  }
+}
+
+function refillTiles(){
+  for(let i=0;i<TOTAL;i++){
+    if(board[i] === null) board[i] = randTile();
+  }
+}
+
+function randTile(){ return TILES[Math.floor(Math.random()*TILES.length)]; }
+function swap(a,b){ const t=board[a]; board[a]=board[b]; board[b]=t; }
+
+function isAdjacent(a,b){
+  const ar = Math.floor(a/WIDTH), ac = a%WIDTH;
+  const br = Math.floor(b/WIDTH), bc = b%WIDTH;
+  return (Math.abs(ar-br) + Math.abs(ac-bc)) === 1;
+}
+
+function sleep(ms){ return new Promise(res => setTimeout(res, ms)); }
+
+/* =======================
+   Reset (Testing)
+   ======================= */
+function hardReset(){
+  Object.values(KEY).forEach(k => localStorage.removeItem(k));
+
+  coins = 0;
+  rating = 5.0;
+  roomCount = 2;
+  queueCount = 0;
+  oceanUnlocked = false;
+  poolUnlocked = false;
+
+  initRooms();
+  initPuzzle(true);
+
+  hint("Reset done.");
+  renderAll();
+}
 
 
 
