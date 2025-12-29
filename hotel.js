@@ -1,748 +1,331 @@
-/* ==========================================================
-   SAFARI STAY – MOMBASA HOTEL MANIA (FULL)
-   - Guests are TOURIST emojis (not briefcase)
-   - VIP glow class
-   - Snack pop FX + Coin float FX
-   - Cleaner wiggle while cleaning (CSS uses .cleaning)
-   - Pool unlocks when room level >= 1
-   - Bellboy AUTO serves ONLY if hired
-   - Cleaner MANUAL (forgiving): tap station OR tap dirty room directly
-   ========================================================== */
-
-document.addEventListener("DOMContentLoaded", () => {
-
-  /* ---------- Tabs ---------- */
-  (function(){
-    const tabPuzzle = document.getElementById("tabPuzzle");
-    const tabHotel  = document.getElementById("tabHotel");
-    const viewPuzzle = document.getElementById("viewPuzzle");
-    const viewHotel  = document.getElementById("viewHotel");
-    if (!tabPuzzle || !tabHotel || !viewPuzzle || !viewHotel) return;
-
-    function showPuzzle(){
-      tabPuzzle.classList.add("active");
-      tabHotel.classList.remove("active");
-      viewPuzzle.classList.remove("hidden");
-      viewHotel.classList.add("hidden");
-    }
-    function showHotel(){
-      tabHotel.classList.add("active");
-      tabPuzzle.classList.remove("active");
-      viewHotel.classList.remove("hidden");
-      viewPuzzle.classList.add("hidden");
-    }
-    tabPuzzle.onclick = showPuzzle;
-    tabHotel.onclick = showHotel;
-  })();
-
-  /* ---------- HUD ---------- */
-  const servedEl = document.getElementById("served");
-  const queueCountEl = document.getElementById("queueCount");
-  const roomsFreeEl = document.getElementById("roomsFree");
-  const hotelCashEl = document.getElementById("hotelCash");
-  const cleanerModeEl = document.getElementById("cleanerMode");
-  const spawnGuestBtn = document.getElementById("spawnGuestBtn");
-  const coinsTopEl = document.getElementById("coins");
-
-  /* ---------- Map / Stations ---------- */
-  const mapEl = document.getElementById("hotelMap");
-  const guestLayer = document.getElementById("guestLayer");
-
-  const stReception = document.getElementById("stReception");
-  const stSnack = document.getElementById("stSnack");
-  const stClean = document.getElementById("stClean");
-  const stExit = document.getElementById("stExit");
-
-  /* Pool UI created by JS */
-  let poolZoneEl = null;
-  let poolLockedEl = null;
-
-  /* ---------- Rooms ---------- */
-  const roomEls = [
-    document.getElementById("room0"),
-    document.getElementById("room1"),
-    document.getElementById("room2"),
-    document.getElementById("room3"),
-  ];
-  const badgeEls = [
-    document.getElementById("badge0"),
-    document.getElementById("badge1"),
-    document.getElementById("badge2"),
-    document.getElementById("badge3"),
-  ];
-
-  /* ---------- Workers ---------- */
-  const bellboyEl = document.getElementById("bellboy");
-  const cleanerEl = document.getElementById("cleaner");
-  if (bellboyEl) bellboyEl.classList.add("bellboy");
-  if (cleanerEl) cleanerEl.classList.add("cleaner");
-
-  /* ---------- Storage Keys ---------- */
-  const COIN_KEY = "coins";
-  const KEY_BELL = "mombasaBellboy";
-  const KEY_CLEAN = "mombasaCleaner";
-  const KEY_ROOM_LVL = "mombasaRoomLevel";
-
-  /* ---------- Rewards ---------- */
-  const BASE_PAY_COINS = 5;
-  const ITEMS = {
-    soda:      { icon:"🥤", seconds: 7,  bonus: 2 },
-    coconut:   { icon:"🥥", seconds: 8,  bonus: 3 },
-    pineapple: { icon:"🍍", seconds: 12, bonus: 5 }
-  };
-  const ITEM_KEYS = Object.keys(ITEMS);
-
-  /* Pool bonus */
-  const POOL_STAY_MS = 3800;
-  const POOL_TIP_BONUS = 2;
-
-  /* ---------- Tourist emojis (NO briefcase) ---------- */
-  const GUEST_SKINS = ["🧑🏾‍🦱","👩🏾‍🦱","👨🏾‍🦱","👩🏾‍💼","🧑🏾‍🎤","🧑🏾‍🦰","👩🏾‍🦳","🧑🏾‍🦲"];
-  function randSkin(){ return GUEST_SKINS[Math.floor(Math.random() * GUEST_SKINS.length)]; }
-
-  /* Guest types (VIP glow) */
-  const GUEST_TYPES = [
-    { name:"VIP", chance:0.18 },
-    { name:"Regular", chance:0.62 },
-    { name:"Budget", chance:0.20 },
-  ];
-  function rollGuestType(){
-    const r = Math.random();
-    let acc = 0;
-    for (const t of GUEST_TYPES){
-      acc += t.chance;
-      if (r <= acc) return t;
-    }
-    return GUEST_TYPES[1];
-  }
-
-  /* ---------- Room State ---------- */
-  const ROOM_FREE  = "FREE";
-  const ROOM_OCC   = "OCCUPIED";
-  const ROOM_DIRTY = "DIRTY";
-
-  let rooms = [
-    { status: ROOM_FREE,  guestId: null },
-    { status: ROOM_FREE,  guestId: null },
-    { status: ROOM_FREE,  guestId: null },
-    { status: ROOM_FREE,  guestId: null },
-  ];
-
-  /* ---------- World ---------- */
-  let served = 0;
-  let hotelCash = 0;
-
-  let guests = [];
-  let queue = [];
-  let nextGuestId = 1;
-
-  /* ---------- Hire State ---------- */
-  let bellHired = localStorage.getItem(KEY_BELL) === "true";
-  let cleanerHired = localStorage.getItem(KEY_CLEAN) === "true";
-
-  /* Pool unlock by room level */
-  function getRoomLevel(){
-    return Number(localStorage.getItem(KEY_ROOM_LVL)) || 0;
-  }
-  function poolUnlocked(){
-    return getRoomLevel() >= 1;
-  }
-
-  /* ---------- Helpers ---------- */
-  function setPos(el, x, y){
-    if (el) { el.style.left = x + "px"; el.style.top = y + "px"; }
-  }
-
-  function centerOf(el){
-    const mapRect = mapEl.getBoundingClientRect();
-    const r = el.getBoundingClientRect();
-    return { x:(r.left-mapRect.left)+r.width/2-22, y:(r.top-mapRect.top)+r.height/2-22 };
-  }
-
-  function moveToward(entity){
-    if (!entity.target) return false;
-    const dx = entity.target.x - entity.x;
-    const dy = entity.target.y - entity.y;
-    const dist = Math.hypot(dx, dy);
-    if (dist < 2){
-      entity.x = entity.target.x;
-      entity.y = entity.target.y;
-      entity.target = null;
-      return true;
-    }
-    entity.x += (dx/dist) * entity.speed;
-    entity.y += (dy/dist) * entity.speed;
-    return false;
-  }
-
-  function addGlobalCoins(amount){
-    const current = Number(localStorage.getItem(COIN_KEY)) || 0;
-    const updated = current + amount;
-    localStorage.setItem(COIN_KEY, String(updated));
-    if (coinsTopEl) coinsTopEl.textContent = String(updated);
-  }
-
-  /* ---------- FX helpers (need CSS .popFx/.coinFx) ---------- */
-  function fxPopAt(x, y, icon){
-    if (!mapEl) return;
-    const d = document.createElement("div");
-    d.className = "popFx";
-    d.textContent = icon;
-    d.style.left = (x + 8) + "px";
-    d.style.top  = (y - 10) + "px";
-    mapEl.appendChild(d);
-    setTimeout(()=>d.remove(), 650);
-  }
-
-  function fxCoinAt(x, y, icon="🪙"){
-    if (!mapEl) return;
-    const d = document.createElement("div");
-    d.className = "coinFx";
-    d.textContent = icon;
-    d.style.left = (x + 10) + "px";
-    d.style.top  = (y - 10) + "px";
-    mapEl.appendChild(d);
-    setTimeout(()=>d.remove(), 750);
-  }
-
-  /* ---------- Ocean + Pool build ---------- */
-  function buildOceanAndPool(){
-    if (!mapEl) return;
-
-    if (!mapEl.querySelector(".oceanSky")){
-      const ocean = document.createElement("div");
-      ocean.className = "oceanSky";
-      mapEl.appendChild(ocean);
-    }
-
-    if (!mapEl.querySelector(".poolZone")){
-      poolZoneEl = document.createElement("div");
-      poolZoneEl.className = "poolZone";
-
-      const water = document.createElement("div");
-      water.className = "poolWater";
-
-      const deck = document.createElement("div");
-      deck.className = "poolDeck";
-      deck.textContent = "POOL 🏊";
-
-      poolLockedEl = document.createElement("div");
-      poolLockedEl.className = "poolLockBadge";
-      poolLockedEl.textContent = "Locked 🔒 (Room Lvl 1)";
-
-      poolZoneEl.appendChild(water);
-      poolZoneEl.appendChild(deck);
-      poolZoneEl.appendChild(poolLockedEl);
-      mapEl.appendChild(poolZoneEl);
-    } else {
-      poolZoneEl = mapEl.querySelector(".poolZone");
-      poolLockedEl = mapEl.querySelector(".poolLockBadge");
-    }
-
-    refreshPoolUI();
-  }
-
-  function refreshPoolUI(){
-    if (!poolZoneEl) return;
-    const ok = poolUnlocked();
-    poolZoneEl.classList.toggle("locked", !ok);
-    if (poolLockedEl) poolLockedEl.style.display = ok ? "none" : "block";
-  }
-
-  function poolSpot(){
-    const zr = poolZoneEl.getBoundingClientRect();
-    const mr = mapEl.getBoundingClientRect();
-    return { x: (zr.left - mr.left) + zr.width/2 - 22, y: (zr.top - mr.top) + zr.height/2 - 22 };
-  }
-
-  /* ---------- Rooms ---------- */
-  function roomsFreeCount(){ return rooms.filter(r => r.status === ROOM_FREE).length; }
-  function findFreeRoomIndex(){ return rooms.findIndex(r => r.status === ROOM_FREE); }
-
-  function setRoomStatus(i, status){
-    rooms[i].status = status;
-    if (badgeEls[i]) {
-      if (status === ROOM_FREE)  badgeEls[i].textContent = "✅";
-      if (status === ROOM_OCC)   badgeEls[i].textContent = "🧳"; // badge only (not the walking guest)
-      if (status === ROOM_DIRTY) badgeEls[i].textContent = "🧺";
-    }
-    updateHUD();
-  }
-
-  function updateHUD(){
-    if (roomsFreeEl) roomsFreeEl.textContent = String(roomsFreeCount());
-    if (queueCountEl) queueCountEl.textContent = String(queue.length);
-    if (servedEl) servedEl.textContent = String(served);
-    if (hotelCashEl) hotelCashEl.textContent = String(hotelCash);
-
-    if (cleanerModeEl){
-      cleanerModeEl.textContent = !cleanerHired
-        ? "Hire Cleaner to clean"
-        : (cleanerStep === "TAP_STATION" ? "Tap 🧴 station" : "Tap 🧺 dirty room");
-    }
-  }
-
-  /* ---------- Guests ---------- */
-  function makeGuest(){
-    const el = document.createElement("div");
-    el.className = "guestToken";
-
-    // ✅ Tourist emoji (no briefcase)
-    el.textContent = randSkin();
-
-    const type = rollGuestType();
-    if (type.name === "VIP") el.classList.add("vip");
-
-    guestLayer.appendChild(el);
-
-    const bubble = document.createElement("div");
-    bubble.className = "bubble";
-    const ring = document.createElement("div");
-    ring.className = "ring";
-    bubble.appendChild(ring);
-    bubble.style.display = "none";
-    el.appendChild(bubble);
-
-    return {
-      id: nextGuestId++,
-      el,
-      bubble,
-      ring,
-      x: 10, y: 10,
-      speed: 2.0,
-      state: "SPAWN",
-      target: null,
-
-      type,
-      roomIndex: null,
-      requests: [],
-      currentRequest: null,
-      requestDeadline: 0,
-      totalBonus: 0,
-      angry: false,
-
-      poolDoneAt: 0,
-      usedPool: false,
-    };
-  }
-
-  function showGuestBubble(g, icon){
-    g.bubble.style.display = "grid";
-    [...g.bubble.childNodes].forEach(n => { if (n !== g.ring) g.bubble.removeChild(n); });
-    const iconNode = document.createElement("div");
-    iconNode.textContent = icon;
-    g.bubble.appendChild(iconNode);
-  }
-
-  function hideGuestBubble(g){
-    g.bubble.style.display = "none";
-  }
-
-  /* ---------- Queue positions ---------- */
-  function queueSpot(index){
-    const base = centerOf(stReception);
-    return { x: base.x - 40, y: base.y + 55 + index * 30 };
-  }
-
-  /* ---------- Flow ---------- */
-  function sendToReception(g){
-    g.state = "TO_RECEPTION";
-    g.target = centerOf(stReception);
-  }
-
-  function onArriveReception(g){
-    const freeRoom = findFreeRoomIndex();
-    if (freeRoom === -1){
-      g.state = "QUEUED";
-      g.target = null;
-      queue.push(g);
-      updateHUD();
-      return;
-    }
-
-    g.roomIndex = freeRoom;
-    setRoomStatus(freeRoom, ROOM_OCC);
-
-    g.state = "TO_ROOM";
-    g.target = centerOf(roomEls[freeRoom]);
-  }
-
-  function rollRequests(){
-    const r = Math.random();
-    let count = 0;
-    if (r < 0.30) count = 0;
-    else if (r < 0.68) count = 1;
-    else if (r < 0.92) count = 2;
-    else count = 3;
-
-    const picks = [];
-    for (let i = 0; i < count; i++){
-      const k = ITEM_KEYS[Math.floor(Math.random() * ITEM_KEYS.length)];
-      picks.push(k);
-    }
-    return picks;
-  }
-
-  function startNextRequestOrCheckout(g){
-    if (g.requests.length === 0){
-      g.state = "TO_PAY";
-      hideGuestBubble(g);
-      g.el.classList.remove("angry");
-      g.angry = false;
-      g.target = centerOf(stReception);
-      return;
-    }
-
-    const next = g.requests.shift();
-    g.currentRequest = next;
-    const def = ITEMS[next];
-    g.requestDeadline = Date.now() + def.seconds * 1000;
-    g.state = "WAITING";
-    g.angry = false;
-    g.el.classList.remove("angry");
-    showGuestBubble(g, def.icon);
-  }
-
-  function onArriveRoom(g){
-    if (poolUnlocked() && !g.usedPool){
-      g.usedPool = true;
-      g.state = "TO_POOL";
-      g.target = poolSpot();
-      return;
-    }
-
-    g.requests = rollRequests();
-    g.totalBonus = 0;
-    g.currentRequest = null;
-    startNextRequestOrCheckout(g);
-  }
-
-  function onArrivePool(g){
-    g.state = "POOLING";
-    g.poolDoneAt = Date.now() + POOL_STAY_MS;
-  }
-
-  function finishPool(g){
-    g.totalBonus += POOL_TIP_BONUS;
-
-    if (g.roomIndex !== null){
-      g.state = "TO_ROOM_AFTER_POOL";
-      g.target = centerOf(roomEls[g.roomIndex]);
-    } else {
-      g.requests = rollRequests();
-      startNextRequestOrCheckout(g);
-    }
-  }
-
-  function onArriveRoomAfterPool(g){
-    g.requests = rollRequests();
-    g.currentRequest = null;
-    startNextRequestOrCheckout(g);
-  }
-
-  function onArrivePay(g){
-    served += 1;
-
-    const base = g.angry ? Math.max(1, BASE_PAY_COINS - 3) : BASE_PAY_COINS;
-    const payCoins = base + g.totalBonus;
-
-    hotelCash += payCoins;
-    addGlobalCoins(payCoins);
-
-    // coin float FX at reception
-    const p = centerOf(stReception);
-    fxCoinAt(p.x, p.y, "🪙");
-
-    if (g.roomIndex !== null){
-      setRoomStatus(g.roomIndex, ROOM_DIRTY);
-      g.roomIndex = null;
-    }
-
-    g.state = "TO_EXIT";
-    g.target = centerOf(stExit);
-    updateHUD();
-  }
-
-  function onArriveExit(g){
-    g.state = "DONE";
-    hideGuestBubble(g);
-    g.el.remove();
-    guests = guests.filter(x => x.id !== g.id);
-  }
-
-  /* ---------- Patience ---------- */
-  function updatePatienceAll(){
-    const now = Date.now();
-    guests.forEach(g => {
-      if (g.state !== "WAITING" || !g.currentRequest) return;
-
-      const total = ITEMS[g.currentRequest].seconds * 1000;
-      const left = g.requestDeadline - now;
-      const pct = Math.max(0, Math.min(1, left / total));
-
-      g.ring.style.borderWidth = (3 + (1 - pct) * 2) + "px";
-      g.ring.style.opacity = String(0.6 + (1 - pct) * 0.4);
-
-      if (left <= 0 && !g.angry){
-        g.angry = true;
-        g.el.classList.add("angry");
-        g.currentRequest = null;
-        hideGuestBubble(g);
-        setTimeout(() => startNextRequestOrCheckout(g), 250);
-      }
-    });
-  }
-
-  /* ---------- Bellboy AUTO (ONLY if hired) ---------- */
-  let bellboy = {
-    x: 220, y: 290,
-    speed: 2.7,
-    state: "IDLE",
-    target: null,
-    carrying: null,
-    targetGuestId: null,
-  };
-
-  function findServeTargetGuest(){
-    return guests.find(g => g.state === "WAITING" && !!g.currentRequest);
-  }
-  function getGuestById(id){ return guests.find(g => g.id === id); }
-
-  function bellboyTryServe(){
-    if (!bellHired) return;
-    if (bellboy.state !== "IDLE") return;
-
-    const targetGuest = findServeTargetGuest();
-    if (!targetGuest) return;
-
-    bellboy.targetGuestId = targetGuest.id;
-    bellboy.carrying = targetGuest.currentRequest;
-    bellboy.state = "TO_SNACK";
-    bellboy.target = centerOf(stSnack);
-  }
-
-  function onBellboySnack(){
-    bellboy.state = "TO_GUEST";
-    const g = getGuestById(bellboy.targetGuestId);
-    if (!g){
-      bellboy.state = "RETURNING";
-      bellboy.target = centerOf(stSnack);
-      return;
-    }
-    bellboy.target = { x: g.x, y: g.y };
-  }
-
-  function onBellboyGuest(){
-    const g = getGuestById(bellboy.targetGuestId);
-    if (g && g.state === "WAITING" && g.currentRequest === bellboy.carrying){
-      const def = ITEMS[bellboy.carrying];
-      g.totalBonus += def.bonus;
-
-      // snack pop FX at guest
-      fxPopAt(g.x, g.y, def.icon);
-
-      g.currentRequest = null;
-      hideGuestBubble(g);
-      g.el.classList.remove("angry");
-      g.angry = false;
-
-      setTimeout(() => startNextRequestOrCheckout(g), 350);
-    }
-
-    bellboy.carrying = null;
-    bellboy.targetGuestId = null;
-    bellboy.state = "RETURNING";
-    bellboy.target = centerOf(stSnack);
-  }
-
-  function onBellboyReturn(){ bellboy.state = "IDLE"; }
-
-  /* ---------- Cleaner MANUAL (FORGIVING) ---------- */
-  let cleaner = {
-    x: 620, y: 380,
-    speed: 2.4,
-    state: "IDLE",
-    target: null,
-    carrying: false,
-    selectedRoom: null,
-    cleanDoneAt: 0
-  };
-  let cleanerStep = "TAP_STATION";
-
-  function setCleanerCarry(on){
-    cleaner.carrying = on;
-    if (!cleanerEl) return;
-
-    if (on){
-      cleanerEl.classList.add("carrying");
-      cleanerEl.dataset.carry = "🧴";
-    } else {
-      cleanerEl.classList.remove("carrying");
-      cleanerEl.dataset.carry = "";
-    }
-  }
-
-  stClean?.addEventListener("click", () => {
-    if (!cleanerHired) return;
-
-    cleaner.state = "GOT_DETERGENT";
-    setCleanerCarry(true);
-    cleanerStep = "TAP_ROOM";
-    updateHUD();
-  });
-
-  function startCleaningRoom(i){
-    if (!cleanerHired) return;
-    if (rooms[i].status !== ROOM_DIRTY) return;
-
-    // auto-arm if needed
-    if (!cleaner.carrying){
-      cleaner.state = "GOT_DETERGENT";
-      setCleanerCarry(true);
-      cleanerStep = "TAP_ROOM";
-    }
-
-    cleaner.selectedRoom = i;
-    cleaner.state = "TO_ROOM";
-    cleaner.target = centerOf(roomEls[i]);
-    updateHUD();
-  }
-
-  roomEls.forEach((el, i) => el?.addEventListener("click", () => startCleaningRoom(i)));
-
-  function onCleanerArriveRoom(){
-    cleaner.state = "CLEANING";
-    cleaner.cleanDoneAt = Date.now() + 6000;
-  }
-
-  function finishCleaning(){
-    const i = cleaner.selectedRoom;
-    if (i !== null){
-      setRoomStatus(i, ROOM_FREE);
-
-      // Immediately move a queued guest into this cleaned room
-      if (queue.length > 0){
-        const next = queue.shift();
-        next.roomIndex = i;
-        setRoomStatus(i, ROOM_OCC);
-        next.state = "TO_ROOM";
-        next.target = centerOf(roomEls[i]);
-      }
-    }
-    cleaner.selectedRoom = null;
-    cleaner.state = "RETURNING";
-    cleaner.target = centerOf(stClean);
-  }
-
-  function onCleanerReturn(){
-    cleaner.state = "IDLE";
-    setCleanerCarry(false);
-    cleanerStep = "TAP_STATION";
-    updateHUD();
-  }
-
-  /* ---------- Spawn Guests ---------- */
-  function spawnGuest(){
-    if (guests.length >= 10) return;
-    const g = makeGuest();
-    guests.push(g);
-
-    g.x = 10 + (guests.length % 3) * 14;
-    g.y = 10 + (guests.length % 3) * 14;
-    setPos(g.el, g.x, g.y);
-    hideGuestBubble(g);
-
-    sendToReception(g);
-    updateHUD();
-  }
-  spawnGuestBtn?.addEventListener("click", spawnGuest);
-
-  /* ---------- Loop ---------- */
-  function loop(){
-    // Guests update
-    guests.forEach(g => {
-      const arrived = moveToward(g);
-      setPos(g.el, g.x, g.y);
-
-      if (arrived){
-        if (g.state === "TO_RECEPTION") onArriveReception(g);
-        else if (g.state === "TO_ROOM") onArriveRoom(g);
-        else if (g.state === "TO_POOL") onArrivePool(g);
-        else if (g.state === "TO_ROOM_AFTER_POOL") onArriveRoomAfterPool(g);
-        else if (g.state === "TO_PAY") onArrivePay(g);
-        else if (g.state === "TO_EXIT") onArriveExit(g);
-      }
-
-      if (g.state === "POOLING" && Date.now() >= g.poolDoneAt){
-        finishPool(g);
-      }
-    });
-
-    // Queue sticking
-    queue.forEach((g, idx) => {
-      const p = queueSpot(idx);
-      g.x += (p.x - g.x) * 0.08;
-      g.y += (p.y - g.y) * 0.08;
-      setPos(g.el, g.x, g.y);
-    });
-
-    // Bellboy update
-    if (bellHired) {
-      const bellArrived = moveToward(bellboy);
-      setPos(bellboyEl, bellboy.x, bellboy.y);
-      if (bellArrived){
-        if (bellboy.state === "TO_SNACK") onBellboySnack();
-        else if (bellboy.state === "TO_GUEST") onBellboyGuest();
-        else if (bellboy.state === "RETURNING") onBellboyReturn();
-      }
-      bellboyTryServe();
-    }
-
-    // Cleaner update
-    if (cleanerHired) {
-      const cleanArrived = moveToward(cleaner);
-      setPos(cleanerEl, cleaner.x, cleaner.y);
-
-      // toggle cleaning animation class
-      if (cleanerEl) cleanerEl.classList.toggle("cleaning", cleaner.state === "CLEANING");
-
-      if (cleanArrived){
-        if (cleaner.state === "TO_ROOM") onCleanerArriveRoom();
-        else if (cleaner.state === "RETURNING") onCleanerReturn();
-      }
-      if (cleaner.state === "CLEANING" && Date.now() >= cleaner.cleanDoneAt){
-        finishCleaning();
-      }
-    }
-
-    updatePatienceAll();
-    requestAnimationFrame(loop);
-  }
-
-  /* ---------- Start ---------- */
-  function start(){
-    if (!mapEl || !guestLayer || !stReception || !stSnack || !stClean || !stExit) return;
-
-    buildOceanAndPool();
-
-    for (let i = 0; i < 4; i++) setRoomStatus(i, ROOM_FREE);
-
-    setPos(bellboyEl, bellboy.x, bellboy.y);
-    setPos(cleanerEl, cleaner.x, cleaner.y);
-    setCleanerCarry(false);
-
-    // hide workers if not hired
-    if (bellboyEl) bellboyEl.style.display = bellHired ? "" : "none";
-    if (cleanerEl) cleanerEl.style.display = cleanerHired ? "" : "none";
-
-    updateHUD();
-    setInterval(refreshPoolUI, 900);
-
-    loop();
-  }
-
-  start();
-});
+* { box-sizing: border-box; }
+:root{
+  --bg:#0b1220;
+  --card:#0f1b33;
+  --card2:#122244;
+  --text:#eaf1ff;
+  --muted:#9fb3d6;
+  --accent:#ffd36e;
+  --accent2:#65d6ff;
+  --danger:#ff7b7b;
+  --ok:#7dffb2;
+  --shadow: 0 12px 30px rgba(0,0,0,.35);
+  --radius: 18px;
+}
+
+body{
+  margin:0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  background: radial-gradient(1200px 600px at 20% 10%, #132a66 0%, #0b1220 55%, #07101f 100%);
+  color: var(--text);
+}
+
+.topbar{
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display:flex;
+  gap:14px;
+  align-items:center;
+  justify-content:space-between;
+  padding: 14px 16px;
+  background: rgba(11,18,32,.78);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255,255,255,.07);
+}
+
+.brand{ display:flex; gap:10px; align-items:center; }
+.logo{
+  width:42px;height:42px;border-radius:14px;
+  display:grid;place-items:center;
+  background: linear-gradient(135deg, rgba(255,211,110,.25), rgba(101,214,255,.18));
+  border:1px solid rgba(255,255,255,.10);
+}
+.title{ font-weight:800; letter-spacing:.2px; }
+.subtitle{ font-size:12px; color: var(--muted); margin-top:2px; }
+
+.hud{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+.hud-card{
+  display:flex; gap:8px; align-items:center;
+  padding: 8px 10px;
+  border-radius: 14px;
+  background: rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.08);
+  font-size: 13px;
+}
+
+.tabs{ display:flex; gap:8px; }
+.tab{
+  padding: 10px 12px;
+  border-radius: 14px;
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.06);
+  color: var(--text);
+  cursor:pointer;
+  font-weight:700;
+}
+.tab.active{
+  background: linear-gradient(135deg, rgba(255,211,110,.25), rgba(101,214,255,.18));
+  border-color: rgba(255,211,110,.35);
+}
+
+.view{ display:none; padding: 16px; }
+.view.active{ display:block; }
+
+.hotel-grid{
+  display:grid;
+  grid-template-columns: 1.1fr 1.5fr 0.9fr;
+  gap: 14px;
+  align-items: start;
+}
+
+@media (max-width: 1100px){
+  .hotel-grid{ grid-template-columns: 1fr; }
+}
+
+.card{
+  background: linear-gradient(180deg, rgba(15,27,51,.94), rgba(10,18,35,.94));
+  border:1px solid rgba(255,255,255,.08);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow:hidden;
+}
+
+.card-head{
+  padding: 14px 14px 10px;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+}
+.card-head h2{ margin:0; font-size: 16px; }
+.small{ color: var(--muted); font-size: 12px; margin-top: 4px; }
+
+.lobby-scene{ padding: 14px; display:flex; flex-direction:column; gap: 14px; }
+.scene-row{ display:flex; gap: 12px; }
+.npc{
+  flex:1;
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.08);
+}
+.npc-emoji{ font-size: 32px; display:inline-block; }
+.npc-name{ font-weight:700; margin-top: 6px; }
+.queue-box{
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.08);
+}
+.queue-title{ font-weight:800; }
+.queue-line{
+  min-height: 44px;
+  display:flex; gap:6px; align-items:center; flex-wrap:wrap;
+  padding-top: 8px;
+}
+.queue-hint{ color: var(--muted); font-size: 12px; padding-top: 6px; }
+
+.controls{ display:flex; gap:10px; flex-wrap:wrap; }
+
+.btn{
+  padding: 10px 12px;
+  border-radius: 14px;
+  border:1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+  color: var(--text);
+  cursor:pointer;
+  font-weight:800;
+}
+.btn:hover{ filter: brightness(1.06); }
+.btn:disabled{ opacity:.5; cursor:not-allowed; }
+.btn.primary{
+  background: linear-gradient(135deg, rgba(255,211,110,.32), rgba(101,214,255,.20));
+  border-color: rgba(255,211,110,.35);
+}
+.btn.warn{
+  background: rgba(255,123,123,.12);
+  border-color: rgba(255,123,123,.30);
+}
+.btn.ghost{
+  background: transparent;
+}
+.btn.tiny{
+  padding: 6px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.mini-note{
+  color: var(--muted);
+  font-size: 12px;
+  min-height: 18px;
+}
+
+.rooms-grid{
+  padding: 14px;
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 12px;
+}
+@media (max-width: 520px){
+  .rooms-grid{ grid-template-columns: 1fr; }
+}
+
+.room{
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.08);
+  position: relative;
+}
+.room-top{
+  display:flex; justify-content:space-between; align-items:center;
+  margin-bottom: 8px;
+}
+.room-name{ font-weight:900; }
+.badge{
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.06);
+}
+.badge.ok{ border-color: rgba(125,255,178,.35); background: rgba(125,255,178,.10); }
+.badge.dirty{ border-color: rgba(255,123,123,.35); background: rgba(255,123,123,.10); }
+.badge.busy{ border-color: rgba(255,211,110,.35); background: rgba(255,211,110,.12); }
+
+.room-guest{
+  font-size: 28px;
+  margin: 8px 0 10px;
+  height: 34px;
+}
+.room-actions{
+  display:flex; gap:8px; flex-wrap:wrap;
+}
+
+.upgrade-row{
+  padding: 0 14px 14px;
+  display:flex; gap:10px; flex-wrap:wrap;
+}
+
+.side{
+  padding-bottom: 14px;
+}
+
+.snack-area{
+  padding: 14px;
+  display:flex;
+  flex-direction:column;
+  gap: 10px;
+}
+.snack-item{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.08);
+}
+.snack-note{ color: var(--muted); font-size: 12px; }
+
+.divider{
+  height:1px;
+  background: rgba(255,255,255,.08);
+  margin: 6px 14px 14px;
+}
+
+.unlock-box{
+  margin: 0 14px 12px;
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.08);
+}
+.unlock-top{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+}
+.unlock-title{ font-weight:900; }
+.unlock-status{
+  font-weight:900;
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.06);
+}
+.unlock-status.on{
+  border-color: rgba(125,255,178,.35);
+  background: rgba(125,255,178,.10);
+}
+.unlock-desc{ color: var(--muted); font-size: 12px; margin: 8px 0 10px; }
+
+.vibes-preview{
+  margin: 0 14px;
+  min-height: 120px;
+  border-radius: 18px;
+  border:1px dashed rgba(255,255,255,.16);
+  background: rgba(101,214,255,.06);
+  display:grid;
+  place-items:center;
+  padding: 14px;
+}
+.vibes-placeholder{ color: var(--muted); text-align:center; }
+
+.vibes-on{
+  background:
+    radial-gradient(700px 240px at 50% 0%, rgba(101,214,255,.35), rgba(101,214,255,.10)),
+    linear-gradient(180deg, rgba(255,211,110,.10), rgba(15,27,51,.0));
+  border-style: solid;
+  border-color: rgba(101,214,255,.22);
+}
+.vibes-on .vibes-placeholder{ color: var(--text); }
+
+.puzzle-card{ max-width: 980px; margin: 0 auto; }
+.puzzle-hud{
+  padding: 14px;
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  align-items:center;
+}
+
+.grid{
+  padding: 14px;
+  display:grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 8px;
+  user-select:none;
+}
+.cell{
+  aspect-ratio: 1/1;
+  border-radius: 16px;
+  display:grid;
+  place-items:center;
+  font-size: 26px;
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.06);
+  cursor:pointer;
+}
+.cell.selected{
+  outline: 3px solid rgba(255,211,110,.55);
+  transform: scale(1.03);
+}
+
+@keyframes bounce {
+  0%,100%{ transform: translateY(0); }
+  50%{ transform: translateY(-6px); }
+}
+.bounce{ animation: bounce .55s ease-in-out; }
+
+@keyframes scrub {
+  0%{ transform: rotate(0deg); }
+  50%{ transform: rotate(-10deg); }
+  100%{ transform: rotate(0deg); }
+}
+.scrub{ animation: scrub .5s ease-in-out; }
 
 
 
