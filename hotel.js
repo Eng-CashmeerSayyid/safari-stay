@@ -769,6 +769,28 @@ function startCleaningRoom(i){
     cleanerStep = "TAP_STATION";
     updateHUD();
   }
+   function fxPopAt(x, y, icon){
+  if (!mapEl) return;
+  const d = document.createElement("div");
+  d.className = "popFx";
+  d.textContent = icon;
+  d.style.left = (x + 8) + "px";
+  d.style.top  = (y - 10) + "px";
+  mapEl.appendChild(d);
+  setTimeout(()=>d.remove(), 650);
+}
+
+function fxCoinAt(x, y, icon="🪙"){
+  if (!mapEl) return;
+  const d = document.createElement("div");
+  d.className = "coinFx";
+  d.textContent = icon;
+  d.style.left = (x + 10) + "px";
+  d.style.top  = (y - 10) + "px";
+  mapEl.appendChild(d);
+  setTimeout(()=>d.remove(), 750);
+}
+
 
   /* ---------- Spawn guests ---------- */
   function spawnGuest(){
