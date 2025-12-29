@@ -1,9 +1,12 @@
 /* ==========================================================
-   SAFARI STAY – MOMBASA HOTEL MANIA (FULL + ANIM FX)
-   - guests bob + VIP glow
-   - snack pop on delivery
-   - coin float on payment
-   - cleaner wiggle while cleaning
+   SAFARI STAY – MOMBASA HOTEL MANIA (FULL)
+   - Guests are TOURIST emojis (not briefcase)
+   - VIP glow class
+   - Snack pop FX + Coin float FX
+   - Cleaner wiggle while cleaning (CSS uses .cleaning)
+   - Pool unlocks when room level >= 1
+   - Bellboy AUTO serves ONLY if hired
+   - Cleaner MANUAL (forgiving): tap station OR tap dirty room directly
    ========================================================== */
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -41,7 +44,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const spawnGuestBtn = document.getElementById("spawnGuestBtn");
   const coinsTopEl = document.getElementById("coins");
 
-  /* ---------- Map ---------- */
+  /* ---------- Map / Stations ---------- */
   const mapEl = document.getElementById("hotelMap");
   const guestLayer = document.getElementById("guestLayer");
 
@@ -71,7 +74,6 @@ document.addEventListener("DOMContentLoaded", () => {
   /* ---------- Workers ---------- */
   const bellboyEl = document.getElementById("bellboy");
   const cleanerEl = document.getElementById("cleaner");
-
   if (bellboyEl) bellboyEl.classList.add("bellboy");
   if (cleanerEl) cleanerEl.classList.add("cleaner");
 
@@ -94,19 +96,23 @@ document.addEventListener("DOMContentLoaded", () => {
   const POOL_STAY_MS = 3800;
   const POOL_TIP_BONUS = 2;
 
-  /* ---------- Guest characters ---------- */
-  const GUEST_SKINS = ["🧑🏾‍🦱","👩🏾‍🦱","🧑🏾‍🦰","👨🏾‍🦱","👩🏾‍🦳","🧑🏾‍🦲","🧑🏾‍🎤","👩🏾‍💼"];
-  function randSkin(){ return GUEST_SKINS[Math.floor(Math.random()*GUEST_SKINS.length)]; }
+  /* ---------- Tourist emojis (NO briefcase) ---------- */
+  const GUEST_SKINS = ["🧑🏾‍🦱","👩🏾‍🦱","👨🏾‍🦱","👩🏾‍💼","🧑🏾‍🎤","🧑🏾‍🦰","👩🏾‍🦳","🧑🏾‍🦲"];
+  function randSkin(){ return GUEST_SKINS[Math.floor(Math.random() * GUEST_SKINS.length)]; }
 
+  /* Guest types (VIP glow) */
   const GUEST_TYPES = [
-    { name:"VIP", badge:"👑", payMult:1.6, patienceMult:1.25, chance:0.18 },
-    { name:"Regular", badge:"🙂", payMult:1.0, patienceMult:1.0, chance:0.62 },
-    { name:"Budget", badge:"🎒", payMult:0.85, patienceMult:0.85, chance:0.20 },
+    { name:"VIP", chance:0.18 },
+    { name:"Regular", chance:0.62 },
+    { name:"Budget", chance:0.20 },
   ];
   function rollGuestType(){
-    const r=Math.random();
-    let acc=0;
-    for (const t of GUEST_TYPES){ acc+=t.chance; if (r<=acc) return t; }
+    const r = Math.random();
+    let acc = 0;
+    for (const t of GUEST_TYPES){
+      acc += t.chance;
+      if (r <= acc) return t;
+    }
     return GUEST_TYPES[1];
   }
 
@@ -143,7 +149,9 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* ---------- Helpers ---------- */
-  function setPos(el, x, y){ if (el) { el.style.left = x + "px"; el.style.top = y + "px"; } }
+  function setPos(el, x, y){
+    if (el) { el.style.left = x + "px"; el.style.top = y + "px"; }
+  }
 
   function centerOf(el){
     const mapRect = mapEl.getBoundingClientRect();
@@ -169,11 +177,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function addGlobalCoins(amount){
     const current = Number(localStorage.getItem(COIN_KEY)) || 0;
-    localStorage.setItem(COIN_KEY, String(current + amount));
-    if (coinsTopEl) coinsTopEl.textContent = String(current + amount);
+    const updated = current + amount;
+    localStorage.setItem(COIN_KEY, String(updated));
+    if (coinsTopEl) coinsTopEl.textContent = String(updated);
   }
 
-  /* ---------- FX helpers (pop + coin) ---------- */
+  /* ---------- FX helpers (need CSS .popFx/.coinFx) ---------- */
   function fxPopAt(x, y, icon){
     if (!mapEl) return;
     const d = document.createElement("div");
@@ -254,7 +263,7 @@ document.addEventListener("DOMContentLoaded", () => {
     rooms[i].status = status;
     if (badgeEls[i]) {
       if (status === ROOM_FREE)  badgeEls[i].textContent = "✅";
-      if (status === ROOM_OCC)   badgeEls[i].textContent = "🧳";
+      if (status === ROOM_OCC)   badgeEls[i].textContent = "🧳"; // badge only (not the walking guest)
       if (status === ROOM_DIRTY) badgeEls[i].textContent = "🧺";
     }
     updateHUD();
@@ -266,14 +275,10 @@ document.addEventListener("DOMContentLoaded", () => {
     if (servedEl) servedEl.textContent = String(served);
     if (hotelCashEl) hotelCashEl.textContent = String(hotelCash);
 
-    if (!cleanerModeEl) return;
-
-    if (!cleanerHired) {
-      cleanerModeEl.textContent = "Hire Cleaner to clean";
-    } else {
-      cleanerModeEl.textContent = cleanerStep === "TAP_STATION"
-        ? "Tap 🧴 station"
-        : "Tap 🧺 dirty room";
+    if (cleanerModeEl){
+      cleanerModeEl.textContent = !cleanerHired
+        ? "Hire Cleaner to clean"
+        : (cleanerStep === "TAP_STATION" ? "Tap 🧴 station" : "Tap 🧺 dirty room");
     }
   }
 
@@ -281,6 +286,8 @@ document.addEventListener("DOMContentLoaded", () => {
   function makeGuest(){
     const el = document.createElement("div");
     el.className = "guestToken";
+
+    // ✅ Tourist emoji (no briefcase)
     el.textContent = randSkin();
 
     const type = rollGuestType();
@@ -575,7 +582,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Tap station arms cleaner
   stClean?.addEventListener("click", () => {
     if (!cleanerHired) return;
 
@@ -614,7 +620,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (i !== null){
       setRoomStatus(i, ROOM_FREE);
 
-      // AFTER cleaning, immediately let next queued guest enter
+      // Immediately move a queued guest into this cleaned room
       if (queue.length > 0){
         const next = queue.shift();
         next.roomIndex = i;
@@ -697,6 +703,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const cleanArrived = moveToward(cleaner);
       setPos(cleanerEl, cleaner.x, cleaner.y);
 
+      // toggle cleaning animation class
       if (cleanerEl) cleanerEl.classList.toggle("cleaning", cleaner.state === "CLEANING");
 
       if (cleanArrived){
@@ -736,6 +743,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   start();
 });
+
 
 
 
