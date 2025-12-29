@@ -254,7 +254,8 @@ body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial
 #room2{ left: 250px; top: 300px; }
 #room3{ left: 445px; top: 300px; }
 
-#guestLayer{ position:absolute; inset:0; }
+#guestLayer { position:absolute; inset:0; pointer-events:none; }
+
 
 /* Characters + guests */
 .character, .guestToken{
