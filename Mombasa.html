@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Safari Stay — Mombasa Hotel</title>
+  <title>Safari Stay — Mombasa</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -18,9 +18,9 @@
     </div>
 
     <div class="hud">
-      <div class="hud-card"><span>🪙</span> <b id="coinsText">0</b></div>
-      <div class="hud-card"><span>⭐</span> <b id="ratingText">5.0</b></div>
-      <div class="hud-card"><span>👥 Queue</span> <b id="queueText">0</b></div>
+      <div class="hud-card"><span>🪙</span><b id="coinsText">0</b></div>
+      <div class="hud-card"><span>👥 Queue</span><b id="queueText">0</b></div>
+      <div class="hud-card"><span>⭐</span><b id="ratingText">5.0</b></div>
     </div>
 
     <nav class="tabs">
@@ -31,14 +31,13 @@
 
   <!-- ================== HOTEL VIEW ================== -->
   <main id="viewHotel" class="view active">
-
     <section class="hotel-grid">
 
-      <!-- Left: Lobby + Controls -->
+      <!-- Lobby / Controls -->
       <div class="card lobby">
         <div class="card-head">
           <h2>Reception Lobby</h2>
-          <div class="small">Check-in • Rooms • Cleaning • Upgrades</div>
+          <div class="small">Spawn • Queue • Check-in • Clean • Upgrades</div>
         </div>
 
         <div class="lobby-scene">
@@ -56,7 +55,7 @@
           <div class="queue-box">
             <div class="queue-title">Queue</div>
             <div class="queue-line" id="queueLine"></div>
-            <div class="queue-hint">Guests will auto-check in when rooms are available.</div>
+            <div class="queue-hint">Guests auto-check in when rooms are available.</div>
           </div>
 
           <div class="controls">
@@ -69,11 +68,11 @@
         </div>
       </div>
 
-      <!-- Middle: Rooms -->
+      <!-- Rooms -->
       <div class="card rooms">
         <div class="card-head">
           <h2>Rooms</h2>
-          <div class="small">Tap room actions below each room.</div>
+          <div class="small">Checkout makes a room dirty. Clean to reuse.</div>
         </div>
 
         <div class="rooms-grid" id="roomsGrid"></div>
@@ -84,18 +83,18 @@
         </div>
       </div>
 
-      <!-- Right: Snack + Upgrades -->
+      <!-- Side: Snacks + Unlocks -->
       <div class="card side">
         <div class="card-head">
           <h2>Snack Corner</h2>
-          <div class="small">Earn small coins from happy guests.</div>
+          <div class="small">Sell snacks when guests are checked in.</div>
         </div>
 
         <div class="snack-area">
           <div class="snack-item">🥭 Mango Juice <button class="btn tiny" id="btnSnack1">Sell +2🪙</button></div>
-          <div class="snack-item">🍍 Pineapple Slice <button class="btn tiny" id="btnSnack2">Sell +2🪙</button></div>
+          <div class="snack-item">🍍 Pineapple <button class="btn tiny" id="btnSnack2">Sell +2🪙</button></div>
           <div class="snack-item">🍦 Ice Cream <button class="btn tiny" id="btnSnack3">Sell +3🪙</button></div>
-          <div class="snack-note">Tip: Sell snacks while guests are checked in.</div>
+          <div class="snack-note">Tip: Pool/Ocean unlocks increase earnings.</div>
         </div>
 
         <div class="divider"></div>
@@ -105,21 +104,21 @@
           <div class="small">Unlock with coins</div>
         </div>
 
-        <div class="unlock-box" id="oceanBox">
+        <div class="unlock-box">
           <div class="unlock-top">
             <div class="unlock-title">🌊 Ocean View</div>
             <div class="unlock-status" id="oceanStatus">LOCKED</div>
           </div>
-          <div class="unlock-desc">Adds ocean background + bonus coin rate.</div>
+          <div class="unlock-desc">Adds an ocean vibe + small bonus coins.</div>
           <button class="btn" id="btnUnlockOcean">Unlock (Cost: <span id="oceanCostText">120</span>🪙)</button>
         </div>
 
-        <div class="unlock-box" id="poolBox">
+        <div class="unlock-box">
           <div class="unlock-top">
             <div class="unlock-title">🏊 Pool Area</div>
             <div class="unlock-status" id="poolStatus">LOCKED</div>
           </div>
-          <div class="unlock-desc">Adds pool zone + happy guests give more coins.</div>
+          <div class="unlock-desc">Guests happier + more bonus coins.</div>
           <button class="btn" id="btnUnlockPool">Unlock (Cost: <span id="poolCostText">200</span>🪙)</button>
         </div>
 
@@ -136,7 +135,7 @@
     <section class="card puzzle-card">
       <div class="card-head">
         <h2>Puzzle (Earn Coins)</h2>
-        <div class="small">Each valid move gives coins. Match 3+ clears tiles.</div>
+        <div class="small">Each valid move gives +1 coin. Match 3+ clears.</div>
       </div>
 
       <div class="puzzle-hud">
@@ -147,7 +146,7 @@
       </div>
 
       <div class="grid" id="grid"></div>
-      <div class="mini-note">Tip: Click a tile then an adjacent tile to swap.</div>
+      <div class="mini-note">Click a tile then an adjacent tile to swap.</div>
     </section>
   </main>
 
