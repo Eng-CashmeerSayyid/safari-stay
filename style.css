@@ -1,157 +1,263 @@
 * { box-sizing: border-box; }
 body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
 
-.page { min-height: 100vh; background: #0b1220; color: #eaf0ff; }
-
-.topbar{
-  display:flex; justify-content:space-between; align-items:center;
-  gap:14px; padding:14px 16px; position:sticky; top:0;
-  background: rgba(11,18,32,0.92); backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255,255,255,0.08); z-index:10;
+.page {
+  min-height: 100vh;
+  background: #0b1220;
+  color: #eaf0ff;
 }
-.brand{ display:flex; align-items:center; gap:12px; }
-.logo{
-  width:42px; height:42px; display:grid; place-items:center; font-size:22px;
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.12); border-radius:12px;
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  position: sticky;
+  top: 0;
+  background: rgba(11, 18, 32, 0.92);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  z-index: 10;
 }
-.title{ font-weight:900; font-size:16px; }
-.subtitle{ font-size:12px; opacity:0.75; }
-.rightHeader{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
 
-.container{ max-width:1100px; margin:0 auto; padding:18px 14px 44px; }
-.grid2{ display:grid; grid-template-columns: 1.1fr 0.9fr; gap:14px; }
-
-.card{
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.10);
-  border-radius:18px; padding:16px; margin-bottom:14px;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.25);
-}
-.muted{ opacity:0.82; margin-top:6px; }
-.smallText{ font-size:12px; opacity:0.85; }
-
-.pill{
-  padding:8px 10px; border-radius:999px;
+.brand { display: flex; align-items: center; gap: 12px; }
+.logo {
+  width: 42px; height: 42px;
+  display: grid; place-items: center;
+  font-size: 22px;
   background: rgba(255,255,255,0.08);
   border: 1px solid rgba(255,255,255,0.12);
-  font-weight:800; font-size:13px; white-space:nowrap;
+  border-radius: 12px;
+}
+.title { font-weight: 900; font-size: 16px; }
+.subtitle { font-size: 12px; opacity: 0.75; }
+
+.rightHeader { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+
+.container { max-width: 1100px; margin: 0 auto; padding: 18px 14px 44px; }
+
+.grid2{
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 14px;
 }
 
-.actions{ display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; }
-.btn{
-  display:inline-flex; align-items:center; justify-content:center; gap:8px;
-  padding:12px 14px; border-radius:14px;
-  border:1px solid rgba(255,255,255,0.14);
-  background:#f5c542; color:#111; font-weight:900; text-decoration:none;
-  cursor:pointer;
+.card {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 18px;
+  padding: 16px;
+  margin-bottom: 14px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.25);
 }
-.btn:hover{ filter: brightness(1.03); }
-.btn.ghost{ background: rgba(255,255,255,0.08); color:#eaf0ff; }
-.btn.small{ padding:10px 12px; border-radius:12px; font-size:13px; }
 
-.note{
-  margin-top:12px; padding:10px 12px; border-radius:14px;
-  border:1px dashed rgba(255,255,255,0.18);
+.hero h1 { margin: 0 0 8px; font-size: 26px; }
+.muted { opacity: 0.82; margin-top: 6px; }
+.smallText { font-size: 12px; opacity: 0.85; }
+
+.pill {
+  padding: 8px 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  font-weight: 800;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: #f5c542;
+  color: #111;
+  font-weight: 900;
+  text-decoration: none;
+  cursor: pointer;
+}
+.btn:hover { filter: brightness(1.03); }
+
+.btn.ghost {
+  background: rgba(255,255,255,0.08);
+  color: #eaf0ff;
+}
+
+.btn.small { padding: 10px 12px; border-radius: 12px; font-size: 13px; }
+
+.note {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px dashed rgba(255,255,255,0.18);
   background: rgba(255,255,255,0.05);
+  opacity: 0.95;
 }
-.line{ border:none; border-top:1px solid rgba(255,255,255,0.12); margin:14px 0; }
 
-.hidden{ display:none !important; }
+.line{
+  border: none;
+  border-top: 1px solid rgba(255,255,255,0.12);
+  margin: 14px 0;
+}
 
 /* Hotel images */
 .hotelShots{
-  display:grid; grid-template-columns:repeat(3, 1fr);
-  gap:10px; margin-top:12px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 12px;
 }
+
 .shot{
-  margin:0; border-radius:16px; overflow:hidden;
-  border:1px solid rgba(255,255,255,0.10);
+  margin: 0;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.10);
   background: rgba(255,255,255,0.05);
 }
-.shot img{ width:100%; height:140px; object-fit:cover; display:block; }
-.shot figcaption{ padding:8px 10px; font-weight:800; font-size:12px; opacity:0.9; }
+
+.shot img{
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  display: block;
+}
+
+.shot figcaption{
+  padding: 8px 10px;
+  font-weight: 800;
+  font-size: 12px;
+  opacity: 0.9;
+}
 
 /* Upgrades */
-.upgradeRow{ display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin-top:12px; }
-.upgradeItem{
-  padding:12px; border-radius:16px;
-  background: rgba(255,255,255,0.05);
-  border:1px solid rgba(255,255,255,0.10);
+.upgradeRow{
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 12px;
 }
-.upgradeTitle{ font-weight:900; margin-bottom:6px; }
 
-/* Tabs */
-.tabs{ display:flex; gap:10px; margin-bottom:12px; }
-.tabBtn{
-  flex:1; padding:12px; border-radius:14px;
-  border:1px solid rgba(255,255,255,0.14);
-  background: rgba(255,255,255,0.06);
-  color:#eaf0ff; font-weight:900; cursor:pointer;
+.upgradeItem{
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.10);
 }
-.tabBtn.active{ background:#f5c542; color:#111; }
+
+.upgradeTitle{ font-weight: 900; margin-bottom: 6px; }
 
 /* Puzzle grid */
-.grid{
-  margin-top:14px;
-  display:grid; grid-template-columns:repeat(8, 1fr);
-  gap:8px;
+.grid {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 8px;
 }
-.cell{
-  height:54px; border-radius:14px; display:grid; place-items:center;
-  font-size:26px;
+
+.cell {
+  height: 54px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  font-size: 26px;
   background: rgba(255,255,255,0.07);
-  border:1px solid rgba(255,255,255,0.10);
-  user-select:none; cursor:pointer;
+  border: 1px solid rgba(255,255,255,0.10);
+  user-select: none;
+  cursor: pointer;
   transition: transform 0.08s ease, outline 0.08s ease;
 }
-.cell:active{ transform: scale(0.98); }
-.cell.selected{
-  outline:3px solid rgba(245,197,66,0.9);
-  background: rgba(245,197,66,0.15);
-}
-.miniStats{ display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
-.hotelHud{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin: 12px 0; }
-.tipRow{ display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
 
-/* HOTEL MAP */
+.cell:active { transform: scale(0.98); }
+
+.cell.selected {
+  outline: 3px solid rgba(245, 197, 66, 0.9);
+  background: rgba(245, 197, 66, 0.15);
+}
+
+.miniStats{
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+/* Tabs */
+.hidden { display: none; }
+
+.tabs{
+  display:flex;
+  gap:10px;
+  margin-bottom:12px;
+}
+.tabBtn{
+  flex:1;
+  padding:12px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.06);
+  color:#eaf0ff;
+  font-weight:900;
+  cursor:pointer;
+}
+.tabBtn.active{
+  background:#f5c542;
+  color:#111;
+}
+
+.hotelHud{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  align-items:center;
+  margin: 12px 0;
+}
+
+.tipRow { display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
+
+/* =========================
+   HOTEL MAP (MOMBASA)
+   Ocean + Pool INSIDE map
+   ========================= */
 .hotelMap{
-  position:relative;
-  height:420px;
-  border-radius:18px;
-  border:1px solid rgba(255,255,255,0.10);
+  position: relative;
+  height: 420px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.10);
   background: rgba(255,255,255,0.05);
-  overflow:hidden;
+  overflow: hidden;
 }
 
-/* Ocean/sky backdrop created by JS .oceanSky */
+/* Ocean/sky backdrop */
 .oceanSky{
   position:absolute;
   left:0; top:0; right:0;
-  height:140px;
+  height: 140px;
   background: linear-gradient(180deg, rgba(100,220,255,0.55), rgba(0,140,210,0.25) 55%, rgba(11,18,32,0.0));
   border-bottom: 1px solid rgba(255,255,255,0.08);
   pointer-events:none;
+  z-index:1;
 }
 .oceanSky::after{
   content:"";
   position:absolute;
   left:-20px; right:-20px; bottom:-14px;
-  height:36px;
+  height: 36px;
   background:
     radial-gradient(circle at 20% 40%, rgba(255,255,255,0.28) 0 18px, transparent 19px),
     radial-gradient(circle at 55% 55%, rgba(255,255,255,0.22) 0 16px, transparent 17px),
     radial-gradient(circle at 80% 45%, rgba(255,255,255,0.18) 0 14px, transparent 15px);
-  opacity:0.7;
+  opacity: 0.7;
   filter: blur(0.5px);
-  animation: oceanShimmer 4.5s ease-in-out infinite;
-}
-@keyframes oceanShimmer{
-  0%,100% { transform: translateX(0); opacity:0.6; }
-  50% { transform: translateX(12px); opacity:0.85; }
 }
 
-/* Pool zone created by JS */
+/* Pool zone panel */
 .poolZone{
   position:absolute;
   left: 210px;
@@ -161,9 +267,10 @@ body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial
   border-radius: 18px;
   background: rgba(0, 190, 255, 0.12);
   border: 1px solid rgba(255,255,255,0.10);
+  z-index:2;
+  pointer-events:none;
 }
-.poolZone.locked{ opacity:0.45; filter: grayscale(0.35); }
-.poolWater{
+.poolZone .poolWater{
   position:absolute;
   left: 26px; top: 30px;
   width: 210px; height: 96px;
@@ -171,24 +278,8 @@ body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial
   background: linear-gradient(180deg, rgba(60,220,255,0.6), rgba(10,140,220,0.35));
   border: 1px solid rgba(255,255,255,0.18);
   box-shadow: inset 0 0 0 6px rgba(255,255,255,0.06);
-  overflow:hidden;
 }
-.poolWater::after{
-  content:"";
-  position:absolute;
-  inset:-40px;
-  background:
-    radial-gradient(circle at 35% 40%, rgba(255,255,255,0.22) 0 22px, transparent 23px),
-    radial-gradient(circle at 65% 60%, rgba(255,255,255,0.18) 0 18px, transparent 19px),
-    radial-gradient(circle at 50% 50%, rgba(255,255,255,0.12) 0 14px, transparent 15px);
-  animation: poolRipples 3.2s linear infinite;
-  opacity:0.8;
-}
-@keyframes poolRipples{
-  0% { transform: translate(-10px, 6px) scale(1); }
-  100% { transform: translate(18px, -10px) scale(1.05); }
-}
-.poolDeck{
+.poolZone .poolDeck{
   position:absolute;
   right: 14px; top: 26px;
   width: 98px; height: 110px;
@@ -200,6 +291,10 @@ body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial
   font-weight: 900;
   font-size: 12px;
   opacity: 0.9;
+}
+.poolZone.locked{
+  opacity: 0.45;
+  filter: grayscale(0.35);
 }
 .poolLockBadge{
   position:absolute;
@@ -221,32 +316,38 @@ body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial
   background: rgba(255,255,255,0.08);
   border:1px solid rgba(255,255,255,0.12);
   font-weight:900;
-  font-size:12px;
+  font-size: 12px;
   user-select:none;
+  z-index:6;
 }
+
 .reception{ left: 22px; top: 210px; }
-.snack{ left: 22px; top: 270px; }   /* moved left to avoid overlap */
-.clean{ right: 22px; bottom: 22px; cursor:pointer; }
+.snack { left: 190px; top: 270px; }
+.clean { right: 22px; bottom: 22px; cursor:pointer; }
 .exit{ left: 22px; bottom: 22px; }
 
-/* Rooms */
+/* Rooms (tap when dirty) */
 .roomTile{
   position:absolute;
-  width:170px;
-  height:74px;
-  border-radius:18px;
-  padding:10px 12px;
-  font-weight:900;
-  font-size:13px;
+  width: 170px;
+  height: 74px;
+  border-radius: 18px;
+  padding: 10px 12px;
+  font-weight: 900;
+  font-size: 13px;
   background: rgba(255,255,255,0.07);
   border: 1px solid rgba(255,255,255,0.12);
-  cursor:pointer;
+  cursor: pointer;
   display:flex;
   align-items:flex-start;
   justify-content: space-between;
   gap:10px;
+  z-index:6;
 }
-.roomBadge{ font-size:18px; line-height:1; }
+.roomBadge{
+  font-size: 18px;
+  line-height: 1;
+}
 
 /* Place rooms */
 #room0{ left: 250px; top: 210px; }
@@ -254,43 +355,32 @@ body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial
 #room2{ left: 250px; top: 300px; }
 #room3{ left: 445px; top: 300px; }
 
-#guestLayer{
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
+#guestLayer {
+  position:absolute;
+  inset:0;
+  z-index:4;
+  pointer-events:none; /* IMPORTANT: never block clicks */
 }
 
-
-
-/* Characters + guests */
+/* Characters */
 .character, .guestToken{
   position:absolute;
-  width:44px; height:44px;
-  display:grid; place-items:center;
-  font-size:24px;
-  border-radius:14px;
+  width: 44px;
+  height: 44px;
+  display:grid;
+  place-items:center;
+  font-size: 26px;
+  border-radius: 14px;
   background: rgba(255,255,255,0.10);
   border:1px solid rgba(255,255,255,0.14);
+  z-index:7;
+  transition: left 0.08s linear, top 0.08s linear;
+  will-change: transform, left, top;
+  pointer-events:none;
 }
-.guestToken.angry{ animation: shake 0.22s linear infinite; }
-.character.carrying::after{
-  content: attr(data-carry);
-  position:absolute;
-  top:-18px;
-  left:50%;
-  transform:translateX(-50%);
-  font-size:18px;
-}
-.guestToken::after{
-  /* guest type badge (set by JS) */
-  content: attr(data-badge);
-  position:absolute;
-  bottom:-16px;
-  left:50%;
-  transform:translateX(-50%);
-  font-size:14px;
-  opacity:0.95;
-}
+
+.guestToken.angry { animation: shake 0.22s linear infinite; }
+.character.angry { animation: shake 0.22s linear infinite; }
 
 @keyframes shake {
   0% { transform: translate(0,0); }
@@ -300,76 +390,46 @@ body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial
   100% { transform: translate(0,0); }
 }
 
-/* Bubble */
-.bubble{
+.character.carrying::after{
+  content: attr(data-carry);
   position:absolute;
-  top:-22px;
+  top:-18px;
   left:50%;
-  transform: translateX(-50%);
-  display:grid;
-  place-items:center;
-  width:34px; height:34px;
-  border-radius:999px;
-  background: rgba(255,255,255,0.95);
-  color:#111;
-  font-weight:900;
-  border:2px solid rgba(0,0,0,0.15);
-  box-shadow: 0 10px 18px rgba(0,0,0,0.25);
+  transform:translateX(-50%);
+  font-size:18px;
 }
-.ring{
-  position:absolute;
-  inset:-5px;
-  border-radius:999px;
-  border:3px solid rgba(245,197,66,0.95);
+
+/* Bubble */
+.bubble {
+  position: absolute;
+  top: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.95);
+  color: #111;
+  font-weight: 900;
+  border: 2px solid rgba(0,0,0,0.15);
+  box-shadow: 0 10px 18px rgba(0,0,0,0.25);
   pointer-events:none;
 }
-
-/* Mobile tweaks */
-@media (max-width: 960px){
-  .grid2{ grid-template-columns: 1fr; }
-  .hotelShots{ grid-template-columns: 1fr; }
-  .shot img{ height: 180px; }
-  .upgradeRow{ grid-template-columns: 1fr; }
-}
-@media (max-width: 420px){
-  .cell{ height:46px; font-size:22px; border-radius:12px; }
-  .hotelMap{ height: 440px; }
-}
-/* ===== CLICK FIX: keep stations/rooms ABOVE overlays ===== */
-.hotelMap { position: relative; }
-
-.oceanSky { z-index: 1; }
-.poolZone { z-index: 1; pointer-events: none; }
-
-.station, .roomTile { 
-  z-index: 5; 
+.ring {
   position: absolute;
+  inset: -5px;
+  border-radius: 999px;
+  border: 3px solid rgba(245, 197, 66, 0.95);
+  pointer-events: none;
 }
 
-#guestLayer { 
-  z-index: 3; 
-  pointer-events: none; 
-}
-
-.guestToken, .bubble, .ring { 
-  pointer-events: none; 
-}
-
-.character { 
-  z-index: 6; 
-}
 /* =========================
-   EMOJI ANIMATIONS (Safari Stay)
-   Paste at END of style.css
+   EMOJI ANIMATIONS + FX
    ========================= */
 
-/* Smooth movement feel */
-.guestToken, .character {
-  transition: left 0.08s linear, top 0.08s linear;
-  will-change: transform, left, top;
-}
-
-/* Guests: gentle bob while moving */
+/* Guests bob gently */
 @keyframes bob {
   0%   { transform: translateY(0) scale(1); }
   50%  { transform: translateY(-2px) scale(1.01); }
@@ -377,7 +437,7 @@ body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial
 }
 .guestToken { animation: bob 0.55s ease-in-out infinite; }
 
-/* VIP glow pulse (when JS adds .vip) */
+/* VIP glow pulse (JS adds .vip) */
 @keyframes vipGlow {
   0%   { box-shadow: 0 0 0 1px rgba(245,197,66,0.25), 0 0 10px rgba(245,197,66,0.18); }
   50%  { box-shadow: 0 0 0 2px rgba(245,197,66,0.55), 0 0 22px rgba(245,197,66,0.35); }
@@ -385,7 +445,7 @@ body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial
 }
 .guestToken.vip { animation: bob 0.55s ease-in-out infinite, vipGlow 1.2s ease-in-out infinite; }
 
-/* Bellboy: tiny bounce */
+/* Bellboy bounce */
 @keyframes bounce {
   0%   { transform: translateY(0); }
   50%  { transform: translateY(-2px); }
@@ -393,7 +453,7 @@ body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial
 }
 .character.bellboy { animation: bounce 0.7s ease-in-out infinite; }
 
-/* Cleaner: sweeping wiggle */
+/* Cleaner sweep wiggle (JS toggles .cleaning) */
 @keyframes sweep {
   0%   { transform: rotate(0deg); }
   25%  { transform: rotate(-2deg); }
@@ -403,7 +463,7 @@ body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial
 }
 .character.cleaner.cleaning { animation: sweep 0.35s linear infinite; }
 
-/* Snack pop when served */
+/* Snack pop */
 @keyframes pop {
   0%   { transform: translateY(0) scale(1); opacity: 1; }
   60%  { transform: translateY(-10px) scale(1.25); opacity: 1; }
@@ -417,7 +477,7 @@ body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial
   pointer-events: none;
 }
 
-/* Coin float on payment */
+/* Coin float */
 @keyframes coinFloat {
   0%   { transform: translateY(0) scale(1); opacity: 1; }
   70%  { transform: translateY(-18px) scale(1.15); opacity: 1; }
@@ -429,6 +489,20 @@ body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial
   font-size: 20px;
   animation: coinFloat 0.65s ease-out forwards;
   pointer-events:none;
+}
+
+/* Mobile tweaks */
+@media (max-width: 960px){
+  .grid2{ grid-template-columns: 1fr; }
+  .hotelShots{ grid-template-columns: 1fr; }
+  .shot img{ height: 180px; }
+  .upgradeRow{ grid-template-columns: 1fr; }
+}
+
+@media (max-width: 420px) {
+  .cell { height: 46px; font-size: 22px; border-radius: 12px; }
+  .hero h1 { font-size: 22px; }
+  .hotelMap{ height: 440px; }
 }
 
 
