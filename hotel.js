@@ -727,18 +727,23 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 
-  function startCleaningRoom(i){
-    if (!cleanerHired) return;
-    if (cleanerStep !== "TAP_ROOM") return;
-    if (!cleaner.carrying) return;
-    if (cleaner.state !== "GOT_DETERGENT" && cleaner.state !== "IDLE") return;
-    if (rooms[i].status !== ROOM_DIRTY) return;
+function startCleaningRoom(i){
+  if (!cleanerHired) return;
+  if (rooms[i].status !== ROOM_DIRTY) return;
 
-    playSound("click");
-    cleaner.selectedRoom = i;
-    cleaner.state = "TO_ROOM";
-    cleaner.target = centerOf(roomEls[i]);
+  // auto-arm cleaner if needed
+  if (!cleaner.carrying){
+    cleaner.state = "GOT_DETERGENT";
+    setCleanerCarry(true);
+    cleanerStep = "TAP_ROOM";
   }
+
+  cleaner.selectedRoom = i;
+  cleaner.state = "TO_ROOM";
+  cleaner.target = centerOf(roomEls[i]);
+  updateHUD();
+}
+
   roomEls.forEach((el, i) => el?.addEventListener("click", () => startCleaningRoom(i)));
 
   function onCleanerArriveRoom(){
