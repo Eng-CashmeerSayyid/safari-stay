@@ -714,17 +714,18 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  stClean?.addEventListener("click", () => {
-    if (!cleanerHired) return;
-    if (cleanerStep !== "TAP_STATION") return;
-    if (cleaner.state !== "IDLE") return;
+ stClean?.addEventListener("click", () => {
+  if (!cleanerHired) return;
 
-    playSound("click");
-    cleaner.state = "GOT_DETERGENT";
-    setCleanerCarry(true);
-    cleanerStep = "TAP_ROOM";
-    updateHUD();
-  });
+  playSound("click");
+
+  // Always "arm" the cleaner even if UI/state got stuck
+  cleaner.state = "GOT_DETERGENT";
+  setCleanerCarry(true);
+  cleanerStep = "TAP_ROOM";
+  updateHUD();
+});
+
 
   function startCleaningRoom(i){
     if (!cleanerHired) return;
