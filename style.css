@@ -282,6 +282,41 @@ body{
   100%{ transform: rotate(0deg); }
 }
 .scrub{ animation: scrub .5s ease-in-out; }
+/* ===== Manual delivery + orders panel ===== */
+.npc-emoji{ cursor:pointer; }
+.room{ cursor:pointer; }
+
+.orders-panel{
+  margin: 0 14px 12px;
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.08);
+  display: grid;
+  gap: 10px;
+}
+.order-row{
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: rgba(0,0,0,.14);
+  border: 1px solid rgba(255,255,255,.06);
+  display: grid;
+  gap: 4px;
+}
+
+.upgrade-mini{
+  margin: 0 14px 14px;
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.08);
+}
+.upgrade-mini-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+}
 
 
 
