@@ -216,7 +216,9 @@
     const box = document.getElementById("errBox");
     const txt = document.getElementById("errText");
     box.style.display = "block";
-    txt.textContent = (e.message || "Unknown error") + "\n" + (e.filename || "") + ":" + (e.lineno || "") + ":" + (e.colno || "");
+    txt.textContent =
+      (e.message || "Unknown error") + "\n" +
+      (e.filename || "") + ":" + (e.lineno || "") + ":" + (e.colno || "");
   });
 
   // DOM
@@ -228,13 +230,21 @@
   const selectedEl = document.getElementById("selected");
   const toastEl = document.getElementById("toast");
 
-  // Config
+  // ===== CONFIG =====
   const CLEAN_TIME_MS = 3000;
-  const ORDER_APPEAR_MS = 1600;
-  const ORDER_TOTAL_MS  = 12000;
-  const ANGRY_LEAVE_MS  = 9000;
+
+  // Order timing (staggered + controlled)
+  const ORDER_MIN_DELAY_MS = 3500;
+  const ORDER_MAX_DELAY_MS = 9500;
+  const MAX_ACTIVE_ORDERS  = 2;
+
+  const ORDER_TOTAL_MS  = 12000;     // time before "angry"
+  const ANGRY_LEAVE_MS  = 9000;      // extra grace (keeps your current design)
   const DELIVERY_TRAVEL_MS = 1200;
   const POST_DELIVERY_STAY_MS = 4500;
+
+  // Mood timing (slower + cute)
+  const MOOD_STEP_MS = 650;
 
   const MENU = {
     juice:  { label:"🥤 Juice",  price:5 },
@@ -242,15 +252,25 @@
     coffee: { label:"☕ Coffee", price:7 }
   };
 
-  const SAVE_KEY = "mombasa_rooms_fix_v1";
+  const SAVE_KEY = "mombasa_rooms_fix_v2";
 
-  // State
+  // ===== STATE =====
   let coins = 0, cleaners = 1, queue = 0, selected = null;
   let bellboy = { busy:false, roomId:null, item:null };
   let cleaningInProgress = 0;
   let guestSeq = 1;
 
-  let rooms = [1,2,3,4].map(id => ({ id, status:"clean", guestId:null, order:null, timers:{} }));
+  let rooms = [1,2,3,4].map(id => ({
+    id,
+    status:"clean",    // clean | occupied | dirty | cleaning
+    guestId:null,
+    order:null,
+    mood:"",           // 😋 😍 etc
+    moodUntil:0,
+    timers:{}
+  }));
+
+  function rand(min, max){ return Math.floor(Math.random()*(max-min+1))+min; }
 
   function toast(msg){
     toastEl.style.display = "block";
@@ -260,11 +280,14 @@
   }
 
   function save(){
+    // Only save safe bits (no pending timers)
     const safeRooms = rooms.map(r => ({
-      id:r.id, status:r.status, guestId:r.guestId,
-      order: (r.order && r.order.status === "delivered") ? r.order : null
+      id:r.id,
+      status:r.status,
+      guestId:r.guestId,
+      order:(r.order && r.order.status==="delivered") ? r.order : null
     }));
-    localStorage.setItem(SAVE_KEY, JSON.stringify({ coins, cleaners, queue, guestSeq, rooms: safeRooms }));
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ coins, cleaners, queue, guestSeq, rooms:safeRooms }));
   }
 
   function load(){
@@ -278,9 +301,19 @@
       queue = Number(d.queue) || 0;
       guestSeq = Number(d.guestSeq) || 1;
 
-      rooms = (d.rooms || []).map(r => ({ ...r, order: null, timers:{} }));
+      rooms = (d.rooms || []).map(r => ({
+        id:r.id,
+        status:r.status || "clean",
+        guestId:r.guestId || null,
+        order:null,
+        mood:"",
+        moodUntil:0,
+        timers:{}
+      }));
       // Force 4 rooms always
-      rooms = [1,2,3,4].map(id => rooms.find(x=>x.id===id) || ({ id, status:"clean", guestId:null, order:null, timers:{} }));
+      rooms = [1,2,3,4].map(id => rooms.find(x=>x.id===id) || ({
+        id, status:"clean", guestId:null, order:null, mood:"", moodUntil:0, timers:{}
+      }));
     }catch(_){}
   }
 
@@ -297,6 +330,16 @@
     return [status.toUpperCase(),""];
   }
 
+  function activeOrderCount(){
+    return rooms.filter(r => r.order && (r.order.status==="waiting" || r.order.status==="delivering")).length;
+  }
+
+  function clearRoomTimers(r){
+    clearTimeout(r.timers.orderAppear);
+    clearTimeout(r.timers.angryLeave);
+    clearTimeout(r.timers.checkout);
+  }
+
   function assignGuests(){
     if(queue <= 0) return;
     const free = rooms.find(r => r.status==="clean" && r.guestId===null);
@@ -306,12 +349,14 @@
     free.status = "occupied";
     free.guestId = guestSeq++;
     free.order = null;
+    free.mood = "";
+    free.moodUntil = 0;
 
-    clearTimeout(free.timers.orderAppear);
-    clearTimeout(free.timers.angryLeave);
-    clearTimeout(free.timers.checkout);
+    clearRoomTimers(free);
 
-    free.timers.orderAppear = setTimeout(() => createOrder(free.id), ORDER_APPEAR_MS);
+    // stagger order appearance
+    const delay = rand(ORDER_MIN_DELAY_MS, ORDER_MAX_DELAY_MS);
+    free.timers.orderAppear = setTimeout(() => createOrder(free.id), delay);
 
     render();
   }
@@ -326,11 +371,23 @@
     const r = rooms.find(x=>x.id===roomId);
     if(!r || r.status!=="occupied" || r.order) return;
 
+    // Limit: only allow 1–2 active orders at once
+    if(activeOrderCount() >= MAX_ACTIVE_ORDERS){
+      clearTimeout(r.timers.orderAppear);
+      r.timers.orderAppear = setTimeout(() => createOrder(roomId), rand(1500, 3500));
+      return;
+    }
+
     const keys = Object.keys(MENU);
     const itemKey = keys[Math.floor(Math.random()*keys.length)];
     const now = Date.now();
 
-    r.order = { itemKey, status:"waiting", createdAt: now, deadlineAt: now + ORDER_TOTAL_MS };
+    r.order = {
+      itemKey,
+      status:"waiting",          // waiting | delivering | delivered
+      createdAt: now,
+      deadlineAt: now + ORDER_TOTAL_MS
+    };
 
     clearTimeout(r.timers.angryLeave);
     r.timers.angryLeave = setTimeout(() => angryLeave(roomId), ORDER_TOTAL_MS + ANGRY_LEAVE_MS);
@@ -345,7 +402,7 @@
     if(!r.order || r.order.status!=="waiting") return;
 
     toast(`Guest in Room ${roomId} left angry 😠💨`);
-    r.status="dirty"; r.guestId=null; r.order=null;
+    r.status="dirty"; r.guestId=null; r.order=null; r.mood=""; r.moodUntil=0;
     render();
     assignGuests();
   }
@@ -356,20 +413,50 @@
     toast(`Selected ${MENU[key].label}. Click the room.`);
   }
 
+  function setMood(roomId, steps){
+    const r = rooms.find(x=>x.id===roomId);
+    if(!r) return;
+
+    let i = 0;
+    const run = () => {
+      const rr = rooms.find(x=>x.id===roomId);
+      if(!rr || rr.status!=="occupied") return;
+
+      rr.mood = steps[i];
+      rr.moodUntil = Date.now() + MOOD_STEP_MS + 80;
+      render();
+
+      i++;
+      if(i < steps.length) setTimeout(run, MOOD_STEP_MS);
+    };
+    run();
+  }
+
   function attemptDelivery(roomId){
     const r = rooms.find(x=>x.id===roomId);
     if(!r) return;
 
+    if(!selected){ toast("Pick a snack first 🍟🥤☕"); return; }
     if(bellboy.busy){ toast("Bellboy is busy."); return; }
     if(r.status!=="occupied"){ toast("No guest here."); return; }
     if(!r.order || r.order.status!=="waiting"){ toast("No waiting order."); return; }
-    if(r.order.itemKey !== selected){ toast(`Wrong item. Ordered ${MENU[r.order.itemKey].label}`); return; }
+
+    // Strict match (your original behavior)
+    if(r.order.itemKey !== selected){
+      toast(`Wrong item. Ordered ${MENU[r.order.itemKey].label}`);
+      return;
+    }
 
     clearTimeout(r.timers.angryLeave);
     r.order.status = "delivering";
 
-    bellboy.busy = true; bellboy.roomId = roomId; bellboy.item = selected;
-    selected = null; selectedEl.textContent = "None";
+    bellboy.busy = true;
+    bellboy.roomId = roomId;
+    bellboy.item = selected;
+
+    // clear selected immediately (prevents double-click confusion)
+    selected = null;
+    selectedEl.textContent = "None";
 
     render();
     toast("Bellboy delivering… 🤵");
@@ -378,11 +465,15 @@
       const room = rooms.find(x=>x.id===roomId);
       if(!room || room.status!=="occupied" || !room.order){
         bellboy.busy=false; bellboy.roomId=null; bellboy.item=null;
-        render(); return;
+        render();
+        return;
       }
 
       room.order.status="delivered";
       coins += MENU[bellboy.item].price;
+
+      // cute reaction 😋 then 😍
+      setMood(roomId, ["😋","😍"]);
 
       bellboy.busy=false; bellboy.roomId=null; bellboy.item=null;
 
@@ -399,8 +490,8 @@
     if(!r || r.status!=="occupied") return;
     if(!r.order || r.order.status!=="delivered") return;
 
-    coins += 10;
-    r.status="dirty"; r.guestId=null; r.order=null;
+    coins += 10; // bonus for completed service
+    r.status="dirty"; r.guestId=null; r.order=null; r.mood=""; r.moodUntil=0;
     render();
     assignGuests();
   }
@@ -464,7 +555,7 @@
 
       const card = document.createElement("div");
       card.className = "room";
-      card.addEventListener("click", () => { if(selected) attemptDelivery(r.id); });
+      card.addEventListener("click", () => attemptDelivery(r.id));
 
       const head = document.createElement("div");
       head.className = "roomHead";
@@ -484,10 +575,12 @@
         const v = orderVisual(r.order);
         const itemLabel = MENU[r.order.itemKey].label;
 
+        const moodNow = (r.moodUntil && Date.now() < r.moodUntil && r.mood) ? ` ${r.mood}` : "";
+
         tag.textContent =
           r.order.status==="waiting" ? `Order: ${itemLabel}` :
           r.order.status==="delivering" ? `Delivering: ${itemLabel}` :
-          `Delivered ✅`;
+          `Delivered ✅${moodNow}`;
 
         const ring = document.createElement("div");
         ring.className = "timerRing" + (v.pulse ? " pulse" : "");
@@ -539,10 +632,14 @@
   load();
   render();
   setInterval(assignGuests, 650);
+
+  // Re-render to keep timer ring smooth during waiting/delivering
   setInterval(() => {
     if (rooms.some(r => r.order && (r.order.status==="waiting" || r.order.status==="delivering"))) render();
   }, 250);
+
 })();
 </script>
 </body>
 </html>
+
