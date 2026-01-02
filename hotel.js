@@ -1,14 +1,10 @@
 /* =========================================================
    SAFARI STAY — MOMBASA (Hotel + Puzzle)
-   Full copy-paste working version with:
-   - Puzzle tab
-   - Spawn animation
-   - Auto check-in
-   - Clean -> auto fill
-   - Unlocks
+   RULES:
+   ✅ Checkout = AUTOMATIC (timer)
+   ✅ Cleaning = MANUAL (click Clean / Clean Dirty Rooms)
    ========================================================= */
 
-/* ---------- Safe element getter ---------- */
 const $ = (id) => document.getElementById(id);
 
 /* ---------- Storage keys ---------- */
@@ -32,6 +28,10 @@ const CLEAN_REWARD = 1;
 
 const SNACK1 = 2, SNACK2 = 2, SNACK3 = 3;
 
+/* ---------- NEW: automatic checkout timing ---------- */
+// Change this to make guests stay longer/shorter (milliseconds)
+const STAY_MS = 8000; // 8 seconds (try 12000 for 12 seconds)
+
 /* ---------- Hotel state ---------- */
 let coins = Number(localStorage.getItem(KEY.coins)) || 0;
 let rating = Number(localStorage.getItem(KEY.rating)) || 5.0;
@@ -42,7 +42,10 @@ let queueCount = Number(localStorage.getItem(KEY.queue)) || 0;
 let oceanUnlocked = localStorage.getItem(KEY.ocean) === "true";
 let poolUnlocked  = localStorage.getItem(KEY.pool) === "true";
 
-let rooms = []; // {id,status:"free"|"busy"|"dirty", guestEmoji:"" }
+/*
+  Rooms: { id, status:"free"|"busy"|"dirty", guestEmoji:"", checkoutTimer:null }
+*/
+let rooms = [];
 const GUESTS = ["🧍🏾‍♂️","🧍🏾‍♀️","👩🏾‍🦱","👨🏾‍🦱","🧕🏾","👩🏾‍🦳","👨🏾‍🦰","🧑🏾‍🦱"];
 
 /* ---------- Puzzle state ---------- */
@@ -110,7 +113,7 @@ renderAll();
 initPuzzle(true);
 wireEvents();
 
-// auto-serve loop
+// Auto-serve loop (ONLY checks in to FREE rooms — will never clean rooms)
 setInterval(() => {
   autoServeIfPossible();
   updateButtons();
@@ -138,7 +141,10 @@ function wireEvents(){
 
   el.btnSpawn.addEventListener("click", spawnGuest);
   el.btnServeNext.addEventListener("click", serveNext);
+
+  // MANUAL cleaning only
   el.btnCleanAll.addEventListener("click", cleanAllDirty);
+
   el.btnAddRoom.addEventListener("click", addRoom);
   el.btnReset.addEventListener("click", hardReset);
 
@@ -153,12 +159,22 @@ function wireEvents(){
 }
 
 /* =======================
-   Hotel logic
+   Hotel core
    ======================= */
 function initRooms(){
+  // clear timers if any existed
+  rooms.forEach(r => clearRoomTimer(r));
+
   rooms = [];
   for(let i=1;i<=roomCount;i++){
-    rooms.push({ id:i, status:"free", guestEmoji:"" });
+    rooms.push({ id:i, status:"free", guestEmoji:"", checkoutTimer:null });
+  }
+}
+
+function clearRoomTimer(roomObj){
+  if(roomObj && roomObj.checkoutTimer){
+    clearTimeout(roomObj.checkoutTimer);
+    roomObj.checkoutTimer = null;
   }
 }
 
@@ -189,11 +205,7 @@ function renderQueue(){
     const span = document.createElement("span");
     span.textContent = "🧍🏾";
     span.style.fontSize = "22px";
-
-    // NEW: newest guest bounces
-    if(i === queueCount - 1){
-      span.classList.add("bounce");
-    }
+    if(i === queueCount - 1) span.classList.add("bounce"); // spawn animation
     el.queueLine.appendChild(span);
   }
 }
@@ -213,15 +225,22 @@ function renderRooms(){
     name.textContent = `Room ${r.id}`;
 
     const badge = document.createElement("div");
-    badge.className = "badge " + (r.status === "free" ? "ok" : (r.status === "dirty" ? "dirty" : "busy"));
-    badge.textContent = (r.status === "free") ? "READY" : (r.status === "busy") ? "OCCUPIED" : "DIRTY";
+    badge.className =
+      "badge " + (r.status === "free" ? "ok" : (r.status === "dirty" ? "dirty" : "busy"));
+    badge.textContent =
+      (r.status === "free") ? "READY" :
+      (r.status === "busy") ? "OCCUPIED" :
+      "DIRTY";
 
     top.appendChild(name);
     top.appendChild(badge);
 
     const guest = document.createElement("div");
     guest.className = "room-guest";
-    guest.textContent = (r.status === "busy") ? r.guestEmoji : (r.status === "dirty") ? "🧼" : "✨";
+    guest.textContent =
+      (r.status === "busy") ? r.guestEmoji :
+      (r.status === "dirty") ? "🧼" :
+      "✨";
 
     const actions = document.createElement("div");
     actions.className = "room-actions";
@@ -232,12 +251,15 @@ function renderRooms(){
     btnCheckin.disabled = !(r.status === "free" && queueCount > 0);
     btnCheckin.addEventListener("click", () => checkInToRoom(idx));
 
+    // ✅ Checkout button is now optional (kept for testing / emergency)
+    // You can remove this button later if you want.
     const btnCheckout = document.createElement("button");
     btnCheckout.className = "btn tiny";
-    btnCheckout.textContent = "Checkout";
+    btnCheckout.textContent = "Force Checkout";
     btnCheckout.disabled = (r.status !== "busy");
-    btnCheckout.addEventListener("click", () => checkoutGuest(idx));
+    btnCheckout.addEventListener("click", () => autoCheckoutRoom(idx, true));
 
+    // ✅ Manual cleaning
     const btnClean = document.createElement("button");
     btnClean.className = "btn tiny";
     btnClean.textContent = "Clean";
@@ -285,7 +307,7 @@ function findFirstRoom(status){
 function spawnGuest(){
   queueCount++;
   hint(`Guest arrived! Queue: ${queueCount}`);
-  bounce(el.bellBoy); // bellboy animation is back
+  bounce(el.bellBoy);
   renderAll();
   autoServeIfPossible();
 }
@@ -297,13 +319,14 @@ function serveNext(){
   }
   const freeIndex = findFirstRoom("free");
   if(freeIndex === -1){
-    hint("No free rooms. Checkout/clean first.");
+    hint("No free rooms. Clean dirty rooms first.");
     return;
   }
   checkInToRoom(freeIndex);
 }
 
 function autoServeIfPossible(){
+  // Only checks in to FREE rooms
   while(queueCount > 0){
     const freeIndex = findFirstRoom("free");
     if(freeIndex === -1) break;
@@ -319,18 +342,33 @@ function checkInToRoom(roomIndex){
   r.status = "busy";
   r.guestEmoji = GUESTS[Math.floor(Math.random() * GUESTS.length)];
 
+  // reward
   const bonus = (oceanUnlocked ? 1 : 0) + (poolUnlocked ? 1 : 0);
   coins += (CHECKIN_REWARD + bonus);
   rating = clamp(rating + 0.05, 1.0, 5.0);
 
-  hint(`Check-in complete! +${CHECKIN_REWARD + bonus}🪙`);
+  // ✅ START AUTO CHECKOUT TIMER
+  clearRoomTimer(r);
+  r.checkoutTimer = setTimeout(() => {
+    autoCheckoutRoom(roomIndex, false); // automatic
+  }, STAY_MS);
+
+  hint(`Check-in done! Guest will checkout automatically.`);
   bounce(el.bellBoy);
+
   renderAll();
 }
 
-function checkoutGuest(roomIndex){
+/*
+  ✅ AUTOMATIC CHECKOUT:
+  - When timer ends, room becomes DIRTY
+  - Cleaning remains manual
+*/
+function autoCheckoutRoom(roomIndex, forced){
   const r = rooms[roomIndex];
-  if(r.status !== "busy") return;
+  if(!r || r.status !== "busy") return;
+
+  clearRoomTimer(r);
 
   r.status = "dirty";
   r.guestEmoji = "";
@@ -339,22 +377,26 @@ function checkoutGuest(roomIndex){
   coins += (CHECKOUT_REWARD + bonus);
   rating = clamp(rating + 0.03, 1.0, 5.0);
 
-  hint(`Checked out. Room dirty. +${CHECKOUT_REWARD + bonus}🪙`);
+  hint(forced ? `Forced checkout → room DIRTY.` : `Guest checked out → room DIRTY.`);
   renderAll();
+
+  // IMPORTANT: DO NOT auto-clean here.
+  // IMPORTANT: Guests will NOT take dirty rooms.
 }
 
+/* ✅ Manual clean only */
 function cleanRoom(roomIndex){
   const r = rooms[roomIndex];
-  if(r.status !== "dirty") return;
+  if(!r || r.status !== "dirty") return;
 
   scrub(el.cleanerGirl);
   r.status = "free";
   coins += CLEAN_REWARD;
 
-  hint(`Room cleaned! +${CLEAN_REWARD}🪙`);
+  hint(`Room cleaned! Now it can accept a new guest.`);
   renderAll();
 
-  // KEY: after clean -> auto fill
+  // After manual cleaning, it can auto-fill from queue (that’s OK)
   autoServeIfPossible();
 }
 
@@ -364,6 +406,7 @@ function cleanAllDirty(){
     hint("No dirty rooms.");
     return;
   }
+
   scrub(el.cleanerGirl);
   rooms.forEach(r => {
     if(r.status === "dirty"){
@@ -371,8 +414,11 @@ function cleanAllDirty(){
       coins += CLEAN_REWARD;
     }
   });
-  hint(`Cleaned ${dirty} room(s)! +${dirty * CLEAN_REWARD}🪙`);
+
+  hint(`Cleaned ${dirty} room(s)!`);
   renderAll();
+
+  // After manual clean all, allow queue to fill free rooms
   autoServeIfPossible();
 }
 
@@ -381,10 +427,13 @@ function addRoom(){
     hint(`Need ${ROOM_BUILD_COST}🪙 to build a room.`);
     return;
   }
+
   coins -= ROOM_BUILD_COST;
   roomCount++;
-  rooms.push({ id:roomCount, status:"free", guestEmoji:"" });
+
+  rooms.push({ id: roomCount, status:"free", guestEmoji:"", checkoutTimer:null });
   hint(`Built Room ${roomCount}!`);
+
   renderAll();
   autoServeIfPossible();
 }
@@ -472,7 +521,7 @@ function updateButtons(){
 
 /* =======================
    Puzzle (Match-3)
-   - Each valid move: +1 coin
+   Each valid move gives +1 coin
    ======================= */
 function initPuzzle(forceNew=false){
   if(forceNew){
@@ -483,7 +532,6 @@ function initPuzzle(forceNew=false){
 
   board = new Array(TOTAL).fill(null).map(randTile);
 
-  // avoid starting matches
   for(let i=0;i<TOTAL;i++){
     while(hasMatchAt(i)){
       board[i] = randTile();
@@ -495,7 +543,7 @@ function initPuzzle(forceNew=false){
 }
 
 function renderPuzzle(){
-  if(!el.grid) return; // safety
+  if(!el.grid) return;
   el.grid.innerHTML = "";
   for(let i=0;i<TOTAL;i++){
     const cell = document.createElement("div");
@@ -545,20 +593,16 @@ function onCellClick(i){
     return;
   }
 
-  // valid move -> coin
   moves--;
   coins += 1;
   puzzleCoinsEarned += 1;
 
   selectedIndex = null;
   renderAll();
-  cascadeClear().then(() => {
-    isBusy = false;
-  });
+  cascadeClear().then(() => { isBusy = false; });
 }
 
 function highlightSelected(){
-  // re-render, then mark selected
   renderPuzzle();
   if(selectedIndex !== null && el.grid && el.grid.children[selectedIndex]){
     el.grid.children[selectedIndex].classList.add("selected");
@@ -590,7 +634,6 @@ async function cascadeClear(){
 function findMatches(){
   const matched = new Set();
 
-  // horizontal
   for(let r=0;r<WIDTH;r++){
     let start = r*WIDTH;
     let len = 1;
@@ -606,7 +649,6 @@ function findMatches(){
     if(len >= 3) for(let k=0;k<len;k++) matched.add(start+k);
   }
 
-  // vertical
   for(let c=0;c<WIDTH;c++){
     let start = c;
     let len = 1;
@@ -684,6 +726,8 @@ function sleep(ms){ return new Promise(res => setTimeout(res, ms)); }
 function hardReset(){
   Object.values(KEY).forEach(k => localStorage.removeItem(k));
 
+  rooms.forEach(r => clearRoomTimer(r));
+
   coins = 0;
   rating = 5.0;
   roomCount = 2;
@@ -697,6 +741,7 @@ function hardReset(){
   hint("Reset done.");
   renderAll();
 }
+
 
 
 
