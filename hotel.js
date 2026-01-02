@@ -25,9 +25,9 @@ const STAY_MS  = 10000; // guest stays 10s then auto-checkout
 const CLEAN_MS = 3000;  // cleaning takes 3s
 
 /* ---------- Auto snack orders ---------- */
-const ORDER_MIN_MS = 6000;   // earliest next order attempt
-const ORDER_MAX_MS = 12000;  // latest next order attempt
-const ORDER_CHANCE = 0.45;   // 45% chance a guest orders when timer fires (not everyone)
+const ORDER_MIN_MS = 1000;   // 1s
+const ORDER_MAX_MS = 3000;   // 3s
+const ORDER_CHANCE = 0.80;   // 80% (for testing)
 const DELIVERY_MS  = 1200;   // bellboy delivery time
 
 const ORDER_MENU = [
