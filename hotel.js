@@ -1,4 +1,4 @@
-/* SAFARI STAY — MOMBASA (VERSION: v6-manual-bellboy-orders) */
+/* SAFARI STAY — MOMBASA (VERSION: v6-manual-bellboy-orders + puzzle) */
 const $ = (id) => document.getElementById(id);
 
 /* ---------- Storage ---------- */
@@ -9,7 +9,7 @@ const KEY = {
   ocean: "mombasaOceanUnlocked",
   pool: "mombasaPoolUnlocked",
   rating: "mombasaRating",
-  speed: "mombasaDeliverySpeedLevel" // ✅ new
+  speed: "mombasaDeliverySpeedLevel"
 };
 
 /* ---------- Balance ---------- */
@@ -25,22 +25,22 @@ const CLEAN_REWARD    = 1;
 const STAY_MS  = 10000; // guest stays 10s then auto-checkout
 const CLEAN_MS = 3000;  // cleaning takes 3s
 
-/* ---------- Snack orders (NOT everyone) ---------- */
-/* ✅ Staggered: 2–8s after check-in */
+/* ---------- Orders ---------- */
+/* ✅ Staggered order time: 2–8s */
 const ORDER_MIN_MS = 2000;
 const ORDER_MAX_MS = 8000;
 
-/* ✅ Realistic chance (not everyone orders) */
-const ORDER_CHANCE = 0.35; // 35% per guest
+/* ✅ Not everyone orders */
+const ORDER_CHANCE = 0.35;
 
-/* ✅ Global throttle so you never have chaos */
+/* ✅ Throttle: max pending orders globally */
 const MAX_PENDING_ORDERS = 2;
 
-/* ✅ Menu includes delivery time (burger = 3s) */
+/* Snack menu: includes base delivery time */
 const ORDER_MENU = [
-  { key:"mango",     icon:"🥭", label:"Mango",     coins:2, ms:1200 },
-  { key:"pineapple", icon:"🍍", label:"Pineapple", coins:2, ms:2000 },
-  { key:"icecream",  icon:"🍦", label:"IceCream",  coins:3, ms:3000 }, // ~3s
+  { key: "mango",     icon: "🥭", label: "Mango Juice", coins: 2, ms: 1200 },
+  { key: "pineapple", icon: "🍍", label: "Pineapple",  coins: 2, ms: 2000 },
+  { key: "icecream",  icon: "🍦", label: "Ice Cream",  coins: 3, ms: 3000 }, // ~3s
 ];
 
 /* ---------- Delivery speed upgrade ---------- */
@@ -58,7 +58,7 @@ let rating = Number(localStorage.getItem(KEY.rating)) || 5.0;
 /* ✅ FORCE minimum 4 rooms even if localStorage saved 2 */
 let roomCount = Number(localStorage.getItem(KEY.rooms)) || 0;
 roomCount = Math.max(4, roomCount);
-localStorage.setItem(KEY.rooms, String(roomCount)); // write back so it stays 4+
+localStorage.setItem(KEY.rooms, String(roomCount)); // keep 4+
 
 let queueCount = Number(localStorage.getItem(KEY.queue)) || 0;
 
@@ -72,7 +72,7 @@ let poolUnlocked  = localStorage.getItem(KEY.pool) === "true";
     checkoutTimer, cleanTimer, orderTimer,
     order: null | menuItem,
     isDelivering: boolean,
-    orderedThisStay: boolean  ✅ new (prevents endless retries)
+    orderedThisStay: boolean (prevents endless retries)
   }
 */
 let rooms = [];
@@ -122,6 +122,11 @@ const el = {
   btnUnlockPool: $("btnUnlockPool"),
   vibesPreview: $("vibesPreview"),
 
+  // ✅ added by updated HTML (if present)
+  ordersPanel: $("ordersPanel"),
+  btnSpeedUp: $("btnSpeedUp"),
+  speedLevelText: $("speedLevelText"),
+
   grid: $("grid"),
   movesText: $("movesText"),
   scoreText: $("scoreText"),
@@ -129,17 +134,18 @@ const el = {
   btnNewPuzzle: $("btnNewPuzzle")
 };
 
-/* ---------- Init ---------- */
+/* ---------- Init costs text ---------- */
 $("roomCostText") && ($("roomCostText").textContent = ROOM_BUILD_COST);
 $("oceanCostText") && ($("oceanCostText").textContent = OCEAN_COST);
 $("poolCostText")  && ($("poolCostText").textContent  = POOL_COST);
 
+/* ---------- Start ---------- */
 initRooms();
 renderAll();
 initPuzzle(true);
 wireEvents();
 
-/* ✅ Interval: keep auto-serve + UI update ONLY (no auto delivery) */
+/* ✅ Interval: auto serve + update buttons (NO auto delivery) */
 setInterval(() => {
   autoServeIfPossible();
   updateButtons();
@@ -161,15 +167,13 @@ function showPuzzle(){
 
 /* ================== Bellboy manual state ================== */
 const bellboy = {
-  mode: "idle",          // idle | pickSnack | pickRoom | delivering
-  selectedKey: null      // snack key chosen
+  mode: "idle",       // idle | pickSnack | pickRoom | delivering
+  selectedKey: null
 };
 
-function setBellHint(msg){
-  hint(msg);
-}
+let deliveryLock = false;
 
-/* ================== Events ================== */
+/* ================== Wire events ================== */
 function wireEvents(){
   el.tabHotel?.addEventListener("click", showHotel);
   el.tabPuzzle?.addEventListener("click", showPuzzle);
@@ -181,22 +185,23 @@ function wireEvents(){
   el.btnAddRoom?.addEventListener("click", addRoom);
   el.btnReset?.addEventListener("click", hardReset);
 
-  // ✅ snack buttons now do TWO things:
-  // - if bellboy is active -> select snack for delivery
-  // - otherwise -> sellManualSnack still works (optional)
+  // Snacks: if bellboy is active -> select snack; otherwise -> manual sell
   el.btnSnack1?.addEventListener("click", () => onSnackButton("mango"));
   el.btnSnack2?.addEventListener("click", () => onSnackButton("pineapple"));
   el.btnSnack3?.addEventListener("click", () => onSnackButton("icecream"));
 
-  // ✅ bellboy click arms delivery
+  // Bellboy click arms delivery mode
   el.bellBoy?.addEventListener("click", () => {
     if (bellboy.mode === "delivering") return hint("Bellboy is busy...");
     bellboy.mode = "pickSnack";
     bellboy.selectedKey = null;
     bounce(el.bellBoy);
-    hint("Bellboy ready ✅ Click a snack, then click a room with that order.");
-    renderRooms(); // so rooms can show highlight if you later want
+    hint("Bellboy ready ✅ Click a snack, then click the room with that order.");
+    renderRooms();
   });
+
+  // Speed upgrade
+  el.btnSpeedUp?.addEventListener("click", upgradeSpeed);
 
   el.btnUnlockOcean?.addEventListener("click", unlockOcean);
   el.btnUnlockPool?.addEventListener("click", unlockPool);
@@ -217,7 +222,7 @@ function onSnackButton(key){
     return;
   }
 
-  // default behavior if not delivering: optional manual sale
+  // default: manual sell (optional)
   sellManualSnack(item.coins);
 }
 
@@ -249,7 +254,7 @@ function saveState(){
   localStorage.setItem(KEY.ocean, String(oceanUnlocked));
   localStorage.setItem(KEY.pool, String(poolUnlocked));
   localStorage.setItem(KEY.rating, String(rating.toFixed(1)));
-  localStorage.setItem(KEY.speed, String(speedLevel)); // ✅ new
+  localStorage.setItem(KEY.speed, String(speedLevel));
 }
 
 function clearTimers(room){
@@ -259,7 +264,6 @@ function clearTimers(room){
   room.isDelivering = false;
 }
 
-/* random int ms between min/max */
 function randBetween(min,max){
   return Math.floor(Math.random()*(max-min+1))+min;
 }
@@ -278,7 +282,7 @@ function initRooms(){
       orderTimer:null,
       order:null,
       isDelivering:false,
-      orderedThisStay:false // ✅ new
+      orderedThisStay:false
     });
   }
 }
@@ -291,11 +295,13 @@ function renderAll(){
   if(el.coinsText) el.coinsText.textContent = coins;
   if(el.queueText) el.queueText.textContent = queueCount;
   if(el.ratingText) el.ratingText.textContent = rating.toFixed(1);
+  if(el.speedLevelText) el.speedLevelText.textContent = String(speedLevel);
 
   renderQueue();
   renderRooms();
   renderUnlocks();
   updateButtons();
+  renderOrdersPanel();
   saveState();
 }
 
@@ -312,7 +318,25 @@ function renderQueue(){
 }
 
 function pendingOrdersCount(){
-  return rooms.filter(r => r.status==="busy" && r.order).length;
+  return rooms.filter(r => r.status === "busy" && r.order).length;
+}
+
+function renderOrdersPanel(){
+  if(!el.ordersPanel) return;
+  const waiting = rooms.filter(r => r.status === "busy" && r.order);
+  if(waiting.length === 0){
+    el.ordersPanel.innerHTML = `<div class="vibes-placeholder">No pending orders</div>`;
+    return;
+  }
+  el.ordersPanel.innerHTML = waiting.map(r => {
+    return `
+      <div class="order-row">
+        <div><b>Room ${r.id}</b></div>
+        <div>${r.order.icon} ${r.order.label}</div>
+        <div class="small">Manual delivery</div>
+      </div>
+    `;
+  }).join("");
 }
 
 function renderRooms(){
@@ -349,15 +373,14 @@ function renderRooms(){
     const guest = document.createElement("div");
     guest.className = "room-guest";
 
-    // Show guest + order bubble
     if(r.status === "busy"){
       const orderBubble = r.order ? `  ${r.order.icon}` : "";
       guest.textContent = `${r.guestEmoji}${orderBubble}`;
-    }else if(r.status === "dirty"){
+    } else if(r.status === "dirty"){
       guest.textContent = "🧼";
-    }else if(r.status === "cleaning"){
+    } else if(r.status === "cleaning"){
       guest.textContent = "🫧";
-    }else{
+    } else {
       guest.textContent = "✨";
     }
 
@@ -389,7 +412,7 @@ function renderRooms(){
     roomEl.appendChild(guest);
     roomEl.appendChild(actions);
 
-    /* ✅ Manual delivery: click room when bellboy is in pickRoom mode */
+    // ✅ Manual delivery: click room when bellboy is picking room
     roomEl.addEventListener("click", () => {
       if (bellboy.mode !== "pickRoom") return;
 
@@ -442,7 +465,7 @@ function checkInToRoom(roomIndex){
   r.guestEmoji = GUESTS[Math.floor(Math.random() * GUESTS.length)];
   r.order = null;
   r.isDelivering = false;
-  r.orderedThisStay = false; // ✅ reset per guest
+  r.orderedThisStay = false;
 
   const bonus = (oceanUnlocked ? 1 : 0) + (poolUnlocked ? 1 : 0);
   coins += (CHECKIN_REWARD + bonus);
@@ -475,7 +498,6 @@ function autoCheckout(roomIndex){
   coins += (CHECKOUT_REWARD + bonus);
   rating = clamp(rating + 0.03, 1.0, 5.0);
 
-  // If bellboy was mid-selection, keep it but room has no order now
   hint("Auto checkout ✅ → room DIRTY");
   renderAll();
 }
@@ -517,15 +539,13 @@ function cleanAllDirty(){
   dirty.forEach(x => startCleaning(x.i));
 }
 
-/* ================== Orders (NOT everyone + stagger + throttle) ================== */
+/* ================== Orders: stagger + chance + throttle ================== */
 function scheduleOneOrderAttempt(roomIndex){
   const r = rooms[roomIndex];
   if(!r || r.status !== "busy") return;
 
-  // Already tried once for this guest
-  if (r.orderedThisStay) return;
-
-  // Too many pending orders globally? still allow attempt later? we keep it simple: skip
+  if (r.orderedThisStay) return;        // already had a chance
+  if (r.order) return;                 // already has order
   if (pendingOrdersCount() >= MAX_PENDING_ORDERS) return;
 
   const wait = randBetween(ORDER_MIN_MS, ORDER_MAX_MS);
@@ -537,31 +557,22 @@ function scheduleOneOrderAttempt(roomIndex){
 function tryCreateSingleOrder(roomIndex){
   const r = rooms[roomIndex];
   if(!r || r.status !== "busy") return;
-
-  // If already has order, stop
   if (r.order) return;
 
-  // Mark that this guest had their chance (so we don't loop forever)
+  // Mark this guest used their chance -> prevents infinite retries
   r.orderedThisStay = true;
 
-  // Respect global throttle
   if (pendingOrdersCount() >= MAX_PENDING_ORDERS) return;
 
-  // Chance-based
   if (Math.random() < ORDER_CHANCE){
     const item = ORDER_MENU[Math.floor(Math.random() * ORDER_MENU.length)];
     r.order = { ...item };
     hint(`Order in Room ${r.id}: ${item.icon} ${item.label} (manual delivery)`);
-    renderAll();
-  } else {
-    // no order this stay
-    renderAll();
   }
+  renderAll();
 }
 
-/* ================== MANUAL Bellboy Delivery ================== */
-let deliveryLock = false;
-
+/* ================== Manual delivery ================== */
 function startManualDelivery(roomIndex){
   const r = rooms[roomIndex];
   if(!r || r.status !== "busy" || !r.order) return;
@@ -577,12 +588,11 @@ function startManualDelivery(roomIndex){
   hint(`Delivering to Room ${r.id}... (${Math.ceil(ms/1000)}s)`);
 
   setTimeout(() => {
-    // safe check: guest may have checked out
     if(r.status === "busy" && r.order){
       const vibeBonus = (oceanUnlocked ? 1 : 0) + (poolUnlocked ? 1 : 0);
       coins += (r.order.coins + vibeBonus);
       rating = clamp(rating + 0.02, 1.0, 5.0);
-      hint(`Delivered ${r.order.icon} to Room ${r.id} ✅ +${r.order.coins + vibeBonus}🪙`);
+      hint(`Delivered ${r.order.icon} ✅ +${r.order.coins + vibeBonus}🪙`);
       r.order = null;
     } else {
       hint("Delivery canceled (guest left).");
@@ -591,7 +601,6 @@ function startManualDelivery(roomIndex){
     r.isDelivering = false;
     deliveryLock = false;
 
-    // reset bellboy
     bellboy.mode = "idle";
     bellboy.selectedKey = null;
 
@@ -620,7 +629,7 @@ function addRoom(){
   autoServeIfPossible();
 }
 
-/* ================== Manual snack sell buttons (optional) ================== */
+/* ================== Manual snack sell (optional) ================== */
 function busyRoomsCount(){ return rooms.filter(r => r.status === "busy").length; }
 function sellManualSnack(amount){
   if(busyRoomsCount() <= 0) return hint("No guests checked in.");
@@ -629,6 +638,18 @@ function sellManualSnack(amount){
   rating = clamp(rating + 0.02, 1.0, 5.0);
   renderAll();
   hint(`Snack sold! +${amount + bonus}🪙`);
+}
+
+/* ================== Speed upgrade ================== */
+function upgradeSpeed(){
+  // Optional: add cost if you want
+  // const cost = 30 + speedLevel*20;
+  // if (coins < cost) return hint(`Need ${cost}🪙`);
+  // coins -= cost;
+
+  speedLevel++;
+  hint(`Delivery speed upgraded ⚡ (Level ${speedLevel})`);
+  renderAll();
 }
 
 /* ================== Unlocks ================== */
@@ -837,19 +858,18 @@ function hardReset(){
   rooms.forEach(clearTimers);
 
   coins = 0; rating = 5.0;
-  roomCount = 4; // ✅ reset to 4
+  roomCount = 4;
   queueCount = 0;
   oceanUnlocked = false; poolUnlocked = false;
   speedLevel = 0;
 
-  localStorage.setItem(KEY.rooms, String(roomCount)); // persist
+  localStorage.setItem(KEY.rooms, String(roomCount));
   initRooms();
   initPuzzle(true);
 
   hint("Reset done (4 rooms).");
   renderAll();
 }
-
 
 
 
