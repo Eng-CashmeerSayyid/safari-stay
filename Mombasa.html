@@ -1,102 +1,188 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Safari Stay – Mombasa Hotel</title>
-  <link rel="stylesheet" href="style.css" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Safari Stay – Mombasa Hotel</title>
+
+<style>
+*{box-sizing:border-box}
+:root{
+  --bg:#0b1220; --text:#eaf1ff; --muted:#9fb3d6;
+  --ok:#7dffb2; --warn:#ffd36e; --bad:#ff7b7b;
+}
+body{
+  margin:0;font-family:system-ui;background:radial-gradient(1200px 600px at 20% 10%,#132a66,#0b1220);
+  color:var(--text);
+}
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:12px;background:#0b1220cc}
+.stats span{margin-right:12px}
+.wrap{max-width:1100px;margin:auto;padding:16px;display:grid;grid-template-columns:360px 1fr;gap:16px}
+.card{background:#0f1b33;border-radius:18px;padding:14px}
+.btn{padding:8px 12px;border-radius:14px;border:none;background:#ffffff15;color:#fff;font-weight:700;cursor:pointer}
+.btn:hover{opacity:.85}
+.menu button{margin:4px}
+.hotelGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.room{background:#ffffff10;border-radius:18px;padding:12px;cursor:pointer}
+.badge{font-size:12px;padding:4px 8px;border-radius:999px}
+.clean{background:#7dffb220}
+.dirty{background:#ff7b7b22}
+.occupied{background:#65d6ff22}
+.cleaning{background:#ffd36e22}
+
+.timer{
+  width:36px;height:36px;border-radius:50%;
+  display:grid;place-items:center;
+  background:conic-gradient(var(--c) calc(var(--p)*1%),#ffffff20 0);
+}
+</style>
 </head>
+
 <body>
+<div class="topbar">
+  <div>🦁 Safari Stay – Mombasa</div>
+  <div class="stats">
+    <span>💰 <span id="coins">0</span></span>
+    <span>🧹 <span id="cleaners">1</span></span>
+    <span>🧍 <span id="queue">0</span></span>
+    <span>🤵 <span id="bellboy">Ready</span></span>
+  </div>
+</div>
 
-  <header class="topbar">
-    <div class="brand">
-      <div class="logo">🦁</div>
-      <div>
-        <div class="title">Safari Stay</div>
-        <div class="subtitle">Mombasa Hotel</div>
+<div class="wrap">
+  <div>
+    <div class="card">
+      <h3>Reception</h3>
+      <button class="btn" onclick="spawnGuest()">➕ Spawn Guest</button>
+      <button class="btn" onclick="hireCleaner()">Hire Cleaner</button>
+      <button class="btn" onclick="resetSave()">Reset Save</button>
+
+      <h3>Snack Corner</h3>
+      <div class="menu">
+        <button class="btn" onclick="selectFood('juice')">🥤 Juice</button>
+        <button class="btn" onclick="selectFood('chips')">🍟 Chips</button>
+        <button class="btn" onclick="selectFood('coffee')">☕ Coffee</button>
       </div>
+      Selected: <span id="selected">None</span>
     </div>
+  </div>
 
-    <div class="stats">
-      <div class="pill">💰 Coins: <span id="coins">0</span></div>
-      <div class="pill">🧹 Cleaners: <span id="cleaners">1</span></div>
-      <div class="pill">🧍 Queue: <span id="queue">0</span></div>
-      <div class="pill">🤵 Bellboy: <span id="bellboy">Ready</span></div>
+  <div>
+    <div class="card">
+      <h3>Your Hotel</h3>
+      <div class="hotelGrid" id="hotel"></div>
     </div>
-  </header>
+  </div>
+</div>
 
-  <main class="wrap">
-    <section class="left">
-      <div class="card">
-        <h2>Reception</h2>
-        <p class="muted">
-          Guests enter the queue automatically. When a room is clean, they check in.
-          Guests stay 10s then check out automatically. You must clean dirty rooms.
-        </p>
+<script>
+let coins=0, cleaners=1, queue=0, selected=null;
+let bellboyBusy=false, cleaning=0;
+let rooms=[1,2,3,4].map(id=>({
+  id,status:"clean",guest:null,order:null,timers:{}
+}));
 
-        <div class="actions">
-          <button id="btnSpawn" class="btn">➕ Spawn Guest</button>
-          <button id="btnHireCleaner" class="btn btnGold">Hire Cleaner (upgrade)</button>
-          <button id="btnReset" class="btn btnDanger">Reset Save</button>
-        </div>
+function save(){localStorage.setItem("mombasa",JSON.stringify({coins,cleaners,queue,rooms}))}
+function load(){
+  const d=JSON.parse(localStorage.getItem("mombasa")||"null");
+  if(!d)return;
+  ({coins,cleaners,queue}=d);
+  rooms=d.rooms.map(r=>({...r,timers:{}}));
+}
+load();
 
-        <div class="divider"></div>
+function resetSave(){localStorage.clear();location.reload()}
 
-        <h3>Snack Corner (Delivery)</h3>
-        <p class="muted small">
-          Step 1: Click a snack. Step 2: Click the room that ordered it.
-        </p>
+function spawnGuest(){queue++;render();assign()}
+function assign(){
+  const room=rooms.find(r=>r.status==="clean"&&!r.guest);
+  if(queue>0&&room){
+    queue--;room.status="occupied";room.guest="🧳";
+    room.timers.order=setTimeout(()=>createOrder(room),1500);
+  }
+}
 
-        <div class="menu" id="menu">
-          <!-- buttons generated by JS -->
-        </div>
+function createOrder(room){
+  if(room.order)return;
+  const food=["juice","chips","coffee"][Math.floor(Math.random()*3)];
+  room.order={food,status:"waiting",start:Date.now()};
+  room.timers.leave=setTimeout(()=>angryLeave(room),21000);
+  render();
+}
 
-        <div class="selected">
-          Selected item: <span id="selectedItem">None</span>
-        </div>
+function angryLeave(room){
+  if(room.order?.status!=="waiting")return;
+  room.status="dirty";room.guest=null;room.order=null;
+  render();
+}
 
-        <div class="toast" id="toast" aria-live="polite"></div>
-      </div>
+function selectFood(f){selected=f;document.getElementById("selected").innerText=f}
 
-      <div class="card">
-        <h2>Upgrades</h2>
-        <div class="upgradeRow">
-          <div>
-            <div class="upgradeTitle">Hire more cleaners</div>
-            <div class="muted small">More cleaners = clean more rooms at the same time.</div>
-          </div>
-          <div class="upgradeCost" id="cleanerCost">Cost: 80</div>
-        </div>
-      </div>
-    </section>
+function clickRoom(room){
+  if(!selected||bellboyBusy)return;
+  if(room.order?.status!=="waiting"||room.order.food!==selected)return;
 
-    <section class="right">
-      <div class="card">
-        <h2>Your Hotel</h2>
-        <div class="hotelGrid" id="hotelGrid">
-          <!-- rooms generated by JS -->
-        </div>
-      </div>
+  bellboyBusy=true;room.order.status="delivering";
+  clearTimeout(room.timers.leave);
+  render();
 
-      <div class="card">
-        <h2>How it works</h2>
-        <ul class="muted small">
-          <li>Room states: <b>Clean</b> → guest checks in → after 10s <b>Dirty</b>.</li>
-          <li>Cleaning is manual and takes <b>3 seconds</b>.</li>
-          <li>With 1 cleaner, you can clean only <b>one room at a time</b>.</li>
-          <li>Orders: some guests order snacks. Deliver by selecting item then clicking room.</li>
-          <li>Bellboy can deliver <b>one order at a time</b>.</li>
-        </ul>
-      </div>
-    </section>
-  </main>
+  setTimeout(()=>{
+    coins+=5;
+    room.order.status="delivered";
+    bellboyBusy=false;
+    render();
+    setTimeout(()=>checkout(room),4000);
+  },1200);
 
-  <script src="hotel.js"></script>
+  selected=null;document.getElementById("selected").innerText="None";
+}
+
+function checkout(room){
+  if(room.order?.status!=="delivered")return;
+  coins+=10;
+  room.status="dirty";room.guest=null;room.order=null;
+  render();
+}
+
+function cleanRoom(room){
+  if(room.status!=="dirty"||cleaning>=cleaners)return;
+  cleaning++;room.status="cleaning";render();
+  setTimeout(()=>{
+    room.status="clean";cleaning--;assign();render();
+  },3000);
+}
+
+function hireCleaner(){
+  if(coins<80)return;
+  coins-=80;cleaners++;render();
+}
+
+function render(){
+  save();
+  coinsEl.innerText=coins;
+  cleanersEl.innerText=cleaners;
+  queueEl.innerText=queue;
+  bellboyEl.innerText=bellboyBusy?"Delivering":"Ready";
+
+  hotel.innerHTML="";
+  rooms.forEach(r=>{
+    const d=document.createElement("div");
+    d.className="room";
+    d.onclick=()=>clickRoom(r);
+    d.innerHTML=`
+      <b>Room ${r.id}</b>
+      <span class="badge ${r.status}">${r.status}</span><br>
+      ${r.order?`Order: ${r.order.food}`:""}
+      <br>
+      ${r.status==="dirty"?`<button class="btn" onclick="event.stopPropagation();cleanRoom(rooms[${r.id-1}])">Clean</button>`:""}
+    `;
+    hotel.appendChild(d);
+  });
+}
+render();
+</script>
 </body>
 </html>
-
-
-
 
 
 
