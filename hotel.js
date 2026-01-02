@@ -1,14 +1,8 @@
-/* =========================================================
-   SAFARI STAY — MOMBASA
-   ✅ Auto checkout after 10s
-   ✅ Manual cleaning takes 3s (CLEANING…)
-   ✅ Start with 4 rooms (default + reset)
-   ✅ "Clean" button cleans ONLY that room
-   ========================================================= */
+/* SAFARI STAY — MOMBASA (VERSION: 2026-01-02 v4rooms-autocheckout-clean3s) */
+alert("Loaded ✅ hotel.js v4rooms-autocheckout-clean3s");
 
 const $ = (id) => document.getElementById(id);
 
-/* ---------- Storage ---------- */
 const KEY = {
   coins: "mombasaCoins",
   rooms: "mombasaRooms",
@@ -18,7 +12,6 @@ const KEY = {
   rating: "mombasaRating"
 };
 
-/* ---------- Balance ---------- */
 const ROOM_BUILD_COST = 50;
 const OCEAN_COST = 120;
 const POOL_COST  = 200;
@@ -29,43 +22,31 @@ const CLEAN_REWARD = 1;
 
 const SNACK1 = 2, SNACK2 = 2, SNACK3 = 3;
 
-/* ✅ Timers requested */
-const STAY_MS  = 10000; // guest stays 10 seconds
-const CLEAN_MS = 3000;  // cleaning takes 3 seconds
+const STAY_MS  = 10000; // 10s
+const CLEAN_MS = 3000;  // 3s
 
-/* ---------- State ---------- */
 let coins = Number(localStorage.getItem(KEY.coins)) || 0;
 let rating = Number(localStorage.getItem(KEY.rating)) || 5.0;
 
-// ✅ Default to 4 rooms if not set
+// default to 4 rooms
 let roomCount = Number(localStorage.getItem(KEY.rooms));
 roomCount = Number.isFinite(roomCount) && roomCount > 0 ? roomCount : 4;
 
 let queueCount = Number(localStorage.getItem(KEY.queue)) || 0;
-
 let oceanUnlocked = localStorage.getItem(KEY.ocean) === "true";
 let poolUnlocked  = localStorage.getItem(KEY.pool) === "true";
 
-/*
-  status: "free" | "busy" | "dirty" | "cleaning"
-  room: { id, status, guestEmoji, checkoutTimer, cleanTimer }
-*/
 let rooms = [];
 const GUESTS = ["🧍🏾‍♂️","🧍🏾‍♀️","👩🏾‍🦱","👨🏾‍🦱","🧕🏾","👩🏾‍🦳","👨🏾‍🦰","🧑🏾‍🦱"];
 
-/* ---------- Puzzle ---------- */
-const WIDTH = 8;
-const TOTAL = WIDTH * WIDTH;
+/* Puzzle */
+const WIDTH = 8, TOTAL = WIDTH * WIDTH;
 const TILES = ["🍍","🥥","🌴","🐚","⭐","🍓"];
-
 let board = new Array(TOTAL).fill(null);
 let selectedIndex = null;
 let isBusy = false;
-let score = 0;
-let moves = 30;
-let puzzleCoinsEarned = 0;
+let score = 0, moves = 30, puzzleCoinsEarned = 0;
 
-/* ---------- Elements ---------- */
 const el = {
   coinsText: $("coinsText"),
   queueText: $("queueText"),
@@ -106,34 +87,32 @@ const el = {
   btnNewPuzzle: $("btnNewPuzzle")
 };
 
-/* ---------- Init ---------- */
-$("roomCostText").textContent = ROOM_BUILD_COST;
-$("oceanCostText").textContent = OCEAN_COST;
-$("poolCostText").textContent  = POOL_COST;
+if ($("roomCostText")) $("roomCostText").textContent = ROOM_BUILD_COST;
+if ($("oceanCostText")) $("oceanCostText").textContent = OCEAN_COST;
+if ($("poolCostText")) $("poolCostText").textContent  = POOL_COST;
 
 initRooms();
 renderAll();
 initPuzzle(true);
 wireEvents();
 
-// auto-fill FREE rooms only
 setInterval(() => {
   autoServeIfPossible();
   updateButtons();
 }, 700);
 
-/* ================== Tabs ================== */
+/* Tabs */
 function showHotel(){
-  el.tabHotel.classList.add("active");
-  el.tabPuzzle.classList.remove("active");
-  el.viewHotel.classList.add("active");
-  el.viewPuzzle.classList.remove("active");
+  el.tabHotel?.classList.add("active");
+  el.tabPuzzle?.classList.remove("active");
+  el.viewHotel?.classList.add("active");
+  el.viewPuzzle?.classList.remove("active");
 }
 function showPuzzle(){
-  el.tabPuzzle.classList.add("active");
-  el.tabHotel.classList.remove("active");
-  el.viewPuzzle.classList.add("active");
-  el.viewHotel.classList.remove("active");
+  el.tabPuzzle?.classList.add("active");
+  el.tabHotel?.classList.remove("active");
+  el.viewPuzzle?.classList.add("active");
+  el.viewHotel?.classList.remove("active");
 }
 
 function wireEvents(){
@@ -157,7 +136,7 @@ function wireEvents(){
   el.btnNewPuzzle?.addEventListener("click", () => initPuzzle(true));
 }
 
-/* ================== Helpers ================== */
+/* Helpers */
 function hint(msg){
   if(!el.hintText) return;
   el.hintText.textContent = msg;
@@ -186,13 +165,12 @@ function saveState(){
   localStorage.setItem(KEY.pool, String(poolUnlocked));
   localStorage.setItem(KEY.rating, String(rating.toFixed(1)));
 }
-
 function clearTimers(room){
   if(room.checkoutTimer){ clearTimeout(room.checkoutTimer); room.checkoutTimer = null; }
   if(room.cleanTimer){ clearTimeout(room.cleanTimer); room.cleanTimer = null; }
 }
 
-/* ================== Rooms ================== */
+/* Rooms */
 function initRooms(){
   rooms.forEach(clearTimers);
   rooms = [];
@@ -200,7 +178,6 @@ function initRooms(){
     rooms.push({ id:i, status:"free", guestEmoji:"", checkoutTimer:null, cleanTimer:null });
   }
 }
-
 function findFirstRoom(status){
   return rooms.findIndex(r => r.status === status);
 }
@@ -245,14 +222,14 @@ function renderRooms(){
     name.textContent = `Room ${r.id}`;
 
     const badge = document.createElement("div");
-    badge.className =
-      "badge " + (r.status === "free" ? "ok" :
+    badge.className = "badge " + (r.status === "free" ? "ok" :
       (r.status === "dirty" ? "dirty" :
       (r.status === "cleaning" ? "cleaning" : "busy")));
+
     badge.textContent =
-      (r.status === "free") ? "READY" :
-      (r.status === "busy") ? "OCCUPIED" :
-      (r.status === "cleaning") ? "CLEANING..." :
+      r.status === "free" ? "READY" :
+      r.status === "busy" ? "OCCUPIED" :
+      r.status === "cleaning" ? "CLEANING..." :
       "DIRTY";
 
     top.appendChild(name);
@@ -261,9 +238,9 @@ function renderRooms(){
     const guest = document.createElement("div");
     guest.className = "room-guest";
     guest.textContent =
-      (r.status === "busy") ? r.guestEmoji :
-      (r.status === "dirty") ? "🧼" :
-      (r.status === "cleaning") ? "🫧" :
+      r.status === "busy" ? r.guestEmoji :
+      r.status === "dirty" ? "🧼" :
+      r.status === "cleaning" ? "🫧" :
       "✨";
 
     const actions = document.createElement("div");
@@ -274,8 +251,7 @@ function renderRooms(){
     btnCheckin.textContent = "Check-in";
     btnCheckin.disabled = !(r.status === "free" && queueCount > 0);
     btnCheckin.addEventListener("click", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
+      e.preventDefault(); e.stopPropagation();
       checkInToRoom(idx);
     });
 
@@ -284,8 +260,7 @@ function renderRooms(){
     btnClean.textContent = "Clean";
     btnClean.disabled = !(r.status === "dirty");
     btnClean.addEventListener("click", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
+      e.preventDefault(); e.stopPropagation();
       startCleaning(idx);
     });
 
@@ -300,11 +275,11 @@ function renderRooms(){
   });
 }
 
-/* ================== Flow ================== */
+/* Hotel flow */
 function spawnGuest(){
   queueCount++;
-  hint(`Guest arrived! Queue: ${queueCount}`);
   bounce(el.bellBoy);
+  hint(`Guest arrived! Queue: ${queueCount}`);
   renderAll();
   autoServeIfPossible();
 }
@@ -326,7 +301,7 @@ function autoServeIfPossible(){
 
 function checkInToRoom(roomIndex){
   const r = rooms[roomIndex];
-  if(queueCount <= 0 || !r || r.status !== "free") return;
+  if(!r || r.status !== "free" || queueCount <= 0) return;
 
   queueCount--;
   r.status = "busy";
@@ -355,22 +330,21 @@ function autoCheckout(roomIndex){
   coins += (CHECKOUT_REWARD + bonus);
   rating = clamp(rating + 0.03, 1.0, 5.0);
 
-  hint("Guest checked out automatically → DIRTY");
+  hint("Auto checkout ✅ → room DIRTY");
   renderAll();
 }
 
-/* ================== Manual timed cleaning ================== */
+/* Manual cleaning (3s) */
 function startCleaning(roomIndex){
   const r = rooms[roomIndex];
   if(!r || r.status !== "dirty") return;
 
-  // ✅ Safety: NEVER allow one click to trigger multiple times
-  if(r.cleanTimer) return;
+  if(r.cleanTimer) return; // safety
 
   scrub(el.cleanerGirl);
   r.status = "cleaning";
+  hint("Cleaning started… (3s)");
   renderAll();
-  hint("Cleaning started…");
 
   clearTimers(r);
   r.cleanTimer = setTimeout(() => finishCleaning(roomIndex), CLEAN_MS);
@@ -384,25 +358,17 @@ function finishCleaning(roomIndex){
   r.status = "free";
   coins += CLEAN_REWARD;
 
-  hint("Room clean ✅ (ready)");
+  hint("Clean ✅ (ready)");
   renderAll();
-
-  // After becoming free, queue can fill it
   autoServeIfPossible();
 }
 
 function cleanAllDirty(){
-  const dirtyList = rooms
-    .map((r,i) => ({ r, i }))
-    .filter(x => x.r.status === "dirty");
-
-  if(dirtyList.length === 0) return hint("No dirty rooms.");
-
-  // This button is supposed to clean multiple rooms
-  dirtyList.forEach(x => startCleaning(x.i));
+  const dirty = rooms.map((r,i)=>({r,i})).filter(x => x.r.status === "dirty");
+  if(dirty.length === 0) return hint("No dirty rooms.");
+  dirty.forEach(x => startCleaning(x.i));
 }
 
-/* ================== Build room ================== */
 function addRoom(){
   if(coins < ROOM_BUILD_COST) return hint(`Need ${ROOM_BUILD_COST}🪙`);
   coins -= ROOM_BUILD_COST;
@@ -413,14 +379,9 @@ function addRoom(){
   autoServeIfPossible();
 }
 
-/* ================== Snacks ================== */
 function busyRoomsCount(){ return rooms.filter(r => r.status === "busy").length; }
 function sellSnack(amount){
-  if(busyRoomsCount() <= 0){
-    rating = clamp(rating - 0.05, 1.0, 5.0);
-    renderAll();
-    return hint("No guests checked in.");
-  }
+  if(busyRoomsCount() <= 0) return hint("No guests checked in.");
   const bonus = (oceanUnlocked ? 1 : 0) + (poolUnlocked ? 1 : 0);
   coins += amount + bonus;
   rating = clamp(rating + 0.02, 1.0, 5.0);
@@ -428,7 +389,6 @@ function sellSnack(amount){
   hint(`Snack sold! +${amount + bonus}🪙`);
 }
 
-/* ================== Unlocks ================== */
 function renderUnlocks(){
   if(!el.oceanStatus || !el.poolStatus) return;
 
@@ -447,7 +407,7 @@ function renderUnlocks(){
       if(oceanUnlocked) lines.push("🌊 Ocean View Active");
       if(poolUnlocked) lines.push("🏊 Pool Area Active");
       el.vibesPreview.innerHTML = `<div class="vibes-placeholder">${lines.join("<br>")}</div>`;
-    }else{
+    } else {
       el.vibesPreview.classList.remove("vibes-on");
       el.vibesPreview.innerHTML = `<div class="vibes-placeholder">🔒 Unlock Ocean/Pool</div>`;
     }
@@ -471,14 +431,13 @@ function unlockPool(){
   renderAll();
 }
 
-/* ================== Buttons ================== */
 function updateButtons(){
   if(el.btnServeNext) el.btnServeNext.disabled = (queueCount <= 0 || findFirstRoom("free") === -1);
   if(el.btnCleanAll) el.btnCleanAll.disabled = rooms.every(r => r.status !== "dirty");
   if(el.btnAddRoom) el.btnAddRoom.disabled = coins < ROOM_BUILD_COST;
 }
 
-/* ================== Puzzle (same as before) ================== */
+/* Puzzle */
 function initPuzzle(forceNew=false){
   if(forceNew){ score = 0; moves = 30; puzzleCoinsEarned = 0; }
   board = new Array(TOTAL).fill(null).map(randTile);
@@ -616,14 +575,12 @@ function isAdjacent(a,b){
 }
 function sleep(ms){ return new Promise(res => setTimeout(res, ms)); }
 
-/* ================== Reset ================== */
 function hardReset(){
   Object.values(KEY).forEach(k => localStorage.removeItem(k));
   rooms.forEach(clearTimers);
 
   coins = 0; rating = 5.0;
-  roomCount = 4; // ✅ reset to 4 rooms
-  queueCount = 0;
+  roomCount = 4; queueCount = 0;
   oceanUnlocked = false; poolUnlocked = false;
 
   initRooms();
