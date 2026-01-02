@@ -7,6 +7,7 @@
   --accent:#ffd36e;
   --danger:#ff7b7b;
   --ok:#7dffb2;
+  --sky:#65d6ff;
   --shadow: 0 12px 30px rgba(0,0,0,.35);
   --radius:18px;
 }
@@ -154,14 +155,17 @@ body{
 @media (max-width: 520px){
   .rooms-grid{ grid-template-columns: 1fr; }
 }
+
 .room{
   padding:12px;
   border-radius:16px;
   background: rgba(255,255,255,.05);
   border:1px solid rgba(255,255,255,.08);
 }
+
 .room-top{ display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
 .room-name{ font-weight:900; }
+
 .badge{
   font-size:12px;
   padding:6px 10px;
@@ -173,6 +177,7 @@ body{
 .badge.ok{ border-color: rgba(125,255,178,.35); background: rgba(125,255,178,.10); }
 .badge.busy{ border-color: rgba(255,211,110,.35); background: rgba(255,211,110,.12); }
 .badge.dirty{ border-color: rgba(255,123,123,.35); background: rgba(255,123,123,.10); }
+.badge.cleaning{ border-color: rgba(101,214,255,.35); background: rgba(101,214,255,.12); }
 
 .room-guest{ font-size:28px; margin:8px 0 10px; height:34px; }
 .room-actions{ display:flex; gap:8px; flex-wrap:wrap; }
