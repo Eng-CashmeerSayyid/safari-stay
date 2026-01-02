@@ -261,7 +261,7 @@
         <h2>Reception</h2>
         <p class="muted">
           Guests enter the queue. When a room is clean, they check in.
-          Guests stay 10s then check out automatically. You must clean dirty rooms.
+          Guests stay then check out automatically. You must clean dirty rooms.
         </p>
 
         <div class="actions">
@@ -307,22 +307,16 @@
       <div class="card">
         <h2>How it works</h2>
         <ul class="muted small">
-          <li>Room states: <b>Clean</b> → guest checks in → after 10s <b>Dirty</b>.</li>
+          <li>Guests won’t leave while an order is waiting (they get grace time).</li>
           <li>Cleaning is manual and takes <b>3 seconds</b>.</li>
           <li>With 1 cleaner, you can clean only <b>one room at a time</b>.</li>
-          <li>Orders: some guests order snacks. Deliver by selecting item then clicking room.</li>
-          <li>Bellboy can deliver one order at a time.</li>
+          <li>Deliver by selecting item then clicking the room.</li>
         </ul>
       </div>
     </section>
   </main>
 
   <script>
-    // ================================
-    // SAFARI STAY – MOMBASA HOTEL (single-file build)
-    // This fixes "rooms not showing" + "spawn guest not working"
-    // ================================
-
     document.addEventListener("DOMContentLoaded", () => {
       const $ = (sel) => document.querySelector(sel);
 
@@ -336,8 +330,11 @@
       const cleanerCostEl = $("#cleanerCost");
       const menuEl = $("#menu");
 
-      const GUEST_STAY_MS = 10000; // 10s
-      const CLEAN_TIME_MS = 3000;  // 3s
+      // ✅ Updated timing to be playable
+      const GUEST_STAY_MS = 18000;      // 18s base stay
+      const CLEAN_TIME_MS = 3000;       // 3s cleaning
+      const ORDER_GRACE_MS = 9000;      // extra time if order is waiting
+      const MAX_GRACE_ROUNDS = 2;       // max extensions
 
       const MENU = [
         { key: "juice",  label: "🥤 Juice",  price: 5 },
@@ -369,17 +366,14 @@
       let rooms = loadRooms() || [mkRoom(1), mkRoom(2), mkRoom(3), mkRoom(4)];
       let guestSeq = 1;
 
-      // ---------- INIT ----------
       buildMenuUI();
       wireButtons();
       renderHotel();
 
-      // Try assign loop (so guests move in as soon as room is ready)
       setInterval(tryAssignGuestsToRooms, 700);
 
-      // ---------- HELPERS ----------
       function mkRoom(id){
-        return { id, status:"clean", guestId:null, order:null, timers:null };
+        return { id, status:"clean", guestId:null, order:null, timers:null, graceRounds:0 };
       }
 
       function loadRooms(){
@@ -387,8 +381,9 @@
           const raw = localStorage.getItem(KEY.rooms);
           if (!raw) return null;
           const parsed = JSON.parse(raw);
-          // wipe timers
           parsed.forEach(r => r.timers = null);
+          // ensure graceRounds exists
+          parsed.forEach(r => { if (typeof r.graceRounds !== "number") r.graceRounds = 0; });
           return parsed;
         }catch(e){
           return null;
@@ -438,7 +433,6 @@
         return cleaningInProgress < cleanersOwned;
       }
 
-      // ---------- UI ----------
       function buildMenuUI(){
         menuEl.innerHTML = "";
         MENU.forEach(item => {
@@ -460,7 +454,6 @@
         });
       }
 
-      // ---------- GAMEPLAY ----------
       function spawnGuest(){
         queue++;
         saveAll();
@@ -487,24 +480,42 @@
         room.status = "occupied";
         room.guestId = guestSeq++;
         room.order = null;
+        room.graceRounds = 0;
 
         room.timers = room.timers || {};
         room.timers.stayTimeout = setTimeout(() => guestCheckout(roomId), GUEST_STAY_MS);
 
-        // maybe create an order (not all guests)
-        setTimeout(() => maybeCreateOrderForRoom(roomId), 2000 + Math.random()*3000);
+        // orders appear a bit earlier now
+        setTimeout(() => maybeCreateOrderForRoom(roomId), 1500 + Math.random()*2000);
       }
 
+      // ✅ Updated checkout: don't leave while order is waiting (grace time)
       function guestCheckout(roomId){
         const room = rooms.find(r => r.id === roomId);
         if (!room) return;
         if (room.status !== "occupied") return;
 
-        coins += 10; // stay reward
+        if (room.order && room.order.status === "waiting"){
+          if (room.graceRounds < MAX_GRACE_ROUNDS){
+            room.graceRounds++;
+            saveAll();
+            renderHotel();
+            toast(`Room ${roomId} waiting for delivery… ⏳`);
+
+            room.timers = room.timers || {};
+            room.timers.stayTimeout = setTimeout(() => guestCheckout(roomId), ORDER_GRACE_MS);
+            return;
+          } else {
+            toast(`Guest in Room ${roomId} got tired and left 😤`);
+          }
+        }
+
+        coins += 10;
 
         room.status = "dirty";
         room.guestId = null;
         room.order = null;
+        room.graceRounds = 0;
 
         if (room.timers?.stayTimeout) clearTimeout(room.timers.stayTimeout);
         room.timers = null;
@@ -556,14 +567,13 @@
         toast(`Cleaner hired! You now have ${cleanersOwned} cleaner(s).`);
       }
 
-      // ---------- ORDERS + DELIVERY ----------
       function maybeCreateOrderForRoom(roomId){
         const room = rooms.find(r => r.id === roomId);
         if (!room) return;
         if (room.status !== "occupied") return;
         if (room.order && room.order.status === "waiting") return;
 
-        if (Math.random() > 0.35) return; // 35% chance
+        if (Math.random() > 0.45) return; // slightly more orders now
 
         const item = MENU[Math.floor(Math.random() * MENU.length)];
         room.order = { itemKey: item.key, status:"waiting" };
@@ -618,7 +628,6 @@
         bellboy.deliveringToRoomId = roomId;
         bellboy.itemKey = selectedItemKey;
 
-        // clear selection
         selectedItemKey = null;
         selectedItemEl.textContent = "None";
 
@@ -641,7 +650,6 @@
         }, 1200);
       }
 
-      // ---------- RENDER ----------
       function renderHotel(){
         coinsEl.textContent = coins;
         cleanersEl.textContent = cleanersOwned;
@@ -742,5 +750,6 @@
   </script>
 </body>
 </html>
+
 
 
