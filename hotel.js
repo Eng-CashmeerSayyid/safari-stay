@@ -2,7 +2,8 @@
    SAFARI STAY — MOMBASA
    ✅ Auto checkout after 10s
    ✅ Manual cleaning takes 3s (CLEANING…)
-   ✅ No manual checkout button
+   ✅ Start with 4 rooms (default + reset)
+   ✅ "Clean" button cleans ONLY that room
    ========================================================= */
 
 const $ = (id) => document.getElementById(id);
@@ -29,14 +30,17 @@ const CLEAN_REWARD = 1;
 const SNACK1 = 2, SNACK2 = 2, SNACK3 = 3;
 
 /* ✅ Timers requested */
-const STAY_MS  = 10000; // 10s
-const CLEAN_MS = 3000;  // 3s
+const STAY_MS  = 10000; // guest stays 10 seconds
+const CLEAN_MS = 3000;  // cleaning takes 3 seconds
 
 /* ---------- State ---------- */
 let coins = Number(localStorage.getItem(KEY.coins)) || 0;
 let rating = Number(localStorage.getItem(KEY.rating)) || 5.0;
 
-let roomCount = Number(localStorage.getItem(KEY.rooms)) || 2;
+// ✅ Default to 4 rooms if not set
+let roomCount = Number(localStorage.getItem(KEY.rooms));
+roomCount = Number.isFinite(roomCount) && roomCount > 0 ? roomCount : 4;
+
 let queueCount = Number(localStorage.getItem(KEY.queue)) || 0;
 
 let oceanUnlocked = localStorage.getItem(KEY.ocean) === "true";
@@ -44,7 +48,7 @@ let poolUnlocked  = localStorage.getItem(KEY.pool) === "true";
 
 /*
   status: "free" | "busy" | "dirty" | "cleaning"
-  { id, status, guestEmoji, checkoutTimer, cleanTimer }
+  room: { id, status, guestEmoji, checkoutTimer, cleanTimer }
 */
 let rooms = [];
 const GUESTS = ["🧍🏾‍♂️","🧍🏾‍♀️","👩🏾‍🦱","👨🏾‍🦱","🧕🏾","👩🏾‍🦳","👨🏾‍🦰","🧑🏾‍🦱"];
@@ -133,28 +137,29 @@ function showPuzzle(){
 }
 
 function wireEvents(){
-  el.tabHotel.addEventListener("click", showHotel);
-  el.tabPuzzle.addEventListener("click", showPuzzle);
+  el.tabHotel?.addEventListener("click", showHotel);
+  el.tabPuzzle?.addEventListener("click", showPuzzle);
 
-  el.btnSpawn.addEventListener("click", spawnGuest);
-  el.btnServeNext.addEventListener("click", serveNext);
-  el.btnCleanAll.addEventListener("click", cleanAllDirty);
+  el.btnSpawn?.addEventListener("click", spawnGuest);
+  el.btnServeNext?.addEventListener("click", serveNext);
+  el.btnCleanAll?.addEventListener("click", cleanAllDirty);
 
-  el.btnAddRoom.addEventListener("click", addRoom);
-  el.btnReset.addEventListener("click", hardReset);
+  el.btnAddRoom?.addEventListener("click", addRoom);
+  el.btnReset?.addEventListener("click", hardReset);
 
-  el.btnSnack1.addEventListener("click", () => sellSnack(SNACK1));
-  el.btnSnack2.addEventListener("click", () => sellSnack(SNACK2));
-  el.btnSnack3.addEventListener("click", () => sellSnack(SNACK3));
+  el.btnSnack1?.addEventListener("click", () => sellSnack(SNACK1));
+  el.btnSnack2?.addEventListener("click", () => sellSnack(SNACK2));
+  el.btnSnack3?.addEventListener("click", () => sellSnack(SNACK3));
 
-  el.btnUnlockOcean.addEventListener("click", unlockOcean);
-  el.btnUnlockPool.addEventListener("click", unlockPool);
+  el.btnUnlockOcean?.addEventListener("click", unlockOcean);
+  el.btnUnlockPool?.addEventListener("click", unlockPool);
 
-  el.btnNewPuzzle.addEventListener("click", () => initPuzzle(true));
+  el.btnNewPuzzle?.addEventListener("click", () => initPuzzle(true));
 }
 
 /* ================== Helpers ================== */
 function hint(msg){
+  if(!el.hintText) return;
   el.hintText.textContent = msg;
   clearTimeout(hint._t);
   hint._t = setTimeout(() => (el.hintText.textContent = ""), 2200);
@@ -201,9 +206,9 @@ function findFirstRoom(status){
 }
 
 function renderAll(){
-  el.coinsText.textContent = coins;
-  el.queueText.textContent = queueCount;
-  el.ratingText.textContent = rating.toFixed(1);
+  if(el.coinsText) el.coinsText.textContent = coins;
+  if(el.queueText) el.queueText.textContent = queueCount;
+  if(el.ratingText) el.ratingText.textContent = rating.toFixed(1);
 
   renderQueue();
   renderRooms();
@@ -213,6 +218,7 @@ function renderAll(){
 }
 
 function renderQueue(){
+  if(!el.queueLine) return;
   el.queueLine.innerHTML = "";
   for(let i=0;i<queueCount;i++){
     const span = document.createElement("span");
@@ -224,6 +230,7 @@ function renderQueue(){
 }
 
 function renderRooms(){
+  if(!el.roomsGrid) return;
   el.roomsGrid.innerHTML = "";
 
   rooms.forEach((r, idx) => {
@@ -266,13 +273,21 @@ function renderRooms(){
     btnCheckin.className = "btn tiny";
     btnCheckin.textContent = "Check-in";
     btnCheckin.disabled = !(r.status === "free" && queueCount > 0);
-    btnCheckin.addEventListener("click", () => checkInToRoom(idx));
+    btnCheckin.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      checkInToRoom(idx);
+    });
 
     const btnClean = document.createElement("button");
     btnClean.className = "btn tiny";
     btnClean.textContent = "Clean";
     btnClean.disabled = !(r.status === "dirty");
-    btnClean.addEventListener("click", () => startCleaning(idx));
+    btnClean.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      startCleaning(idx);
+    });
 
     actions.appendChild(btnCheckin);
     actions.appendChild(btnClean);
@@ -311,7 +326,7 @@ function autoServeIfPossible(){
 
 function checkInToRoom(roomIndex){
   const r = rooms[roomIndex];
-  if(queueCount <= 0 || r.status !== "free") return;
+  if(queueCount <= 0 || !r || r.status !== "free") return;
 
   queueCount--;
   r.status = "busy";
@@ -349,6 +364,9 @@ function startCleaning(roomIndex){
   const r = rooms[roomIndex];
   if(!r || r.status !== "dirty") return;
 
+  // ✅ Safety: NEVER allow one click to trigger multiple times
+  if(r.cleanTimer) return;
+
   scrub(el.cleanerGirl);
   r.status = "cleaning";
   renderAll();
@@ -369,13 +387,19 @@ function finishCleaning(roomIndex){
   hint("Room clean ✅ (ready)");
   renderAll();
 
+  // After becoming free, queue can fill it
   autoServeIfPossible();
 }
 
 function cleanAllDirty(){
-  const dirty = rooms.map((r,i)=>({r,i})).filter(x => x.r.status === "dirty");
-  if(dirty.length === 0) return hint("No dirty rooms.");
-  dirty.forEach(x => startCleaning(x.i));
+  const dirtyList = rooms
+    .map((r,i) => ({ r, i }))
+    .filter(x => x.r.status === "dirty");
+
+  if(dirtyList.length === 0) return hint("No dirty rooms.");
+
+  // This button is supposed to clean multiple rooms
+  dirtyList.forEach(x => startCleaning(x.i));
 }
 
 /* ================== Build room ================== */
@@ -406,23 +430,27 @@ function sellSnack(amount){
 
 /* ================== Unlocks ================== */
 function renderUnlocks(){
+  if(!el.oceanStatus || !el.poolStatus) return;
+
   el.oceanStatus.textContent = oceanUnlocked ? "UNLOCKED" : "LOCKED";
   el.poolStatus.textContent  = poolUnlocked ? "UNLOCKED" : "LOCKED";
   el.oceanStatus.classList.toggle("on", oceanUnlocked);
   el.poolStatus.classList.toggle("on", poolUnlocked);
 
-  el.btnUnlockOcean.disabled = oceanUnlocked;
-  el.btnUnlockPool.disabled  = poolUnlocked;
+  if(el.btnUnlockOcean) el.btnUnlockOcean.disabled = oceanUnlocked;
+  if(el.btnUnlockPool) el.btnUnlockPool.disabled = poolUnlocked;
 
-  if(oceanUnlocked || poolUnlocked){
-    el.vibesPreview.classList.add("vibes-on");
-    const lines = [];
-    if(oceanUnlocked) lines.push("🌊 Ocean View Active");
-    if(poolUnlocked) lines.push("🏊 Pool Area Active");
-    el.vibesPreview.innerHTML = `<div class="vibes-placeholder">${lines.join("<br>")}</div>`;
-  }else{
-    el.vibesPreview.classList.remove("vibes-on");
-    el.vibesPreview.innerHTML = `<div class="vibes-placeholder">🔒 Unlock Ocean/Pool</div>`;
+  if(el.vibesPreview){
+    if(oceanUnlocked || poolUnlocked){
+      el.vibesPreview.classList.add("vibes-on");
+      const lines = [];
+      if(oceanUnlocked) lines.push("🌊 Ocean View Active");
+      if(poolUnlocked) lines.push("🏊 Pool Area Active");
+      el.vibesPreview.innerHTML = `<div class="vibes-placeholder">${lines.join("<br>")}</div>`;
+    }else{
+      el.vibesPreview.classList.remove("vibes-on");
+      el.vibesPreview.innerHTML = `<div class="vibes-placeholder">🔒 Unlock Ocean/Pool</div>`;
+    }
   }
 }
 
@@ -445,12 +473,12 @@ function unlockPool(){
 
 /* ================== Buttons ================== */
 function updateButtons(){
-  el.btnServeNext.disabled = (queueCount <= 0 || findFirstRoom("free") === -1);
-  el.btnCleanAll.disabled = rooms.every(r => r.status !== "dirty");
-  el.btnAddRoom.disabled = coins < ROOM_BUILD_COST;
+  if(el.btnServeNext) el.btnServeNext.disabled = (queueCount <= 0 || findFirstRoom("free") === -1);
+  if(el.btnCleanAll) el.btnCleanAll.disabled = rooms.every(r => r.status !== "dirty");
+  if(el.btnAddRoom) el.btnAddRoom.disabled = coins < ROOM_BUILD_COST;
 }
 
-/* ================== Puzzle ================== */
+/* ================== Puzzle (same as before) ================== */
 function initPuzzle(forceNew=false){
   if(forceNew){ score = 0; moves = 30; puzzleCoinsEarned = 0; }
   board = new Array(TOTAL).fill(null).map(randTile);
@@ -469,9 +497,9 @@ function renderPuzzle(){
   }
 }
 function updatePuzzleHud(){
-  el.movesText.textContent = moves;
-  el.scoreText.textContent = score;
-  el.puzzleCoinsText.textContent = puzzleCoinsEarned;
+  if(el.movesText) el.movesText.textContent = moves;
+  if(el.scoreText) el.scoreText.textContent = score;
+  if(el.puzzleCoinsText) el.puzzleCoinsText.textContent = puzzleCoinsEarned;
 }
 function onCellClick(i){
   if(isBusy || moves <= 0) return;
@@ -502,7 +530,7 @@ function onCellClick(i){
 }
 function highlightSelected(){
   renderPuzzle();
-  if(selectedIndex !== null && el.grid.children[selectedIndex]){
+  if(selectedIndex !== null && el.grid && el.grid.children[selectedIndex]){
     el.grid.children[selectedIndex].classList.add("selected");
   }
 }
@@ -594,7 +622,8 @@ function hardReset(){
   rooms.forEach(clearTimers);
 
   coins = 0; rating = 5.0;
-  roomCount = 2; queueCount = 0;
+  roomCount = 4; // ✅ reset to 4 rooms
+  queueCount = 0;
   oceanUnlocked = false; poolUnlocked = false;
 
   initRooms();
