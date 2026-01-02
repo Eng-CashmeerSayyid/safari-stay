@@ -42,13 +42,18 @@
       <div class="lobby-scene">
         <div class="scene-row">
           <div class="npc">
-            <div class="npc-emoji" id="bellBoy">🧳</div>
+            <div class="npc-emoji" id="bellBoy" title="Click me to deliver orders">🧳</div>
             <div class="npc-name">Bell Boy</div>
           </div>
           <div class="npc">
             <div class="npc-emoji" id="cleanerGirl">🧹</div>
             <div class="npc-name">Cleaner</div>
           </div>
+        </div>
+
+        <!-- ✅ Manual delivery instructions -->
+        <div class="mini-note" style="margin-top:8px;">
+          <b>Manual Delivery:</b> Click <b>Bell Boy</b> → Click a <b>Snack</b> → Click the <b>Room</b> with that order.
         </div>
 
         <div class="queue-box">
@@ -91,7 +96,31 @@
         <div class="snack-item">🥭 Mango Juice <button class="btn tiny" id="btnSnack1">Sell +2🪙</button></div>
         <div class="snack-item">🍍 Pineapple <button class="btn tiny" id="btnSnack2">Sell +2🪙</button></div>
         <div class="snack-item">🍦 Ice Cream <button class="btn tiny" id="btnSnack3">Sell +3🪙</button></div>
-        <div class="snack-note">Tip: Pool/Ocean unlocks increase earnings.</div>
+
+        <div class="snack-note">
+          Tip: Pool/Ocean unlocks increase earnings.
+          <br>
+          <b>Deliver Orders:</b> Click Bell Boy → Snack → Room.
+        </div>
+      </div>
+
+      <!-- ✅ Pending orders panel (helps you see who ordered) -->
+      <div class="divider"></div>
+      <div class="card-head">
+        <h2>Pending Orders</h2>
+        <div class="small">These require manual delivery.</div>
+      </div>
+      <div id="ordersPanel" class="orders-panel">
+        <div class="vibes-placeholder">No pending orders</div>
+      </div>
+
+      <!-- ✅ Delivery speed upgrade UI -->
+      <div class="upgrade-mini">
+        <div class="upgrade-mini-row">
+          <div><b>Delivery Speed</b> • Level: <span id="speedLevelText">0</span></div>
+          <button class="btn tiny" id="btnSpeedUp">⚡ Upgrade</button>
+        </div>
+        <div class="small">Upgrades make snack delivery faster.</div>
       </div>
 
       <div class="divider"></div>
@@ -150,6 +179,7 @@
 <script src="hotel.js"></script>
 </body>
 </html>
+
 
 
 
