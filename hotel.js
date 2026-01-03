@@ -352,17 +352,21 @@ function makeBoard() {
 
 function renderBoard() {
   elBoard.innerHTML = "";
-  board.forEach((c, i) => {
+  board.forEach((type, i) => {
     const tile = document.createElement("div");
     tile.className = "tile";
-    tile.textContent = c;
     tile.dataset.index = String(i);
+
+    // attach image class like t-palm, t-wave etc
+    tile.classList.add(`t-${type}`);
+
     if (selected === i) tile.classList.add("selected");
 
     tile.addEventListener("click", () => onTileClick(i));
     elBoard.appendChild(tile);
   });
 }
+
 
 function areAdjacent(a,b){
   const A = xy(a), B = xy(b);
