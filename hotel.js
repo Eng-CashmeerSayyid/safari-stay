@@ -19,13 +19,12 @@ function setCoins(n) { setNum("coins", n); updateHUD(); }
 function addCoins(n) { setCoins(getCoins() + n); }
 
 // ================= MOMBASA STATE =================
-let roomsCount = getNum("mombasaRooms", 4); // default 4 rooms
-if (roomsCount < 4) roomsCount = 4; // keep minimum 4
+let roomsCount = getNum("mombasaRooms", 4); // default 4
+if (roomsCount < 4) roomsCount = 4;
 
 let queue = getNum("mombasaQueue", 0);
 let served = getNum("mombasaGuestsServed", 0);
 
-// room state is stored in one array (also saved)
 function loadRoomsState() {
   const raw = localStorage.getItem("mombasaRoomState");
   if (!raw) return null;
@@ -35,24 +34,27 @@ function saveRoomsState(state) {
   localStorage.setItem("mombasaRoomState", JSON.stringify(state));
 }
 
+function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+
 let roomState = loadRoomsState();
 if (!Array.isArray(roomState) || roomState.length !== roomsCount) {
   roomState = Array.from({ length: roomsCount }, (_, i) => ({
     id: i + 1,
-    status: "empty", // empty | occupied | waitingOrder | ordered | happy
+    status: "empty",        // empty | waitingOrder | ordered | happy
     guestEmoji: "🛏️",
-    order: null,     // snack emoji
-    canOrderAt: Date.now() + rand(2000, 7000), // stagger orders
+    order: null,
+    canOrderAt: Date.now() + rand(2000, 7000),
   }));
   saveRoomsState(roomState);
 }
 
-// ================= DOM HELPERS =================
+// ================= DOM =================
 const $ = (id) => document.getElementById(id);
 
 const elCoins = $("coins");
 const elQueue = $("queue");
 const elServed = $("served");
+
 const elRooms = $("rooms");
 const elDeliveryHint = $("deliveryHint");
 
@@ -70,7 +72,7 @@ const btnClear = $("btnClear");
 // Snack buttons
 const snackBtns = Array.from(document.querySelectorAll(".snack"));
 
-// ================= UI / HUD =================
+// ================= HUD =================
 function updateHUD() {
   if (elCoins) elCoins.textContent = getCoins();
   if (elQueue) elQueue.textContent = queue;
@@ -78,7 +80,7 @@ function updateHUD() {
 }
 updateHUD();
 
-// ================= TAB SWITCHER =================
+// ================= TABS =================
 function showView(which) {
   const hotel = which === "hotel";
   tabHotel.classList.toggle("active", hotel);
@@ -89,9 +91,7 @@ function showView(which) {
 tabHotel.addEventListener("click", () => showView("hotel"));
 tabPuzzle.addEventListener("click", () => showView("puzzle"));
 
-// ================= HOTEL LOGIC =================
-function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
-
+// ================= HOTEL =================
 function saveCore() {
   setNum("mombasaRooms", roomsCount);
   setNum("mombasaQueue", queue);
@@ -119,10 +119,9 @@ function renderRooms() {
     const info = document.createElement("div");
     info.className = "roomInfo";
 
-    // tags
     if (r.status === "empty") {
       info.innerHTML = `<span class="tag">Available</span>`;
-    } else if (r.status === "occupied" || r.status === "waitingOrder") {
+    } else if (r.status === "waitingOrder") {
       info.innerHTML = `<span class="tag warn">Guest staying</span>`;
     } else if (r.status === "ordered") {
       info.innerHTML = `<span class="tag danger">Order: ${r.order}</span><span class="tag">Tap snack then room</span>`;
@@ -134,9 +133,7 @@ function renderRooms() {
     div.appendChild(emoji);
     div.appendChild(info);
 
-    // Room click = deliver if holding snack
     div.addEventListener("click", () => onRoomClick(idx));
-
     elRooms.appendChild(div);
   });
 }
@@ -157,10 +154,7 @@ function updateDeliveryHint() {
 snackBtns.forEach(btn => {
   btn.addEventListener("click", () => {
     const snack = btn.dataset.snack;
-
-    // toggle select
-    if (holdingSnack === snack) holdingSnack = null;
-    else holdingSnack = snack;
+    holdingSnack = (holdingSnack === snack) ? null : snack;
 
     snackBtns.forEach(b => b.classList.toggle("selected", b.dataset.snack === holdingSnack));
     updateDeliveryHint();
@@ -169,10 +163,8 @@ snackBtns.forEach(btn => {
 
 function onRoomClick(roomIdx) {
   const r = roomState[roomIdx];
-
   if (!holdingSnack) return;
 
-  // Must be ordered and snack must match
   if (r.status !== "ordered") {
     elDeliveryHint.textContent = `That room didn’t order yet. Pick the room with an order.`;
     return;
@@ -182,14 +174,15 @@ function onRoomClick(roomIdx) {
     return;
   }
 
-  // Deliver success
+  // deliver success
   served++;
-  addCoins(2); // reward delivery (keep / adjust if you want)
+  addCoins(2);
+
   r.status = "happy";
   r.guestEmoji = "😍";
   r.order = null;
 
-  // after a moment, guest leaves and room becomes empty
+  // guest leaves after a moment
   setTimeout(() => {
     r.status = "empty";
     r.guestEmoji = "🛏️";
@@ -209,20 +202,18 @@ function onRoomClick(roomIdx) {
 }
 
 function spawnGuest() {
-  // find empty room
   const emptyIdx = roomState.findIndex(r => r.status === "empty");
   if (emptyIdx === -1) {
     queue++;
     saveCore();
-    updateHUD();
     return;
   }
 
   const r = roomState[emptyIdx];
   r.status = "waitingOrder";
-  r.guestEmoji = "🧳"; // checked in
+  r.guestEmoji = "🧳";
   r.order = null;
-  r.canOrderAt = Date.now() + rand(2500, 9000); // stagger orders
+  r.canOrderAt = Date.now() + rand(2500, 9000);
 
   saveCore();
   renderRooms();
@@ -234,45 +225,39 @@ function tryAssignGuestFromQueue() {
   if (emptyIdx === -1) return;
 
   queue--;
-  spawnGuest(); // will occupy an empty room
+  spawnGuest();
   saveCore();
 }
 
 function maybeCreateOrders() {
   const now = Date.now();
 
-  // Only allow up to 1 order at a time (so not all guests order together)
+  // only 1 active order at a time
   const activeOrders = roomState.filter(r => r.status === "ordered").length;
   if (activeOrders >= 1) return;
 
-  // find eligible guest rooms
   const candidates = roomState
-    .map((r, i) => ({ r, i }))
-    .filter(x => (x.r.status === "waitingOrder") && now >= x.r.canOrderAt);
+    .filter(r => r.status === "waitingOrder" && now >= r.canOrderAt);
 
   if (candidates.length === 0) return;
 
-  // pick one random candidate
-  const pick = candidates[rand(0, candidates.length - 1)];
+  const r = candidates[rand(0, candidates.length - 1)];
   const snacks = ["🍟", "🍹", "🍉", "🍔"];
-  pick.r.status = "ordered";
-  pick.r.order = snacks[rand(0, snacks.length - 1)];
-  pick.r.guestEmoji = "😋"; // waiting for food
-  pick.r.canOrderAt = now + rand(6000, 12000);
+
+  r.status = "ordered";
+  r.order = snacks[rand(0, snacks.length - 1)];
+  r.guestEmoji = "😋";
+  r.canOrderAt = now + rand(6000, 12000);
 
   saveCore();
   renderRooms();
 }
 
-// run hotel loop
 setInterval(() => {
   maybeCreateOrders();
 }, 800);
 
-// Buttons
-btnSpawnGuest.addEventListener("click", () => {
-  spawnGuest();
-});
+btnSpawnGuest.addEventListener("click", () => spawnGuest());
 
 btnAddRoom.addEventListener("click", () => {
   const cost = 25;
@@ -280,6 +265,7 @@ btnAddRoom.addEventListener("click", () => {
     elDeliveryHint.textContent = `Not enough coins. You need ${cost}🪙. Go puzzle or serve guests.`;
     return;
   }
+
   addCoins(-cost);
   roomsCount++;
 
@@ -301,8 +287,8 @@ btnClear.addEventListener("click", () => {
   localStorage.removeItem("mombasaQueue");
   localStorage.removeItem("mombasaGuestsServed");
   localStorage.removeItem("mombasaRoomState");
-
-  // reload quickly
+  localStorage.removeItem("puzzleMoves");
+  localStorage.removeItem("puzzleMatches");
   location.reload();
 });
 
@@ -313,14 +299,25 @@ const elPMatches = $("pMatches");
 const btnShuffle = $("btnShuffle");
 const btnNewPuzzle = $("btnNewPuzzle");
 
-// 6x6 match3
+// 6x6
 const W = 6;
 const H = 6;
-const candies = ["🌴","🐚","🐠","🥥","🌊","☀️"];
 
+// ✅ Mombasa-themed tile IDs (used for images + matching)
+const candies = ["palm","shell","fish","coconut","wave","sun"];
 
-let board = []; // 2D flattened length 36
-let selected = null; // index
+// ✅ Emoji fallback (so tiles never go blank)
+const emojiFallback = {
+  palm: "🌴",
+  shell: "🐚",
+  fish: "🐠",
+  coconut: "🥥",
+  wave: "🌊",
+  sun: "☀️"
+};
+
+let board = [];
+let selected = null;
 let pMoves = getNum("puzzleMoves", 0);
 let pMatches = getNum("puzzleMatches", 0);
 
@@ -332,54 +329,12 @@ function savePuzzleStats(){
 function updatePuzzleHUD(){
   elPMoves.textContent = pMoves;
   elPMatches.textContent = pMatches;
-  updateHUD(); // ensure coins visible
+  updateHUD();
 }
 
 function idx(x,y){ return y*W + x; }
 function xy(i){ return { x: i%W, y: Math.floor(i/W) }; }
-
 function randomCandy(){ return candies[rand(0, candies.length - 1)]; }
-
-function makeBoard() {
-  board = Array.from({length: W*H}, () => randomCandy());
-  // ensure no immediate matches at start
-  for (let pass=0; pass<10; pass++){
-    const m = findMatches();
-    if (m.size === 0) break;
-    m.forEach(i => { board[i] = randomCandy(); });
-  }
-}
-
-function renderBoard() {
-  elBoard.innerHTML = "";
-  board.forEach((type, i) => {
-    const tile = document.createElement("div");
-    tile.className = "tile";
-    tile.dataset.index = String(i);
-
-    // attach image class like t-palm, t-wave etc
-    tile.classList.add(`t-${type}`);
-
-    if (selected === i) tile.classList.add("selected");
-
-    tile.addEventListener("click", () => onTileClick(i));
-    elBoard.appendChild(tile);
-  });
-}
-
-
-function areAdjacent(a,b){
-  const A = xy(a), B = xy(b);
-  const dx = Math.abs(A.x - B.x);
-  const dy = Math.abs(A.y - B.y);
-  return (dx + dy) === 1;
-}
-
-function swap(a,b){
-  const t = board[a];
-  board[a] = board[b];
-  board[b] = t;
-}
 
 function findMatches(){
   const matched = new Set();
@@ -426,23 +381,62 @@ function findMatches(){
 }
 
 function collapseAndRefill(matched){
-  // mark matched as null
   matched.forEach(i => board[i] = null);
 
-  // drop down each column
   for (let x=0;x<W;x++){
     const col = [];
     for (let y=H-1;y>=0;y--){
       const v = board[idx(x,y)];
       if (v !== null) col.push(v);
     }
-    // refill
     while (col.length < H) col.push(randomCandy());
-    // write back
     for (let y=H-1;y>=0;y--){
       board[idx(x,y)] = col[H-1-y];
     }
   }
+}
+
+function makeBoard() {
+  board = Array.from({length: W*H}, () => randomCandy());
+  // remove initial matches
+  for (let pass=0; pass<10; pass++){
+    const m = findMatches();
+    if (m.size === 0) break;
+    m.forEach(i => { board[i] = randomCandy(); });
+  }
+}
+
+function renderBoard() {
+  elBoard.innerHTML = "";
+  board.forEach((type, i) => {
+    const tile = document.createElement("div");
+    tile.className = "tile";
+    tile.dataset.index = String(i);
+
+    // ✅ image class
+    tile.classList.add(`t-${type}`);
+
+    // ✅ emoji fallback text (won’t disappear)
+    tile.textContent = emojiFallback[type] || "❓";
+
+    if (selected === i) tile.classList.add("selected");
+
+    tile.addEventListener("click", () => onTileClick(i));
+    elBoard.appendChild(tile);
+  });
+}
+
+function areAdjacent(a,b){
+  const A = xy(a), B = xy(b);
+  const dx = Math.abs(A.x - B.x);
+  const dy = Math.abs(A.y - B.y);
+  return (dx + dy) === 1;
+}
+
+function swap(a,b){
+  const t = board[a];
+  board[a] = board[b];
+  board[b] = t;
 }
 
 function popAnimation(indices){
@@ -475,14 +469,13 @@ function onTileClick(i){
     return;
   }
 
-  // attempt swap
   busy = true;
+
   swap(selected, i);
   renderBoard();
 
   const matched = findMatches();
   if (matched.size === 0){
-    // revert
     setTimeout(() => {
       swap(selected, i);
       selected = null;
@@ -492,13 +485,12 @@ function onTileClick(i){
     return;
   }
 
-  // successful move
+  // ✅ successful move = +1 coin
   pMoves++;
-  addCoins(1); // ✅ earn 1 coin per move (your request)
+  addCoins(1);
   savePuzzleStats();
   updatePuzzleHUD();
 
-  // clear cascades
   function stepClear(){
     const m = findMatches();
     if (m.size === 0){
@@ -507,6 +499,7 @@ function onTileClick(i){
       busy = false;
       return;
     }
+
     pMatches += m.size;
     savePuzzleStats();
     updatePuzzleHUD();
@@ -525,14 +518,15 @@ function onTileClick(i){
 btnShuffle.addEventListener("click", () => {
   if (busy) return;
   busy = true;
-  // shuffle board
+
   for (let i=board.length-1;i>0;i--){
     const j = rand(0,i);
     const t = board[i]; board[i]=board[j]; board[j]=t;
   }
+
   selected = null;
   renderBoard();
-  // remove any initial matches
+
   setTimeout(() => {
     const m = findMatches();
     if (m.size) {
@@ -550,10 +544,9 @@ btnNewPuzzle.addEventListener("click", () => {
   renderBoard();
 });
 
-// init puzzle
 makeBoard();
 updatePuzzleHUD();
 renderBoard();
 
-// keep hotel HUD fresh even if puzzle is open
+// keep HUD fresh
 setInterval(updateHUD, 500);
