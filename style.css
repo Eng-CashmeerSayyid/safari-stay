@@ -259,6 +259,23 @@ body{
 .tile.pop{
   animation: pop .18s ease-in-out;
 }
+.tile{
+  transition: transform .12s ease, background .12s ease;
+}
+
+.tile:active{
+  transform: scale(.95);
+}
+.tile::before{
+  animation: float 2.8s ease-in-out infinite;
+}
+
+@keyframes float{
+  0%   { transform: translateY(0); }
+  50%  { transform: translateY(-3px); }
+  100% { transform: translateY(0); }
+}
+
 @keyframes pop{
   0%{ transform: scale(.9); opacity:.7;}
   100%{ transform: scale(1); opacity:1;}
