@@ -316,7 +316,8 @@ const btnNewPuzzle = $("btnNewPuzzle");
 // 6x6 match3
 const W = 6;
 const H = 6;
-const candies = ["🟦","🟩","🟨","🟥","🟪","🟧"];
+const candies = ["🌴","🐚","🐠","🥥","🌊","☀️"];
+
 
 let board = []; // 2D flattened length 36
 let selected = null; // index
