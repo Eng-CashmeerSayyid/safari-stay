@@ -1,131 +1,139 @@
-// ====== STORAGE HELPERS ======
-function getNum(key, fallback = 0) {
-  const v = Number(localStorage.getItem(key));
-  return Number.isFinite(v) ? v : fallback;
-}
-function getBool(key) {
-  return localStorage.getItem(key) === "true";
-}
-function setNum(key, value) {
-  localStorage.setItem(key, String(value));
-}
-function setBool(key, value) {
-  localStorage.setItem(key, value ? "true" : "false");
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Safari Stay – Mombasa Hotel</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
 
-// ====== GLOBAL COINS ======
-function getCoins() {
-  return getNum("coins", 0);
-}
-function setCoins(n) {
-  setNum("coins", n);
-}
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">🏝️</div>
+      <div>
+        <div class="title">Safari Stay</div>
+        <div class="subtitle">Mombasa Hotel</div>
+      </div>
+    </div>
 
-// ====== MOMBASA STATE ======
-let rooms = getNum("mombasaRooms", 0);
-let cleaner = getBool("mombasaCleaner");
-let bellboy = getBool("mombasaBellboy");
-let queue = getNum("mombasaQueue", 0);
-let served = getNum("mombasaGuestsServed", 0);
+    <div class="hud">
+      <div class="pill">🪙 Coins: <span id="coins">0</span></div>
+      <div class="pill">👥 Queue: <span id="queue">0</span></div>
+      <div class="pill">✅ Served: <span id="served">0</span></div>
+    </div>
+  </header>
 
-// ====== UI ======
-const $ = (id) => document.getElementById(id);
+  <!-- Tabs -->
+  <nav class="tabs">
+    <button id="tabHotel" class="tab active">🏨 Hotel</button>
+    <button id="tabPuzzle" class="tab">🧩 Puzzle</button>
+  </nav>
 
-function uiMessage(text) {
-  const el = $("msg");
-  if (el) el.textContent = text;
-}
+  <!-- HOTEL VIEW -->
+  <main id="viewHotel" class="view active">
+    <section class="grid">
 
-function render() {
-  $("coins").textContent = getCoins();
-  $("rooms").textContent = rooms;
-  $("cleaner").textContent = cleaner ? "Yes" : "No";
-  $("bellboy").textContent = bellboy ? "Yes" : "No";
-  $("queue").textContent = queue;
-  $("served").textContent = served;
-}
+      <!-- Left: Rooms -->
+      <div class="card">
+        <div class="cardHeader">
+          <h2>Rooms</h2>
+          <div class="small">Tap snack → then tap room to deliver.</div>
+        </div>
 
-function saveAll() {
-  setNum("mombasaRooms", rooms);
-  setBool("mombasaCleaner", cleaner);
-  setBool("mombasaBellboy", bellboy);
-  setNum("mombasaQueue", queue);
-  setNum("mombasaGuestsServed", served);
-}
+        <div id="rooms" class="rooms"></div>
 
-// ====== GAME ACTIONS ======
-function spend(cost) {
-  const c = getCoins();
-  if (c < cost) return false;
-  setCoins(c - cost);
-  return true;
-}
+        <div class="actions">
+          <button id="btnAddRoom" class="btn">➕ Add Room (25🪙)</button>
+          <button id="btnSpawnGuest" class="btn">👤 Spawn Guest</button>
+          <button id="btnClear" class="btn danger">🧹 Reset Save</button>
+        </div>
+      </div>
 
-document.addEventListener("DOMContentLoaded", () => {
-  render();
+      <!-- Right: Snack Corner -->
+      <div class="card">
+        <div class="cardHeader">
+          <h2>Snack Corner</h2>
+          <div class="small">Select a snack to deliver to the room that ordered.</div>
+        </div>
 
-  $("earnBtn").addEventListener("click", () => {
-    setCoins(getCoins() + 25);
-    uiMessage("You earned +25 coins 💰");
-    render();
-  });
+        <div class="snacks">
+          <button class="snack" data-snack="🍟">🍟 Fries</button>
+          <button class="snack" data-snack="🍹">🍹 Juice</button>
+          <button class="snack" data-snack="🍉">🍉 Fruit</button>
+          <button class="snack" data-snack="🍔">🍔 Burger</button>
+        </div>
 
-  $("saveBtn").addEventListener("click", () => {
-    saveAll();
-    uiMessage("Saved ✅");
-  });
+        <div class="notice" id="deliveryHint">
+          No delivery selected.
+        </div>
 
-  $("buyRoom").addEventListener("click", () => {
-    if (!spend(100)) return uiMessage("Not enough coins for a room ❌");
-    rooms += 1;
-    uiMessage("Room built ✅ (+1 capacity)");
-    saveAll();
-    render();
-  });
+        <div class="mini">
+          <div class="miniTitle">How it works</div>
+          <ol>
+            <li>Guests check in & may order snacks (not all at once).</li>
+            <li>Tap a snack to “hold” it.</li>
+            <li>Tap the correct room to deliver.</li>
+            <li>Delivered → room shows 😍 for a moment.</li>
+          </ol>
+        </div>
+      </div>
 
-  $("buyCleaner").addEventListener("click", () => {
-    if (cleaner) return uiMessage("Cleaner already hired ✅");
-    if (!spend(150)) return uiMessage("Not enough coins to hire a cleaner ❌");
-    cleaner = true;
-    uiMessage("Cleaner hired ✅ Service is faster");
-    saveAll();
-    render();
-  });
+    </section>
+  </main>
 
-  $("buyBellboy").addEventListener("click", () => {
-    if (bellboy) return uiMessage("Bellboy already hired ✅");
-    if (!spend(200)) return uiMessage("Not enough coins to hire a bellboy ❌");
-    bellboy = true;
-    uiMessage("Bellboy hired ✅ You can serve more guests");
-    saveAll();
-    render();
-  });
+  <!-- PUZZLE VIEW -->
+  <main id="viewPuzzle" class="view">
+    <section class="grid">
 
-  $("callGuests").addEventListener("click", () => {
-    queue += 3;
-    uiMessage("New guests arrived! (+3) 🧳");
-    saveAll();
-    render();
-  });
+      <div class="card">
+        <div class="cardHeader">
+          <h2>Match-3 Puzzle</h2>
+          <div class="small">Every valid move earns <b>+1 coin</b>.</div>
+        </div>
 
-  $("serveGuest").addEventListener("click", () => {
-    if (rooms <= 0) return uiMessage("Build at least 1 room first 🛏️");
-    if (queue <= 0) return uiMessage("No guests in queue. Tap “Call New Guests” ✅");
+        <div class="puzzleTop">
+          <div class="pill">Moves: <span id="pMoves">0</span></div>
+          <div class="pill">Matches: <span id="pMatches">0</span></div>
+        </div>
 
-    // simple capacity check: can't serve if too many guests vs rooms
-    // (keeps it game-like but not complicated)
-    queue -= 1;
-    served += 1;
+        <div id="board" class="board" aria-label="match 3 board"></div>
 
-    // reward depends on staff upgrades
-    let reward = 40;
-    if (cleaner) reward += 10;
-    if (bellboy) reward += 15;
+        <div class="actions">
+          <button id="btnShuffle" class="btn">🔀 Shuffle</button>
+          <button id="btnNewPuzzle" class="btn">🧩 New Puzzle</button>
+        </div>
 
-    setCoins(getCoins() + reward);
-    uiMessage(`Guest served ✅ You earned +${reward} coins 💰`);
-    saveAll();
-    render();
-  });
-});
+        <div class="mini">
+          <div class="miniTitle">Rules</div>
+          <ul>
+            <li>Swap 2 adjacent tiles.</li>
+            <li>If it creates a match of 3+, it clears and drops.</li>
+            <li>Each successful swap = +1 coin (goes to your hotel too).</li>
+          </ul>
+        </div>
+      </div>
 
+      <div class="card">
+        <div class="cardHeader">
+          <h2>Hotel Boost</h2>
+          <div class="small">Puzzle coins instantly update your hotel HUD.</div>
+        </div>
+
+        <div class="mini">
+          <p>
+            Use puzzle coins to buy more rooms (25🪙 each).  
+            This is linked through <code>localStorage</code>.
+          </p>
+          <p class="small">
+            Tip: If you want “earn coin per swap even if not a match”, tell me and I’ll change it.
+          </p>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <script src="hotel.js"></script>
+</body>
+</html>
