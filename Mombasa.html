@@ -24,7 +24,6 @@
     </div>
   </header>
 
-  <!-- Tabs -->
   <nav class="tabs">
     <button id="tabHotel" class="tab active">🏨 Hotel</button>
     <button id="tabPuzzle" class="tab">🧩 Puzzle</button>
@@ -34,7 +33,6 @@
   <main id="viewHotel" class="view active">
     <section class="grid">
 
-      <!-- Left: Rooms -->
       <div class="card">
         <div class="cardHeader">
           <h2>Rooms</h2>
@@ -50,7 +48,6 @@
         </div>
       </div>
 
-      <!-- Right: Snack Corner -->
       <div class="card">
         <div class="cardHeader">
           <h2>Snack Corner</h2>
@@ -64,9 +61,7 @@
           <button class="snack" data-snack="🍔">🍔 Burger</button>
         </div>
 
-        <div class="notice" id="deliveryHint">
-          No delivery selected.
-        </div>
+        <div class="notice" id="deliveryHint">No delivery selected.</div>
 
         <div class="mini">
           <div class="miniTitle">How it works</div>
@@ -116,17 +111,17 @@
 
       <div class="card">
         <div class="cardHeader">
-          <h2>Hotel Boost</h2>
-          <div class="small">Puzzle coins instantly update your hotel HUD.</div>
+          <h2>Mombasa Tiles</h2>
+          <div class="small">Uses images if available + emoji fallback if not.</div>
         </div>
 
         <div class="mini">
           <p>
-            Use puzzle coins to buy more rooms (25🪙 each).  
-            This is linked through <code>localStorage</code>.
+            Put your 6 PNG tiles here:
+            <br><code>images/tiles/palm.png</code>, <code>shell.png</code>, <code>fish.png</code>, <code>coconut.png</code>, <code>wave.png</code>, <code>sun.png</code>
           </p>
           <p class="small">
-            Tip: If you want “earn coin per swap even if not a match”, tell me and I’ll change it.
+            If images don’t load, you’ll still see 🌴🐚🐠🥥🌊☀️ automatically.
           </p>
         </div>
       </div>
