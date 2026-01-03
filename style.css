@@ -232,6 +232,13 @@ body{
   grid-template-columns: repeat(6, 1fr);
   gap:8px;
 }
+ .board{
+  padding: 10px;
+  border-radius: 18px;
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.06);
+}
+
 .tile{
   display:grid;
   place-items:center;
