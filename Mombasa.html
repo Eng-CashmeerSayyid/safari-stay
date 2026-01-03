@@ -1,648 +1,139 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Safari Stay – Mombasa Hotel</title>
-
-<style>
-  *{box-sizing:border-box}
-  :root{
-    --text:#eaf1ff; --muted:#9fb3d6;
-    --shadow:0 12px 30px rgba(0,0,0,.35);
-  }
-  body{
-    margin:0;
-    font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-    background:radial-gradient(1200px 600px at 20% 10%,#132a66 0%,#0b1220 55%,#07101f 100%);
-    color:var(--text);
-    min-height:100vh;
-  }
-  .topbar{
-    position:sticky; top:0; z-index:10;
-    display:flex; justify-content:space-between; align-items:center;
-    padding:12px 14px;
-    background:rgba(8,13,24,.65);
-    backdrop-filter: blur(10px);
-    border-bottom:1px solid rgba(255,255,255,.08);
-  }
-  .pill{
-    display:inline-block;
-    padding:6px 10px; margin-left:8px;
-    border-radius:999px;
-    background:rgba(255,255,255,.08);
-    border:1px solid rgba(255,255,255,.10);
-    font-size:13px;
-  }
-  .wrap{
-    max-width:1100px;
-    margin:0 auto;
-    padding:16px;
-    display:grid;
-    grid-template-columns:360px 1fr;
-    gap:16px;
-  }
-  .card{
-    background:rgba(255,255,255,.05);
-    border:1px solid rgba(255,255,255,.08);
-    border-radius:18px;
-    padding:14px;
-    box-shadow:var(--shadow);
-  }
-  .muted{color:var(--muted); font-size:13px; line-height:1.35}
-  .row{display:flex; gap:10px; flex-wrap:wrap; margin:10px 0}
-  .btn{
-    padding:10px 12px;
-    border-radius:14px;
-    border:1px solid rgba(255,255,255,.10);
-    background:rgba(255,255,255,.10);
-    color:var(--text);
-    font-weight:800;
-    cursor:pointer;
-  }
-  .btnGold{border-color:rgba(255,211,110,.25); background:rgba(255,211,110,.14)}
-  .btnDanger{border-color:rgba(255,123,123,.25); background:rgba(255,123,123,.14)}
-  .menu{display:flex; gap:10px; flex-wrap:wrap; margin-top:8px}
-  .toast{
-    margin-top:10px;
-    padding:10px 12px;
-    border-radius:14px;
-    background:rgba(101,214,255,.10);
-    border:1px solid rgba(101,214,255,.22);
-    display:none;
-  }
-
-  .hotelGrid{display:grid; grid-template-columns:repeat(2,1fr); gap:12px}
-  .room{
-    background:rgba(255,255,255,.06);
-    border:1px solid rgba(255,255,255,.10);
-    border-radius:18px;
-    padding:12px;
-    cursor:pointer;
-  }
-  .roomHead{display:flex; justify-content:space-between; align-items:center; margin-bottom:8px}
-  .badge{
-    padding:4px 8px; border-radius:999px; font-size:12px; font-weight:900;
-    border:1px solid rgba(255,255,255,.10);
-  }
-  .bClean{background:rgba(125,255,178,.12); border-color:rgba(125,255,178,.22)}
-  .bDirty{background:rgba(255,123,123,.12); border-color:rgba(255,123,123,.22)}
-  .bOcc{background:rgba(101,214,255,.12); border-color:rgba(101,214,255,.22)}
-  .bCleaning{background:rgba(255,211,110,.12); border-color:rgba(255,211,110,.22)}
-
-  .guestLine{
-    margin:6px 0 10px;
-    padding:8px 10px;
-    border-radius:14px;
-    background:rgba(255,255,255,.06);
-    border:1px solid rgba(255,255,255,.08);
-    font-size:13px;
-    color:var(--text);
-  }
-
-  .orderRow{display:flex; justify-content:space-between; align-items:center; gap:10px}
-  .orderTag{
-    flex:1;
-    padding:8px 10px;
-    border-radius:14px;
-    background:rgba(255,255,255,.08);
-    border:1px solid rgba(255,255,255,.10);
-    font-size:13px;
-  }
-
-  /* Timer ring */
-  .timerWrap{position:relative; width:36px; height:36px; flex:0 0 auto}
-  .timerRing{
-    --p:100; --c:#7dffb2;
-    width:36px; height:36px; border-radius:50%;
-    background:conic-gradient(var(--c) calc(var(--p)*1%), rgba(255,255,255,.10) 0);
-    border:1px solid rgba(255,255,255,.12);
-    display:grid; place-items:center;
-  }
-  .timerRing::after{
-    content:"";
-    width:26px; height:26px; border-radius:50%;
-    background:rgba(10,16,30,.95);
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
-  }
-  .timerFace{position:absolute; inset:0; display:grid; place-items:center; font-size:15px; pointer-events:none}
-  .pulse{animation:pulse .85s infinite}
-  @keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.06)}100%{transform:scale(1)}}
-
-  .roomBtns{display:flex; gap:10px; margin-top:10px}
-  .roomBtn{
-    flex:1;
-    padding:10px 10px;
-    border-radius:14px;
-    border:1px solid rgba(255,255,255,.10);
-    background:rgba(255,255,255,.10);
-    color:var(--text);
-    font-weight:900;
-    cursor:pointer;
-  }
-  .roomBtn:disabled{opacity:.55; cursor:not-allowed}
-
-  /* On-screen error box */
-  #errBox{
-    display:none;
-    position:fixed; left:12px; right:12px; bottom:12px; z-index:9999;
-    background:#2b0b12;
-    border:1px solid rgba(255,123,123,.5);
-    border-radius:16px;
-    padding:12px 14px;
-    box-shadow:var(--shadow);
-  }
-  #errBox b{color:#ffb3b3}
-  #errBox pre{
-    margin:8px 0 0;
-    white-space:pre-wrap;
-    font-size:12px;
-    color:#ffd7d7;
-  }
-
-  @media (max-width: 900px){
-    .wrap{grid-template-columns:1fr}
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Safari Stay – Mombasa Hotel</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
-
 <body>
-  <div class="topbar">
-    <div>🦁 <b>Safari Stay</b> — Mombasa Hotel</div>
-    <div>
-      <span class="pill">💰 Coins: <b id="coins">0</b></span>
-      <span class="pill">🧹 Cleaners: <b id="cleaners">1</b></span>
-      <span class="pill">🧍 Queue: <b id="queue">0</b></span>
-      <span class="pill">🤵 Bellboy: <b id="bellboy">Ready</b></span>
-    </div>
-  </div>
 
-  <div class="wrap">
-    <div class="card">
-      <h3>Reception</h3>
-      <div class="muted">
-        Flow: guest checks in → order appears → you deliver → guest checks out after delivery.
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">🏝️</div>
+      <div>
+        <div class="title">Safari Stay</div>
+        <div class="subtitle">Mombasa Hotel</div>
       </div>
-
-      <div class="row">
-        <button class="btn" id="btnSpawn">➕ Spawn Guest</button>
-        <button class="btn btnGold" id="btnHire">Hire Cleaner</button>
-        <button class="btn btnDanger" id="btnReset">Reset Save</button>
-      </div>
-
-      <hr style="border:0;border-top:1px solid rgba(255,255,255,.08);margin:12px 0">
-
-      <h3>Snack Corner</h3>
-      <div class="muted">Step 1: click snack. Step 2: click the room that ordered it.</div>
-
-      <div class="menu">
-        <button class="btn" data-food="juice">🥤 Juice</button>
-        <button class="btn" data-food="chips">🍟 Chips</button>
-        <button class="btn" data-food="coffee">☕ Coffee</button>
-      </div>
-
-      <div style="margin-top:10px" class="muted">
-        Selected item: <b id="selected">None</b>
-      </div>
-
-      <div class="toast" id="toast"></div>
     </div>
 
-    <div class="card">
-      <h3>Your Hotel</h3>
-      <div class="hotelGrid" id="hotel"></div>
+    <div class="hud">
+      <div class="pill">🪙 Coins: <span id="coins">0</span></div>
+      <div class="pill">👥 Queue: <span id="queue">0</span></div>
+      <div class="pill">✅ Served: <span id="served">0</span></div>
     </div>
-  </div>
-
-  <div id="errBox">
-    <b>JS Error (this is why rooms disappear):</b>
-    <pre id="errText"></pre>
-  </div>
-
-<script>
-(() => {
-  window.addEventListener("error", (e) => {
-    const box = document.getElementById("errBox");
-    const txt = document.getElementById("errText");
-    box.style.display = "block";
-    txt.textContent =
-      (e.message || "Unknown error") + "\n" +
-      (e.filename || "") + ":" + (e.lineno || "") + ":" + (e.colno || "");
-  });
-
-  const coinsEl = document.getElementById("coins");
-  const cleanersEl = document.getElementById("cleaners");
-  const queueEl = document.getElementById("queue");
-  const bellboyEl = document.getElementById("bellboy");
-  const hotelEl = document.getElementById("hotel");
-  const selectedEl = document.getElementById("selected");
-  const toastEl = document.getElementById("toast");
-
-  const CLEAN_TIME_MS = 3000;
-
-  const ORDER_MIN_DELAY_MS = 3500;
-  const ORDER_MAX_DELAY_MS = 9500;
-  const MAX_ACTIVE_ORDERS  = 2;
-
-  const ORDER_TOTAL_MS  = 12000;
-  const ANGRY_LEAVE_MS  = 9000;
-  const DELIVERY_TRAVEL_MS = 1200;
-  const POST_DELIVERY_STAY_MS = 4500;
-
-  const MOOD_STEP_MS = 650;
-
-  const MENU = {
-    juice:  { label:"🥤 Juice",  price:5 },
-    chips:  { label:"🍟 Chips",  price:6 },
-    coffee: { label:"☕ Coffee", price:7 }
-  };
-
-  const SAVE_KEY = "mombasa_rooms_fix_v2";
-
-  let coins = 0, cleaners = 1, queue = 0, selected = null;
-  let bellboy = { busy:false, roomId:null, item:null };
-  let cleaningInProgress = 0;
-  let guestSeq = 1;
-
-  let rooms = [1,2,3,4].map(id => ({
-    id,
-    status:"clean",
-    guestId:null,
-    order:null,
-    mood:"",
-    moodUntil:0,
-    timers:{}
-  }));
-
-  function rand(min, max){ return Math.floor(Math.random()*(max-min+1))+min; }
-
-  function toast(msg){
-    toastEl.style.display = "block";
-    toastEl.textContent = msg;
-    clearTimeout(toastEl._t);
-    toastEl._t = setTimeout(() => toastEl.style.display = "none", 2200);
-  }
-
-  function save(){
-    const safeRooms = rooms.map(r => ({
-      id:r.id,
-      status:r.status,
-      guestId:r.guestId,
-      order:(r.order && r.order.status==="delivered") ? r.order : null
-    }));
-    localStorage.setItem(SAVE_KEY, JSON.stringify({ coins, cleaners, queue, guestSeq, rooms:safeRooms }));
-  }
-
-  function load(){
-    try{
-      const raw = localStorage.getItem(SAVE_KEY);
-      if(!raw) return;
-      const d = JSON.parse(raw);
-
-      coins = Number(d.coins) || 0;
-      cleaners = Number(d.cleaners) || 1;
-      queue = Number(d.queue) || 0;
-      guestSeq = Number(d.guestSeq) || 1;
-
-      rooms = (d.rooms || []).map(r => ({
-        id:r.id,
-        status:r.status || "clean",
-        guestId:r.guestId || null,
-        order:null,
-        mood:"",
-        moodUntil:0,
-        timers:{}
-      }));
-      rooms = [1,2,3,4].map(id => rooms.find(x=>x.id===id) || ({
-        id, status:"clean", guestId:null, order:null, mood:"", moodUntil:0, timers:{}
-      }));
-    }catch(_){}
-  }
-
-  function resetSave(){
-    localStorage.removeItem(SAVE_KEY);
-    location.reload();
-  }
-
-  function badge(status){
-    if(status==="clean") return ["CLEAN","bClean"];
-    if(status==="dirty") return ["DIRTY","bDirty"];
-    if(status==="occupied") return ["OCCUPIED","bOcc"];
-    if(status==="cleaning") return ["CLEANING","bCleaning"];
-    return [String(status).toUpperCase(),""];
-  }
-
-  function activeOrderCount(){
-    return rooms.filter(r => r.order && (r.order.status==="waiting" || r.order.status==="delivering")).length;
-  }
-
-  function clearRoomTimers(r){
-    clearTimeout(r.timers.orderAppear);
-    clearTimeout(r.timers.angryLeave);
-    clearTimeout(r.timers.checkout);
-  }
-
-  function assignGuests(){
-    if(queue <= 0) return;
-    const free = rooms.find(r => r.status==="clean" && r.guestId===null);
-    if(!free) return;
-
-    queue--;
-    free.status = "occupied";
-    free.guestId = guestSeq++;
-    free.order = null;
-    free.mood = "";
-    free.moodUntil = 0;
-
-    clearRoomTimers(free);
-
-    const delay = rand(ORDER_MIN_DELAY_MS, ORDER_MAX_DELAY_MS);
-    free.timers.orderAppear = setTimeout(() => createOrder(free.id), delay);
-
-    render();
-  }
-
-  function spawnGuest(){
-    queue++;
-    render();
-    assignGuests();
-  }
-
-  function createOrder(roomId){
-    const r = rooms.find(x=>x.id===roomId);
-    if(!r || r.status!=="occupied" || r.order) return;
-
-    if(activeOrderCount() >= MAX_ACTIVE_ORDERS){
-      clearTimeout(r.timers.orderAppear);
-      r.timers.orderAppear = setTimeout(() => createOrder(roomId), rand(1500, 3500));
-      return;
-    }
-
-    const keys = Object.keys(MENU);
-    const itemKey = keys[Math.floor(Math.random()*keys.length)];
-    const now = Date.now();
-
-    r.order = { itemKey, status:"waiting", createdAt: now, deadlineAt: now + ORDER_TOTAL_MS };
-
-    clearTimeout(r.timers.angryLeave);
-    r.timers.angryLeave = setTimeout(() => angryLeave(roomId), ORDER_TOTAL_MS + ANGRY_LEAVE_MS);
-
-    toast(`Room ${roomId} ordered ${MENU[itemKey].label}`);
-    render();
-  }
-
-  function angryLeave(roomId){
-    const r = rooms.find(x=>x.id===roomId);
-    if(!r || r.status!=="occupied") return;
-    if(!r.order || r.order.status!=="waiting") return;
-
-    toast(`Guest in Room ${roomId} left angry 😠💨`);
-    r.status="dirty"; r.guestId=null; r.order=null; r.mood=""; r.moodUntil=0;
-    render();
-    assignGuests();
-  }
-
-  function selectFood(key){
-    selected = key;
-    selectedEl.textContent = MENU[key].label;
-    toast(`Selected ${MENU[key].label}. Click the room.`);
-  }
-
-  function setMood(roomId, steps){
-    let i = 0;
-    const run = () => {
-      const rr = rooms.find(x=>x.id===roomId);
-      if(!rr || rr.status!=="occupied") return;
-      rr.mood = steps[i];
-      rr.moodUntil = Date.now() + MOOD_STEP_MS + 80;
-      render();
-      i++;
-      if(i < steps.length) setTimeout(run, MOOD_STEP_MS);
-    };
-    run();
-  }
-
-  function attemptDelivery(roomId){
-    const r = rooms.find(x=>x.id===roomId);
-    if(!r) return;
-
-    if(!selected){ toast("Pick a snack first 🍟🥤☕"); return; }
-    if(bellboy.busy){ toast("Bellboy is busy."); return; }
-    if(r.status!=="occupied"){ toast("No guest here."); return; }
-    if(!r.order || r.order.status!=="waiting"){ toast("No waiting order."); return; }
-
-    if(r.order.itemKey !== selected){
-      toast(`Wrong item. Ordered ${MENU[r.order.itemKey].label}`);
-      return;
-    }
-
-    clearTimeout(r.timers.angryLeave);
-    r.order.status = "delivering";
-
-    bellboy.busy = true;
-    bellboy.roomId = roomId;
-    bellboy.item = selected;
-
-    selected = null;
-    selectedEl.textContent = "None";
-
-    render();
-    toast("Bellboy delivering… 🤵");
-
-    setTimeout(() => {
-      const room = rooms.find(x=>x.id===roomId);
-      if(!room || room.status!=="occupied" || !room.order){
-        bellboy.busy=false; bellboy.roomId=null; bellboy.item=null;
-        render();
-        return;
-      }
-
-      room.order.status="delivered";
-      coins += MENU[bellboy.item].price;
-
-      setMood(roomId, ["😋","😍"]);
-
-      bellboy.busy=false; bellboy.roomId=null; bellboy.item=null;
-
-      render();
-      toast("Delivered ✅");
-
-      clearTimeout(room.timers.checkout);
-      room.timers.checkout = setTimeout(() => checkout(roomId), POST_DELIVERY_STAY_MS);
-    }, DELIVERY_TRAVEL_MS);
-  }
-
-  function checkout(roomId){
-    const r = rooms.find(x=>x.id===roomId);
-    if(!r || r.status!=="occupied") return;
-    if(!r.order || r.order.status!=="delivered") return;
-
-    coins += 10;
-    r.status="dirty"; r.guestId=null; r.order=null; r.mood=""; r.moodUntil=0;
-    render();
-    assignGuests();
-  }
-
-  function canClean(){ return cleaningInProgress < cleaners; }
-
-  function startCleaning(roomId){
-    const r = rooms.find(x=>x.id===roomId);
-    if(!r) return;
-    if(r.status!=="dirty"){ toast("Not dirty."); return; }
-    if(!canClean()){ toast("All cleaners busy. Upgrade."); return; }
-
-    cleaningInProgress++;
-    r.status="cleaning";
-    render();
-
-    setTimeout(() => {
-      r.status="clean";
-      cleaningInProgress = Math.max(0, cleaningInProgress-1);
-      render();
-      toast(`Room ${roomId} clean ✅`);
-      assignGuests();
-    }, CLEAN_TIME_MS);
-  }
-
-  function hireCleaner(){
-    const cost = 80 * cleaners;
-    if(coins < cost){ toast(`Need ${cost} coins.`); return; }
-    coins -= cost;
-    cleaners++;
-    render();
-    toast(`Cleaner hired! Now ${cleaners}.`);
-  }
-
-  function orderVisual(order){
-    if(order.status==="delivering") return { p:100, c:"#65d6ff", face:"🏃", pulse:false };
-    if(order.status==="delivered")  return { p:100, c:"#7dffb2", face:"✅", pulse:false };
-
-    const now = Date.now();
-    const total = Math.max(1, order.deadlineAt - order.createdAt);
-    const remain = order.deadlineAt - now;
-    const pct = Math.max(0, Math.min(100, (remain / total) * 100));
-
-    let c="#7dffb2", face="🙂", pulse=false;
-    if(pct <= 66){ c="#ffd36e"; face="😐"; }
-    if(pct <= 33 || remain <= 0){ c="#ff7b7b"; face="😠"; pulse=true; }
-
-    return { p:pct, c, face, pulse };
-  }
-
-  function render(){
-    coinsEl.textContent = coins;
-    cleanersEl.textContent = cleaners;
-    queueEl.textContent = queue;
-    bellboyEl.textContent = bellboy.busy ? `Delivering (Room ${bellboy.roomId})` : "Ready";
-
-    hotelEl.innerHTML = "";
-
-    rooms.forEach(r => {
-      const [lbl, cls] = badge(r.status);
-
-      const card = document.createElement("div");
-      card.className = "room";
-      card.addEventListener("click", () => attemptDelivery(r.id));
-
-      const head = document.createElement("div");
-      head.className = "roomHead";
-      head.innerHTML = `<div><b>Room ${r.id}</b></div><div class="badge ${cls}">${lbl}</div>`;
-      card.appendChild(head);
-
-      // ✅ Guest line so you SEE the spawn
-      const guestLine = document.createElement("div");
-      guestLine.className = "guestLine";
-      guestLine.textContent =
-        r.status === "occupied" ? `Guest #${r.guestId} 🧳` :
-        r.status === "dirty" ? `Needs cleaning 🧹` :
-        r.status === "cleaning" ? `Cleaning in progress…` :
-        `Empty room`;
-      card.appendChild(guestLine);
-
-      const orderRow = document.createElement("div");
-      orderRow.className = "orderRow";
-
-      const tag = document.createElement("div");
-      tag.className = "orderTag";
-
-      const timerWrap = document.createElement("div");
-      timerWrap.className = "timerWrap";
-
-      if(r.status==="occupied" && r.order){
-        const v = orderVisual(r.order);
-        const itemLabel = MENU[r.order.itemKey].label;
-        const moodNow = (r.moodUntil && Date.now() < r.moodUntil && r.mood) ? ` ${r.mood}` : "";
-
-        tag.textContent =
-          r.order.status==="waiting" ? `Order: ${itemLabel}` :
-          r.order.status==="delivering" ? `Delivering: ${itemLabel}` :
-          `Delivered ✅${moodNow}`;
-
-        const ring = document.createElement("div");
-        ring.className = "timerRing" + (v.pulse ? " pulse" : "");
-        ring.style.setProperty("--p", v.p.toFixed(1));
-        ring.style.setProperty("--c", v.c);
-
-        const face = document.createElement("div");
-        face.className = "timerFace";
-        face.textContent = v.face;
-
-        timerWrap.appendChild(ring);
-        timerWrap.appendChild(face);
-      } else if(r.status==="occupied"){
-        tag.textContent = "Waiting to order…";
-        timerWrap.style.visibility = "hidden";
-      } else {
-        tag.textContent = "—";
-        timerWrap.style.visibility = "hidden";
-      }
-
-      orderRow.appendChild(tag);
-      orderRow.appendChild(timerWrap);
-      card.appendChild(orderRow);
-
-      const btnRow = document.createElement("div");
-      btnRow.className = "roomBtns";
-
-      const cleanBtn = document.createElement("button");
-      cleanBtn.className = "roomBtn";
-      cleanBtn.textContent = (r.status==="dirty") ? "🧹 CLEAN" : (r.status==="cleaning" ? "Cleaning…" : "Clean");
-      cleanBtn.disabled = !(r.status==="dirty" && canClean());
-      cleanBtn.addEventListener("click", (e) => { e.stopPropagation(); startCleaning(r.id); });
-
-      btnRow.appendChild(cleanBtn);
-      card.appendChild(btnRow);
-
-      hotelEl.appendChild(card);
-    });
-
-    save();
-  }
-
-  document.getElementById("btnSpawn").addEventListener("click", spawnGuest);
-  document.getElementById("btnHire").addEventListener("click", hireCleaner);
-  document.getElementById("btnReset").addEventListener("click", resetSave);
-  document.querySelectorAll("[data-food]").forEach(b => b.addEventListener("click", () => selectFood(b.dataset.food)));
-
-  load();
-  render();
-
-  // ✅ Auto-start: 2 guests so it doesn't look dead
-  if (queue === 0 && rooms.every(r => r.guestId === null)) {
-    queue = 2;
-    assignGuests();
-    assignGuests();
-    toast("Welcome! 2 guests checked in ✅");
-    render();
-  }
-
-  setInterval(assignGuests, 650);
-  setInterval(() => {
-    if (rooms.some(r => r.order && (r.order.status==="waiting" || r.order.status==="delivering"))) render();
-  }, 250);
-
-})();
-</script>
+  </header>
+
+  <!-- Tabs -->
+  <nav class="tabs">
+    <button id="tabHotel" class="tab active">🏨 Hotel</button>
+    <button id="tabPuzzle" class="tab">🧩 Puzzle</button>
+  </nav>
+
+  <!-- HOTEL VIEW -->
+  <main id="viewHotel" class="view active">
+    <section class="grid">
+
+      <!-- Left: Rooms -->
+      <div class="card">
+        <div class="cardHeader">
+          <h2>Rooms</h2>
+          <div class="small">Tap snack → then tap room to deliver.</div>
+        </div>
+
+        <div id="rooms" class="rooms"></div>
+
+        <div class="actions">
+          <button id="btnAddRoom" class="btn">➕ Add Room (25🪙)</button>
+          <button id="btnSpawnGuest" class="btn">👤 Spawn Guest</button>
+          <button id="btnClear" class="btn danger">🧹 Reset Save</button>
+        </div>
+      </div>
+
+      <!-- Right: Snack Corner -->
+      <div class="card">
+        <div class="cardHeader">
+          <h2>Snack Corner</h2>
+          <div class="small">Select a snack to deliver to the room that ordered.</div>
+        </div>
+
+        <div class="snacks">
+          <button class="snack" data-snack="🍟">🍟 Fries</button>
+          <button class="snack" data-snack="🍹">🍹 Juice</button>
+          <button class="snack" data-snack="🍉">🍉 Fruit</button>
+          <button class="snack" data-snack="🍔">🍔 Burger</button>
+        </div>
+
+        <div class="notice" id="deliveryHint">
+          No delivery selected.
+        </div>
+
+        <div class="mini">
+          <div class="miniTitle">How it works</div>
+          <ol>
+            <li>Guests check in & may order snacks (not all at once).</li>
+            <li>Tap a snack to “hold” it.</li>
+            <li>Tap the correct room to deliver.</li>
+            <li>Delivered → room shows 😍 for a moment.</li>
+          </ol>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <!-- PUZZLE VIEW -->
+  <main id="viewPuzzle" class="view">
+    <section class="grid">
+
+      <div class="card">
+        <div class="cardHeader">
+          <h2>Match-3 Puzzle</h2>
+          <div class="small">Every valid move earns <b>+1 coin</b>.</div>
+        </div>
+
+        <div class="puzzleTop">
+          <div class="pill">Moves: <span id="pMoves">0</span></div>
+          <div class="pill">Matches: <span id="pMatches">0</span></div>
+        </div>
+
+        <div id="board" class="board" aria-label="match 3 board"></div>
+
+        <div class="actions">
+          <button id="btnShuffle" class="btn">🔀 Shuffle</button>
+          <button id="btnNewPuzzle" class="btn">🧩 New Puzzle</button>
+        </div>
+
+        <div class="mini">
+          <div class="miniTitle">Rules</div>
+          <ul>
+            <li>Swap 2 adjacent tiles.</li>
+            <li>If it creates a match of 3+, it clears and drops.</li>
+            <li>Each successful swap = +1 coin (goes to your hotel too).</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="cardHeader">
+          <h2>Hotel Boost</h2>
+          <div class="small">Puzzle coins instantly update your hotel HUD.</div>
+        </div>
+
+        <div class="mini">
+          <p>
+            Use puzzle coins to buy more rooms (25🪙 each).  
+            This is linked through <code>localStorage</code>.
+          </p>
+          <p class="small">
+            Tip: If you want “earn coin per swap even if not a match”, tell me and I’ll change it.
+          </p>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <script src="hotel.js"></script>
 </body>
 </html>
-
