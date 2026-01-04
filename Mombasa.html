@@ -35,14 +35,79 @@
 
       <div class="card">
         <div class="cardHeader">
-          <h2>Rooms</h2>
-          <div class="small">Tap snack → then tap room to deliver.</div>
+          <h2>Hotel (Visual)</h2>
+          <div class="small">Modular layout like Hotel Mania. Rooms x4. Snack + Cleaning center. Reception below.</div>
+        </div>
+
+        <!-- ✅ NEW: HOTEL VISUAL STAGE -->
+        <div class="hotelStage" aria-label="hotel visual">
+          <!-- Floor 2 -->
+          <div class="floorRow floor2">
+            <button class="hotspot roomSpot" data-room="1" title="Room 1">
+              <img src="images/room.png" alt="Room">
+              <span class="spotBadge" id="spotR1">1</span>
+              <span class="spotIcon" id="spotI1"></span>
+            </button>
+
+            <button class="hotspot roomSpot" data-room="2" title="Room 2">
+              <img src="images/room.png" alt="Room">
+              <span class="spotBadge" id="spotR2">2</span>
+              <span class="spotIcon" id="spotI2"></span>
+            </button>
+
+            <button class="hotspot stationSpot" data-station="snack" title="Snack Station">
+              <img src="images/snack.png" alt="Snack station">
+              <span class="stationLabel">Snack</span>
+            </button>
+
+            <button class="hotspot stationSpot" data-station="cleaning" title="Cleaning Station">
+              <img src="images/cleaning.png" alt="Cleaning station">
+              <span class="stationLabel">Clean</span>
+            </button>
+
+            <button class="hotspot roomSpot" data-room="3" title="Room 3">
+              <img src="images/room.png" alt="Room">
+              <span class="spotBadge" id="spotR3">3</span>
+              <span class="spotIcon" id="spotI3"></span>
+            </button>
+
+            <button class="hotspot roomSpot" data-room="4" title="Room 4">
+              <img src="images/room.png" alt="Room">
+              <span class="spotBadge" id="spotR4">4</span>
+              <span class="spotIcon" id="spotI4"></span>
+            </button>
+          </div>
+
+          <!-- Stairs -->
+          <div class="stairsRow">
+            <img src="images/stairs.png" alt="Stairs" class="stairsImg">
+          </div>
+
+          <!-- Floor 1 -->
+          <div class="floorRow floor1">
+            <div class="spawnLane">
+              <div class="spawnTitle">Spawn</div>
+              <div class="spawnPeople" id="spawnPeople">👤</div>
+              <div class="small muted">Queue waits here.</div>
+            </div>
+
+            <button class="hotspot receptionSpot" data-station="reception" title="Reception">
+              <img src="images/reception.png" alt="Reception">
+              <span class="stationLabel">Reception</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="cardHeader">
+          <h2>Rooms (Status)</h2>
+          <div class="small">Tap snack → then tap the room that ordered to deliver.</div>
         </div>
 
         <div id="rooms" class="rooms"></div>
 
         <div class="actions">
-          <button id="btnAddRoom" class="btn">➕ Add Room (25🪙)</button>
           <button id="btnSpawnGuest" class="btn">👤 Spawn Guest</button>
           <button id="btnClear" class="btn danger">🧹 Reset Save</button>
         </div>
@@ -51,7 +116,7 @@
       <div class="card">
         <div class="cardHeader">
           <h2>Snack Corner</h2>
-          <div class="small">Select a snack to deliver to the room that ordered.</div>
+          <div class="small">Pick a snack then tap the room that ordered.</div>
         </div>
 
         <div class="snacks">
@@ -66,10 +131,11 @@
         <div class="mini">
           <div class="miniTitle">How it works</div>
           <ol>
-            <li>Guests check in & may order snacks (not all at once).</li>
+            <li>Guests check in automatically if a room is free.</li>
+            <li>Only some guests order snacks (not everyone, not at once).</li>
             <li>Tap a snack to “hold” it.</li>
-            <li>Tap the correct room to deliver.</li>
-            <li>Delivered → room shows 😍 for a moment.</li>
+            <li>Tap the room that ordered to deliver (correct snack only).</li>
+            <li>Delivered → room shows 😍 briefly + you earn coins.</li>
           </ol>
         </div>
       </div>
@@ -104,7 +170,7 @@
           <ul>
             <li>Swap 2 adjacent tiles.</li>
             <li>If it creates a match of 3+, it clears and drops.</li>
-            <li>Each successful swap = +1 coin (goes to your hotel too).</li>
+            <li>Each successful swap = +1 coin (shared with hotel).</li>
           </ul>
         </div>
       </div>
