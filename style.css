@@ -473,3 +473,14 @@ body{
 .stairsImg{
   width: 220px;
 }
+/* === MOVING CHARACTERS === */
+.hotelStage{ position: relative; }
+.agent{
+  position: absolute;
+  left: 30px;
+  top: 30px;
+  font-size: 28px;
+  transition: transform 0.6s ease;
+  z-index: 50;
+  filter: drop-shadow(0 8px 10px rgba(0,0,0,.45));
+}
