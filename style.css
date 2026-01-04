@@ -445,3 +445,31 @@ body{
 .tile.t-coconut::before { background-image: url("images/tiles/coconut.png"); }
 .tile.t-wave::before    { background-image: url("images/tiles/wave.png"); }
 .tile.t-sun::before     { background-image: url("images/tiles/sun.png"); }
+/* === HOTEL VISUAL TUNING === */
+.hotelStage{
+  position: relative;
+}
+
+.floorRow{
+  justify-content: center;     /* centers your modules */
+  gap: 18px;                   /* more spacing */
+  padding: 6px 0;
+}
+
+/* make the modules bigger and consistent */
+.roomSpot img,
+.stationSpot img{
+  width: 140px;                /* increase if your PNG is small */
+  height: auto;
+}
+
+/* reception should be larger */
+.receptionSpot img{
+  width: 320px;
+  height: auto;
+}
+
+/* stairs */
+.stairsImg{
+  width: 220px;
+}
