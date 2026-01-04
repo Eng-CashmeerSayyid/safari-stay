@@ -288,6 +288,16 @@ body{
   0%{ transform: scale(.9); opacity:.7;}
   100%{ transform: scale(1); opacity:1;}
 }
+/* === TILE FLOAT ANIMATION (MOMBASA VIBE) === */
+.tile::before{
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float{
+  0%   { transform: translateY(0); }
+  50%  { transform: translateY(-3px); }
+  100% { transform: translateY(0); }
+}
 
 /* tile type → image mapping */
 .tile.t-palm::before    { background-image: url("images/tiles/palm.png"); }
