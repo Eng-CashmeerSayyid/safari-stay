@@ -10,6 +10,13 @@
   --sky:#65d6ff;
   --shadow: 0 12px 30px rgba(0,0,0,.35);
   --radius:18px;
+
+  /* ✅ STAGE SIZE CONTROL */
+  --tileSize: 140px;     /* base size for room/snack/cleaning */
+  --roomZoom: 1.35;      /* zoom-in to remove transparent padding */
+  --stationZoom: 1.10;
+  --receptionW: 340px;
+  --stairsW: 220px;
 }
 
 body{
@@ -101,7 +108,6 @@ body{
 
 .cardHeader h2{ margin:0; font-size:18px; }
 .small{ color:var(--muted); font-size:12px; margin-top:4px; }
-.muted{ color:var(--muted); }
 
 .actions{
   display:flex;
@@ -131,7 +137,7 @@ body{
   margin:14px 0;
 }
 
-/* ✅ NEW: HOTEL STAGE (MODULAR VISUAL) */
+/* ===================== HOTEL STAGE (VISUAL) ===================== */
 .hotelStage{
   margin-top:12px;
   padding:12px;
@@ -143,46 +149,67 @@ body{
 
 .floorRow{
   display:flex;
-  gap:12px;
   align-items:flex-end;
-  justify-content:flex-start;
-  min-width: 760px;
+  justify-content:center;
+  gap: 16px;
+  padding: 8px 0;
+  min-width: 860px; /* keeps spacing on desktop; stage scrolls on small screens */
 }
-.floorRow img{ display:block; }
 
-.hotspot{
+.tileHotspot{
   position:relative;
   border:0;
   background: transparent;
   padding:0;
   cursor:pointer;
   border-radius:16px;
-  outline: none;
 }
-.hotspot:hover{
-  transform: translateY(-1px);
-}
-.hotspot:active{
-  transform: translateY(0px) scale(.99);
+.tileHotspot:hover{ transform: translateY(-1px); }
+.tileHotspot:active{ transform: translateY(0) scale(.99); }
+
+/* Fixed-size tile container so images don't look tiny */
+.roomSpot,
+.stationSpot{
+  width: var(--tileSize);
+  height: calc(var(--tileSize) * 0.85);
+  border-radius: 18px;
+  background: rgba(255,255,255,.02);
+  border: 1px solid rgba(255,255,255,.06);
+  overflow: hidden; /* ✅ crop */
+  box-shadow: 0 12px 18px rgba(0,0,0,.25);
 }
 
-.roomSpot img{
-  width: 120px;
-  height:auto;
-  filter: drop-shadow(0 12px 16px rgba(0,0,0,.35));
-}
+/* The image fills the tile, then we zoom it to remove transparent padding */
+.roomSpot img,
 .stationSpot img{
-  width: 120px;
-  height:auto;
-  filter: drop-shadow(0 12px 16px rgba(0,0,0,.35));
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transform-origin: center;
+}
+
+/* ✅ zoom control */
+.roomSpot img{ transform: scale(var(--roomZoom)); }
+.stationSpot img{ transform: scale(var(--stationZoom)); }
+
+.receptionSpot{
+  width: var(--receptionW);
+  height: 140px;
+  border-radius: 18px;
+  background: rgba(255,255,255,.02);
+  border: 1px solid rgba(255,255,255,.06);
+  overflow: hidden;
+  box-shadow: 0 12px 18px rgba(0,0,0,.25);
 }
 .receptionSpot img{
-  width: 260px;
-  height:auto;
-  filter: drop-shadow(0 12px 16px rgba(0,0,0,.35));
+  width:100%;
+  height:100%;
+  object-fit: contain;
+  transform: scale(1.1);
+  transform-origin:center;
 }
 
-.spotBadge{
+.tileBadge{
   position:absolute;
   top:8px;
   left:8px;
@@ -194,14 +221,13 @@ body{
   border-radius: 999px;
   font-size: 12px;
 }
-.spotIcon{
+.tileIcon{
   position:absolute;
   bottom:10px;
   right:10px;
   font-size: 20px;
   filter: drop-shadow(0 6px 10px rgba(0,0,0,.45));
 }
-
 .stationLabel{
   position:absolute;
   bottom:8px;
@@ -218,33 +244,27 @@ body{
 .stairsRow{
   display:flex;
   justify-content:center;
-  padding: 10px 0 6px;
+  padding: 10px 0 4px;
 }
 .stairsImg{
-  width: 170px;
+  width: var(--stairsW);
   height:auto;
-  opacity: .95;
+  opacity:.95;
   filter: drop-shadow(0 12px 16px rgba(0,0,0,.35));
 }
 
 .spawnLane{
   flex: 1;
-  min-width: 260px;
+  min-width: 280px;
   padding: 10px 12px;
   border-radius: 16px;
   background: rgba(255,255,255,.04);
   border: 1px solid rgba(255,255,255,.06);
 }
-.spawnTitle{
-  font-weight: 900;
-  margin-bottom: 6px;
-}
-.spawnPeople{
-  font-size: 28px;
-  line-height: 1.1;
-}
+.spawnTitle{ font-weight: 900; margin-bottom: 6px; }
+.spawnPeople{ font-size: 28px; line-height: 1.1; }
 
-/* Rooms list cards */
+/* ===================== ROOMS LIST ===================== */
 .rooms{
   display:grid;
   grid-template-columns: repeat(2, minmax(0,1fr));
@@ -262,10 +282,7 @@ body{
   min-height:140px;
   cursor:pointer;
 }
-.roomTop{
-  display:flex; justify-content:space-between; align-items:center;
-  font-weight:900;
-}
+.roomTop{ display:flex; justify-content:space-between; align-items:center; font-weight:900; }
 .roomBadge{
   font-size:12px; color:var(--muted);
   background: rgba(255,255,255,.06);
@@ -273,16 +290,8 @@ body{
   padding:4px 8px;
   border-radius:999px;
 }
-.roomEmoji{
-  font-size:28px;
-  line-height:1;
-  min-height:32px;
-}
-.roomInfo{
-  display:flex; gap:8px; flex-wrap:wrap;
-  font-size:12px;
-  color:var(--muted);
-}
+.roomEmoji{ font-size:28px; line-height:1; min-height:32px; }
+.roomInfo{ display:flex; gap:8px; flex-wrap:wrap; font-size:12px; color:var(--muted); }
 .tag{
   background: rgba(101,214,255,.10);
   border: 1px solid rgba(101,214,255,.18);
@@ -297,12 +306,7 @@ body{
   background: rgba(255,123,123,.10);
   border-color: rgba(255,123,123,.20);
 }
-
-.roomButtons{
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-}
+.roomButtons{ display:flex; gap:10px; flex-wrap:wrap; }
 .smallBtn{
   border:0;
   cursor:pointer;
@@ -317,11 +321,9 @@ body{
   background: rgba(101,214,255,.10);
   border-color: rgba(101,214,255,.18);
 }
-.smallBtn:disabled{
-  opacity: .5;
-  cursor:not-allowed;
-}
+.smallBtn:disabled{ opacity:.5; cursor:not-allowed; }
 
+/* ===================== SNACKS ===================== */
 .snacks{
   display:grid;
   grid-template-columns: repeat(2, minmax(0,1fr));
@@ -363,7 +365,7 @@ body{
 }
 .miniTitle{ font-weight:900; color:var(--text); margin-bottom:6px; }
 
-/* Puzzle */
+/* ===================== PUZZLE ===================== */
 .puzzleTop{ display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
 
 .board{
@@ -380,7 +382,6 @@ body{
   border: 1px solid rgba(255,255,255,.06);
 }
 
-/* Tile base */
 .tile{
   display:grid;
   place-items:center;
@@ -394,12 +395,10 @@ body{
   position: relative;
   overflow: hidden;
 
-  /* emoji fallback */
   font-size: 24px;
   color: rgba(255,255,255,.95);
 }
 
-/* image layer (on top of emoji) */
 .tile::before{
   content:"";
   position:absolute;
@@ -412,18 +411,14 @@ body{
   background-position: center;
   filter: drop-shadow(0 10px 12px rgba(0,0,0,.35));
   pointer-events:none;
-
-  /* float animation */
   animation: float 3s ease-in-out infinite;
 }
 
-/* selected state */
 .tile.selected{
   background: rgba(101,214,255,.14);
   border-color: rgba(101,214,255,.32);
   transform: scale(1.03);
 }
-
 .tile:active{ transform: scale(.96); }
 
 .tile.pop{ animation: pop .18s ease-in-out; }
@@ -445,42 +440,3 @@ body{
 .tile.t-coconut::before { background-image: url("images/tiles/coconut.png"); }
 .tile.t-wave::before    { background-image: url("images/tiles/wave.png"); }
 .tile.t-sun::before     { background-image: url("images/tiles/sun.png"); }
-/* === HOTEL VISUAL TUNING === */
-.hotelStage{
-  position: relative;
-}
-
-.floorRow{
-  justify-content: center;     /* centers your modules */
-  gap: 18px;                   /* more spacing */
-  padding: 6px 0;
-}
-
-/* make the modules bigger and consistent */
-.roomSpot img,
-.stationSpot img{
-  width: 140px;                /* increase if your PNG is small */
-  height: auto;
-}
-
-/* reception should be larger */
-.receptionSpot img{
-  width: 320px;
-  height: auto;
-}
-
-/* stairs */
-.stairsImg{
-  width: 220px;
-}
-/* === MOVING CHARACTERS === */
-.hotelStage{ position: relative; }
-.agent{
-  position: absolute;
-  left: 30px;
-  top: 30px;
-  font-size: 28px;
-  transition: transform 0.6s ease;
-  z-index: 50;
-  filter: drop-shadow(0 8px 10px rgba(0,0,0,.45));
-}
