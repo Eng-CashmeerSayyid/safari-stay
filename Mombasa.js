@@ -248,6 +248,34 @@ document.getElementById("btnSpawn").addEventListener("click", checkInGuest);
 document.getElementById("btnDeliver").addEventListener("click", deliverSnackToSelected);
 document.getElementById("btnClean").addEventListener("click", cleanSelectedRoom);
 
+// Reset (fixes stuck rooms / old localStorage)
+document.getElementById("btnReset")?.addEventListener("click", () => {
+  // Clear ONLY Mombasa-related keys (keep coins if you want)
+  localStorage.removeItem("mombasaRoomsState");
+  localStorage.removeItem("mombasaQueue");
+  localStorage.removeItem("mombasaGuestsServed");
+
+  // Rebuild clean state
+  queue = 0;
+  served = 0;
+  rooms = ROOM_KEYS.map(() => ({
+    state: "empty",
+    wantsSnack: false,
+    stayEndsAt: 0,
+    cleanEndsAt: 0
+  }));
+
+  selectedSpot = null;
+  document.querySelectorAll(".hotspot").forEach(b => b.classList.remove("selected"));
+
+  hint.textContent = "Hotel reset ✅ Now tap Add Guest.";
+  showBubble("♻️ Reset");
+
+  save();
+  renderHUD();
+  applyDoorStyles();
+});
+
 // Init
 renderHUD();
 applyDoorStyles();
