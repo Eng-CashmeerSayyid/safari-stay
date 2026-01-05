@@ -14,10 +14,11 @@
       text-decoration:none; color:#eaf1ff;
       background:rgba(255,255,255,.08);
       padding:8px 12px; border-radius:999px;
-      font-weight:700;
+      font-weight:800;
     }
     .tabLink.active{
       outline:2px solid rgba(255,211,110,.9);
+      outline-offset:2px;
     }
   </style>
 </head>
@@ -40,7 +41,7 @@
   </div>
 </header>
 
-<!-- TABS -->
+<!-- Tabs -->
 <nav class="tabsBar">
   <a class="tabLink active" href="index.html">🏨 Hotel</a>
   <a class="tabLink" href="puzzle.html">🧩 Puzzle</a>
@@ -71,6 +72,7 @@
     <button id="btnSpawn">➕ Add Guest</button>
     <button id="btnDeliver">🛎️ Deliver Snack</button>
     <button id="btnClean">🧼 Clean Room</button>
+
     <div class="hint" id="hint">Tap a door or station.</div>
 
     <label class="debugToggle">
@@ -83,5 +85,3 @@
 <script src="Mombasa.js"></script>
 </body>
 </html>
-
-
