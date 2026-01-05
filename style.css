@@ -1,490 +1,183 @@
-*{ box-sizing:border-box; }
+/* ================= RESET ================= */
+*{
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ================= THEME ================= */
 :root{
   --bg:#0b1220;
   --card:#0f1b33;
   --text:#eaf1ff;
   --muted:#9fb3d6;
   --accent:#ffd36e;
-  --danger:#ff7b7b;
-  --ok:#7dffb2;
-  --sky:#65d6ff;
   --shadow: 0 12px 30px rgba(0,0,0,.35);
   --radius:18px;
-
-  /* ✅ STAGE SIZE CONTROL */
-  --tileSize: 140px;     /* base size for room/snack/cleaning */
-  --roomZoom: 1.35;      /* zoom-in to remove transparent padding */
-  --stationZoom: 1.10;
-  --receptionW: 340px;
-  --stairsW: 220px;
 }
 
 body{
-  margin:0;
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-  color:var(--text);
   background: radial-gradient(1200px 600px at 20% 10%, #132a66 0%, #0b1220 55%, #07101f 100%);
+  color: var(--text);
 }
 
+/* ================= TOP BAR ================= */
 .topbar{
-  position:sticky; top:0; z-index:10;
-  display:flex; gap:14px; align-items:center; justify-content:space-between;
-  padding:14px 16px;
-  background: rgba(10,16,30,.75);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  background: rgba(9,16,32,.75);
   backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255,255,255,.06);
+  border-bottom: 1px solid rgba(255,255,255,.08);
 }
 
-.brand{ display:flex; gap:12px; align-items:center; }
+.brand{
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
 .logo{
-  width:44px; height:44px; border-radius:14px;
-  display:grid; place-items:center;
-  background: rgba(255,211,110,.12);
-  border: 1px solid rgba(255,211,110,.25);
-  box-shadow: var(--shadow);
-  font-size:22px;
-}
-.title{ font-weight:800; letter-spacing:.2px; }
-.subtitle{ font-size:12px; color:var(--muted); margin-top:2px; }
-
-.hud{ display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
-.pill{
-  background: rgba(255,255,255,.06);
-  border: 1px solid rgba(255,255,255,.08);
-  padding:8px 12px;
-  border-radius:999px;
-  box-shadow: var(--shadow);
-  font-weight:700;
+  font-size: 26px;
 }
 
-.tabs{
-  display:flex;
-  gap:10px;
-  padding:12px 16px;
-  position:sticky;
-  top:72px;
-  z-index:9;
-  background: rgba(7,16,31,.65);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255,255,255,.06);
-}
-.tab{
-  border:0;
-  cursor:pointer;
-  color:var(--text);
-  background: rgba(255,255,255,.06);
-  border: 1px solid rgba(255,255,255,.08);
-  padding:10px 14px;
-  border-radius:999px;
-  font-weight:800;
-}
-.tab.active{
-  background: rgba(255,211,110,.16);
-  border-color: rgba(255,211,110,.35);
+.title{
+  font-weight: 800;
 }
 
-.view{ display:none; padding:16px; }
-.view.active{ display:block; }
-
-.grid{
-  display:grid;
-  grid-template-columns: 1.2fr .8fr;
-  gap:14px;
-  max-width:1100px;
-  margin:0 auto;
-}
-@media (max-width: 900px){
-  .grid{ grid-template-columns:1fr; }
-  .tabs{ top:78px; }
-}
-
-.card{
-  background: rgba(15,27,51,.78);
-  border: 1px solid rgba(255,255,255,.08);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding:14px;
-}
-
-.cardHeader h2{ margin:0; font-size:18px; }
-.small{ color:var(--muted); font-size:12px; margin-top:4px; }
-
-.actions{
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-  margin-top:12px;
-}
-
-.btn{
-  border:0; cursor:pointer;
-  background: rgba(255,255,255,.07);
-  border: 1px solid rgba(255,255,255,.10);
-  color:var(--text);
-  font-weight:800;
-  padding:10px 12px;
-  border-radius:14px;
-}
-.btn:hover{ transform: translateY(-1px); }
-.btn.danger{
-  background: rgba(255,123,123,.12);
-  border-color: rgba(255,123,123,.30);
-}
-
-.divider{
-  height:1px;
-  background: rgba(255,255,255,.08);
-  margin:14px 0;
-}
-
-/* ===================== HOTEL STAGE (VISUAL) ===================== */
-.hotelStage{
-  margin-top:12px;
-  padding:12px;
-  border-radius:18px;
-  background: rgba(255,255,255,.03);
-  border: 1px solid rgba(255,255,255,.06);
-  overflow:auto;
-}
-
-.floorRow{
-  display:flex;
-  align-items:flex-end;
-  justify-content:center;
-  gap: 16px;
-  padding: 8px 0;
-  min-width: 860px; /* keeps spacing on desktop; stage scrolls on small screens */
-}
-
-.tileHotspot{
-  position:relative;
-  border:0;
-  background: transparent;
-  padding:0;
-  cursor:pointer;
-  border-radius:16px;
-}
-.tileHotspot:hover{ transform: translateY(-1px); }
-.tileHotspot:active{ transform: translateY(0) scale(.99); }
-
-/* Fixed-size tile container so images don't look tiny */
-.roomSpot,
-.stationSpot{
-  width: var(--tileSize);
-  height: calc(var(--tileSize) * 0.85);
-  border-radius: 18px;
-  background: rgba(255,255,255,.02);
-  border: 1px solid rgba(255,255,255,.06);
-  overflow: hidden; /* ✅ crop */
-  box-shadow: 0 12px 18px rgba(0,0,0,.25);
-}
-
-/* The image fills the tile, then we zoom it to remove transparent padding */
-.roomSpot img,
-.stationSpot img{
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  transform-origin: center;
-}
-
-/* ✅ zoom control */
-.roomSpot img{ transform: scale(var(--roomZoom)); }
-.stationSpot img{ transform: scale(var(--stationZoom)); }
-
-.receptionSpot{
-  width: var(--receptionW);
-  height: 140px;
-  border-radius: 18px;
-  background: rgba(255,255,255,.02);
-  border: 1px solid rgba(255,255,255,.06);
-  overflow: hidden;
-  box-shadow: 0 12px 18px rgba(0,0,0,.25);
-}
-.receptionSpot img{
-  width:100%;
-  height:100%;
-  object-fit: contain;
-  transform: scale(1.1);
-  transform-origin:center;
-}
-
-.tileBadge{
-  position:absolute;
-  top:8px;
-  left:8px;
-  background: rgba(0,0,0,.45);
-  border: 1px solid rgba(255,255,255,.18);
-  color: #fff;
-  font-weight: 900;
-  padding: 4px 8px;
-  border-radius: 999px;
+.subtitle{
   font-size: 12px;
-}
-.tileIcon{
-  position:absolute;
-  bottom:10px;
-  right:10px;
-  font-size: 20px;
-  filter: drop-shadow(0 6px 10px rgba(0,0,0,.45));
-}
-.stationLabel{
-  position:absolute;
-  bottom:8px;
-  left:8px;
-  background: rgba(255,255,255,.10);
-  border: 1px solid rgba(255,255,255,.14);
-  color: var(--text);
-  font-weight: 900;
-  padding: 4px 8px;
-  border-radius: 999px;
-  font-size: 12px;
-}
-
-.stairsRow{
-  display:flex;
-  justify-content:center;
-  padding: 10px 0 4px;
-}
-.stairsImg{
-  width: var(--stairsW);
-  height:auto;
-  opacity:.95;
-  filter: drop-shadow(0 12px 16px rgba(0,0,0,.35));
-}
-
-.spawnLane{
-  flex: 1;
-  min-width: 280px;
-  padding: 10px 12px;
-  border-radius: 16px;
-  background: rgba(255,255,255,.04);
-  border: 1px solid rgba(255,255,255,.06);
-}
-.spawnTitle{ font-weight: 900; margin-bottom: 6px; }
-.spawnPeople{ font-size: 28px; line-height: 1.1; }
-
-/* ===================== ROOMS LIST ===================== */
-.rooms{
-  display:grid;
-  grid-template-columns: repeat(2, minmax(0,1fr));
-  gap:12px;
-  margin-top:12px;
-}
-.room{
-  border-radius:16px;
-  padding:12px;
-  background: rgba(255,255,255,.05);
-  border: 1px solid rgba(255,255,255,.08);
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-  min-height:140px;
-  cursor:pointer;
-}
-.roomTop{ display:flex; justify-content:space-between; align-items:center; font-weight:900; }
-.roomBadge{
-  font-size:12px; color:var(--muted);
-  background: rgba(255,255,255,.06);
-  border: 1px solid rgba(255,255,255,.08);
-  padding:4px 8px;
-  border-radius:999px;
-}
-.roomEmoji{ font-size:28px; line-height:1; min-height:32px; }
-.roomInfo{ display:flex; gap:8px; flex-wrap:wrap; font-size:12px; color:var(--muted); }
-.tag{
-  background: rgba(101,214,255,.10);
-  border: 1px solid rgba(101,214,255,.18);
-  padding:4px 8px;
-  border-radius:999px;
-}
-.tag.warn{
-  background: rgba(255,211,110,.10);
-  border-color: rgba(255,211,110,.18);
-}
-.tag.danger{
-  background: rgba(255,123,123,.10);
-  border-color: rgba(255,123,123,.20);
-}
-.roomButtons{ display:flex; gap:10px; flex-wrap:wrap; }
-.smallBtn{
-  border:0;
-  cursor:pointer;
-  font-weight:900;
-  padding:8px 10px;
-  border-radius: 12px;
-  color: var(--text);
-  background: rgba(255,255,255,.06);
-  border: 1px solid rgba(255,255,255,.10);
-}
-.smallBtn.clean{
-  background: rgba(101,214,255,.10);
-  border-color: rgba(101,214,255,.18);
-}
-.smallBtn:disabled{ opacity:.5; cursor:not-allowed; }
-
-/* ===================== SNACKS ===================== */
-.snacks{
-  display:grid;
-  grid-template-columns: repeat(2, minmax(0,1fr));
-  gap:10px;
-  margin-top:12px;
-}
-.snack{
-  border:0; cursor:pointer;
-  border-radius:16px;
-  padding:14px 10px;
-  font-weight:900;
-  background: rgba(255,255,255,.06);
-  border: 1px solid rgba(255,255,255,.10);
-  color:var(--text);
-}
-.snack.selected{
-  background: rgba(255,211,110,.16);
-  border-color: rgba(255,211,110,.35);
-}
-
-.notice{
-  margin-top:12px;
-  padding:12px;
-  border-radius:16px;
-  background: rgba(125,255,178,.08);
-  border: 1px solid rgba(125,255,178,.18);
-  color: var(--text);
-  font-weight:700;
-}
-
-.mini{
-  margin-top:12px;
-  padding:12px;
-  border-radius:16px;
-  background: rgba(255,255,255,.04);
-  border: 1px solid rgba(255,255,255,.06);
   color: var(--muted);
-  font-size:13px;
-}
-.miniTitle{ font-weight:900; color:var(--text); margin-bottom:6px; }
-
-/* ===================== PUZZLE ===================== */
-.puzzleTop{ display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
-
-.board{
-  margin-top:12px;
-  width: min(420px, 100%);
-  aspect-ratio: 1/1;
-  display:grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap:8px;
-
-  padding: 10px;
-  border-radius: 18px;
-  background: rgba(255,255,255,.03);
-  border: 1px solid rgba(255,255,255,.06);
 }
 
-.tile{
-  display:grid;
-  place-items:center;
-  border-radius:14px;
-  background: rgba(255,255,255,.06);
-  border: 1px solid rgba(255,255,255,.10);
-  cursor:pointer;
-  user-select:none;
-  transition: transform .12s ease, background .12s ease;
+.hud{
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
 
+.pill{
+  background: rgba(255,255,255,.08);
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 14px;
+  box-shadow: var(--shadow);
+}
+
+/* ================= LAYOUT ================= */
+.wrap{
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 14px;
+  display: grid;
+  gap: 14px;
+}
+
+/* ================= SCENE ================= */
+.scene{
   position: relative;
+  background: rgba(255,255,255,.04);
+  border-radius: var(--radius);
   overflow: hidden;
-
-  font-size: 24px;
-  color: rgba(255,255,255,.95);
+  box-shadow: var(--shadow);
 }
 
-.tile::before{
-  content:"";
-  position:absolute;
-  inset:0;
-  margin:auto;
-  width: 78%;
-  height: 78%;
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
-  filter: drop-shadow(0 10px 12px rgba(0,0,0,.35));
-  pointer-events:none;
-  animation: float 3s ease-in-out infinite;
+/* VERY IMPORTANT: image must NEVER eat clicks */
+.sceneImg{
+  width: 100%;
+  display: block;
+  pointer-events: none;
 }
 
-.tile.selected{
-  background: rgba(101,214,255,.14);
-  border-color: rgba(101,214,255,.32);
-  transform: scale(1.03);
-}
-.tile:active{ transform: scale(.96); }
-
-.tile.pop{ animation: pop .18s ease-in-out; }
-@keyframes pop{
-  0%{ transform: scale(.9); opacity:.7;}
-  100%{ transform: scale(1); opacity:1;}
-}
-
-@keyframes float{
-  0%   { transform: translateY(0); }
-  50%  { transform: translateY(-3px); }
-  100% { transform: translateY(0); }
-}
-
-/* tile type → image mapping */
-.tile.t-palm::before    { background-image: url("images/tiles/palm.png"); }
-.tile.t-shell::before   { background-image: url("images/tiles/shell.png"); }
-.tile.t-fish::before    { background-image: url("images/tiles/fish.png"); }
-.tile.t-coconut::before { background-image: url("images/tiles/coconut.png"); }
-.tile.t-wave::before    { background-image: url("images/tiles/wave.png"); }
-.tile.t-sun::before     { background-image: url("images/tiles/sun.png"); }
-.scene{ position:relative; overflow:hidden; border-radius:18px; }
-.sceneImg{ width:100%; height:auto; display:block; }
-
-/* Hotspots */
+/* ================= HOTSPOTS ================= */
 .hotspot{
-  position:absolute;
-  border: 2px solid rgba(255,211,110,0); /* hidden by default */
-  background: rgba(255,211,110,0);
+  position: absolute;
   border-radius: 14px;
-  cursor:pointer;
+  cursor: pointer;
+  z-index: 5;
+  pointer-events: auto;
+
+  /* hidden by default */
+  border: 2px solid rgba(255,211,110,0);
+  background: rgba(255,211,110,0);
 }
+
 .hotspot.selected{
   border-color: rgba(255,211,110,.9);
   background: rgba(255,211,110,.18);
 }
+
+/* Debug mode */
 .scene.debug .hotspot{
   border-color: rgba(255,211,110,.9);
-  background: rgba(255,211,110,.10);
+  background: rgba(255,211,110,.12);
 }
 
-/* ===== HOTSPOT MAP (percent-based) =====
-   These are tuned for your 2048x2048 image. If you regenerate the art,
-   you’ll just tweak these numbers slightly.
-*/
+/* ================= HOTSPOT MAP ================= */
+/* Adjust ONLY these numbers if alignment is off */
 
-/* Snack floor doors */
-.hotspot[data-spot="door2L"]{ left:12.70%; top:41.50%; width:12.70%; height:18.07%; }
-.hotspot[data-spot="door2R"]{ left:54.20%; top:41.50%; width:12.70%; height:18.07%; }
-.hotspot[data-spot="snack"] { left:33.69%; top:43.95%; width:18.55%; height:15.14%; }
+/* First floor (snack floor) */
+.hotspot[data-spot="door2L"]{ left:12.7%; top:41.5%; width:12.7%; height:18.0%; }
+.hotspot[data-spot="door2R"]{ left:54.2%; top:41.5%; width:12.7%; height:18.0%; }
+.hotspot[data-spot="snack"] { left:33.7%; top:43.9%; width:18.5%; height:15.1%; }
 
-/* Cleaning floor doors */
-.hotspot[data-spot="door3L"]{ left:14.65%; top:18.55%; width:11.72%; height:18.55%; }
-.hotspot[data-spot="door3R"]{ left:52.73%; top:18.55%; width:12.70%; height:18.55%; }
-.hotspot[data-spot="clean"] { left:34.18%; top:22.95%; width:15.62%; height:14.16%; }
+/* Second floor (cleaning floor) */
+.hotspot[data-spot="door3L"]{ left:14.6%; top:18.5%; width:11.7%; height:18.5%; }
+.hotspot[data-spot="door3R"]{ left:52.7%; top:18.5%; width:12.7%; height:18.5%; }
+.hotspot[data-spot="clean"] { left:34.1%; top:22.9%; width:15.6%; height:14.1%; }
 
 /* Ground floor */
-.hotspot[data-spot="reception"]{ left:5.37%;  top:68.36%; width:26.86%; height:15.14%; }
-.hotspot[data-spot="lounge"]   { left:33.69%; top:70.80%; width:23.93%; height:13.67%; }
-.hotspot[data-spot="ocean"]    { left:57.62%; top:64.94%; width:17.58%; height:19.53%; }
+.hotspot[data-spot="reception"]{ left:5.3%;  top:68.3%; width:26.8%; height:15.1%; }
+.hotspot[data-spot="lounge"]   { left:33.6%; top:70.8%; width:23.9%; height:13.6%; }
+.hotspot[data-spot="ocean"]    { left:57.6%; top:64.9%; width:17.5%; height:19.5%; }
 
-/* Stairs */
-.hotspot[data-spot="stairs"]   { left:76.17%; top:12.21%; width:16.60%; height:73.24%; }
+/* Stairs – deliberately narrow to avoid blocking */
+.hotspot[data-spot="stairs"]{
+  left:80%;
+  top:15%;
+  width:12%;
+  height:65%;
+}
 
-.actions .debugToggle{
-  display:flex; align-items:center; gap:8px;
-  color: rgba(255,255,255,.75);
+/* ================= ACTIONS ================= */
+.actions{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  background: rgba(255,255,255,.04);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.actions button{
+  background: rgba(255,255,255,.10);
+  color: var(--text);
+  border: none;
+  padding: 10px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.actions button:hover{
+  background: rgba(255,255,255,.18);
+}
+
+.hint{
   font-size: 13px;
+  color: var(--muted);
+}
+
+.debugToggle{
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--muted);
 }
