@@ -440,3 +440,51 @@ body{
 .tile.t-coconut::before { background-image: url("images/tiles/coconut.png"); }
 .tile.t-wave::before    { background-image: url("images/tiles/wave.png"); }
 .tile.t-sun::before     { background-image: url("images/tiles/sun.png"); }
+.scene{ position:relative; overflow:hidden; border-radius:18px; }
+.sceneImg{ width:100%; height:auto; display:block; }
+
+/* Hotspots */
+.hotspot{
+  position:absolute;
+  border: 2px solid rgba(255,211,110,0); /* hidden by default */
+  background: rgba(255,211,110,0);
+  border-radius: 14px;
+  cursor:pointer;
+}
+.hotspot.selected{
+  border-color: rgba(255,211,110,.9);
+  background: rgba(255,211,110,.18);
+}
+.scene.debug .hotspot{
+  border-color: rgba(255,211,110,.9);
+  background: rgba(255,211,110,.10);
+}
+
+/* ===== HOTSPOT MAP (percent-based) =====
+   These are tuned for your 2048x2048 image. If you regenerate the art,
+   you’ll just tweak these numbers slightly.
+*/
+
+/* Snack floor doors */
+.hotspot[data-spot="door2L"]{ left:12.70%; top:41.50%; width:12.70%; height:18.07%; }
+.hotspot[data-spot="door2R"]{ left:54.20%; top:41.50%; width:12.70%; height:18.07%; }
+.hotspot[data-spot="snack"] { left:33.69%; top:43.95%; width:18.55%; height:15.14%; }
+
+/* Cleaning floor doors */
+.hotspot[data-spot="door3L"]{ left:14.65%; top:18.55%; width:11.72%; height:18.55%; }
+.hotspot[data-spot="door3R"]{ left:52.73%; top:18.55%; width:12.70%; height:18.55%; }
+.hotspot[data-spot="clean"] { left:34.18%; top:22.95%; width:15.62%; height:14.16%; }
+
+/* Ground floor */
+.hotspot[data-spot="reception"]{ left:5.37%;  top:68.36%; width:26.86%; height:15.14%; }
+.hotspot[data-spot="lounge"]   { left:33.69%; top:70.80%; width:23.93%; height:13.67%; }
+.hotspot[data-spot="ocean"]    { left:57.62%; top:64.94%; width:17.58%; height:19.53%; }
+
+/* Stairs */
+.hotspot[data-spot="stairs"]   { left:76.17%; top:12.21%; width:16.60%; height:73.24%; }
+
+.actions .debugToggle{
+  display:flex; align-items:center; gap:8px;
+  color: rgba(255,255,255,.75);
+  font-size: 13px;
+}
