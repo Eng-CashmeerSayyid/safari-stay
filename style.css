@@ -192,3 +192,44 @@ body{
   font-size: 13px;
   z-index: 10;
 }
+/* ================= DOOR VISUAL ================= */
+
+/* Base door look */
+.hotspot.door::after{
+  content: "";
+  position: absolute;
+  inset: 6%;
+  border-radius: 10px;
+  background: rgba(255,255,255,.08);
+  transition: all .25s ease;
+}
+
+/* OCCUPIED → door CLOSED */
+.state-occupied::after{
+  background: linear-gradient(
+    180deg,
+    #2b3a2f 0%,
+    #1e2a22 100%
+  );
+  box-shadow: inset 0 0 0 2px rgba(125,255,178,.5);
+}
+
+/* DIRTY → closed + red */
+.state-dirty::after{
+  background: linear-gradient(
+    180deg,
+    #402020 0%,
+    #2a1414 100%
+  );
+  box-shadow: inset 0 0 0 2px rgba(255,123,123,.7);
+}
+
+/* CLEANING → closed + blue */
+.state-cleaning::after{
+  background: linear-gradient(
+    180deg,
+    #1f3540 0%,
+    #14252d 100%
+  );
+  box-shadow: inset 0 0 0 2px rgba(101,214,255,.7);
+}
