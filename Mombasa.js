@@ -69,19 +69,38 @@ function applyDoorStyles(){
   });
 }
 
-// Add these state styles dynamically (so you don't have to edit CSS if you don't want)
+// Add these state styles dynamically (visible even when debug is OFF)
 (function injectStateCSS(){
   const css = `
-  .state-empty{ }
-  .state-occupied{ border-color: rgba(125,255,178,.0); }
-  .scene.debug .state-occupied{ border-color: rgba(125,255,178,.9); background: rgba(125,255,178,.10); }
-  .scene.debug .state-dirty{ border-color: rgba(255,123,123,.9); background: rgba(255,123,123,.10); }
-  .scene.debug .state-cleaning{ border-color: rgba(101,214,255,.9); background: rgba(101,214,255,.10); }
+  /* Door states ALWAYS visible now */
+  .state-empty{
+    border-color: rgba(255,255,255,.10);
+    background: rgba(255,255,255,.02);
+  }
+  .state-occupied{
+    border-color: rgba(125,255,178,.85);
+    background: rgba(125,255,178,.12);
+  }
+  .state-dirty{
+    border-color: rgba(255,123,123,.9);
+    background: rgba(255,123,123,.14);
+  }
+  .state-cleaning{
+    border-color: rgba(101,214,255,.9);
+    background: rgba(101,214,255,.14);
+  }
+
+  /* When selected, stronger glow */
+  .hotspot.selected{
+    outline: 2px solid rgba(255,211,110,.95);
+    outline-offset: 2px;
+  }
   `;
   const style = document.createElement("style");
   style.textContent = css;
   document.head.appendChild(style);
 })();
+
 
 // ================== GAME LOOP ==================
 const GUEST_STAY_MS = 10000;
