@@ -3,18 +3,82 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Safari Stay</title>
-  <meta http-equiv="refresh" content="0; url=Mombasa.html?v=3">
-  <style>
-    body{font-family:system-ui;margin:0;display:grid;place-items:center;height:100vh;background:#0b1220;color:#eaf1ff}
-    a{color:#ffd36e;font-weight:800}
-  </style>
+  <title>Safari Stay – Mombasa Hotel</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
-  <div>
-    Redirecting to Mombasa…<br/>
-    If not, click: <a href="Mombasa.html?v=3">Open Mombasa</a>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="logo">🏝️</div>
+    <div>
+      <div class="title">Safari Stay</div>
+      <div class="subtitle">Mombasa Hotel</div>
+    </div>
   </div>
+
+  <div class="hud">
+    <div class="pill">🪙 Coins: <span id="coins">0</span></div>
+    <div class="pill">👥 Queue: <span id="queue">0</span></div>
+    <div class="pill">✅ Served: <span id="served">0</span></div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- HOTEL SCENE -->
+  <section class="scene">
+
+    <!-- MAIN BACKGROUND IMAGE -->
+    <img
+      class="sceneImg"
+      src="images/hotel_scene.png"
+      alt="Mombasa hotel scene"
+    />
+
+    <!-- FLOOR 1 (SNACK FLOOR) -->
+    <button class="hotspot door" data-spot="door2L" aria-label="Door 1"></button>
+    <button class="hotspot door" data-spot="door2R" aria-label="Door 2"></button>
+    <button class="hotspot station" data-spot="snack" aria-label="Snack station"></button>
+
+    <!-- FLOOR 2 (CLEANING FLOOR) -->
+    <button class="hotspot door" data-spot="door3L" aria-label="Door 3"></button>
+    <button class="hotspot door" data-spot="door3R" aria-label="Door 4"></button>
+    <button class="hotspot station" data-spot="clean" aria-label="Cleaning station"></button>
+
+    <!-- GROUND FLOOR -->
+    <button class="hotspot ground" data-spot="reception" aria-label="Reception"></button>
+    <button class="hotspot ground" data-spot="lounge" aria-label="Lounge"></button>
+    <button class="hotspot ground" data-spot="ocean" aria-label="Ocean view"></button>
+
+    <!-- STAIRS -->
+    <button class="hotspot stairs" data-spot="stairs" aria-label="Stairs"></button>
+
+    <!-- INFO BUBBLE -->
+    <div class="bubble" id="bubble" hidden></div>
+
+  </section>
+
+  <!-- ACTION BUTTONS -->
+  <section class="actions">
+    <button id="btnSpawn">➕ Add Guest</button>
+    <button id="btnDeliver">🛎️ Deliver Snack</button>
+    <button id="btnClean">🧼 Clean Room</button>
+
+    <div class="hint" id="hint">Tap a door or station.</div>
+
+    <label class="debugToggle">
+      <input type="checkbox" id="debugHotspots" />
+      Show hotspot boxes
+    </label>
+  </section>
+
+</main>
+
+<!-- GAME LOGIC -->
+<script src="Mombasa.js"></script>
+
 </body>
 </html>
 
