@@ -1,139 +1,43 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Safari Stay – Mombasa Hotel</title>
-  <link rel="stylesheet" href="style.css" />
-</head>
-<body>
+// ===== HOTSPOT SELECTION + DEBUG =====
+let selectedSpot = null;
 
-  <header class="topbar">
-    <div class="brand">
-      <div class="logo">🏝️</div>
-      <div>
-        <div class="title">Safari Stay</div>
-        <div class="subtitle">Mombasa Hotel</div>
-      </div>
-    </div>
+const hint = document.getElementById("hint");
+const debugToggle = document.getElementById("debugHotspots");
+const scene = document.querySelector(".scene");
 
-    <div class="hud">
-      <div class="pill">🪙 Coins: <span id="coins">0</span></div>
-      <div class="pill">👥 Queue: <span id="queue">0</span></div>
-      <div class="pill">✅ Served: <span id="served">0</span></div>
-    </div>
-  </header>
+function clearSelected(){
+  document.querySelectorAll(".hotspot").forEach(b => b.classList.remove("selected"));
+  selectedSpot = null;
+}
 
-  <!-- Tabs -->
-  <nav class="tabs">
-    <button id="tabHotel" class="tab active">🏨 Hotel</button>
-    <button id="tabPuzzle" class="tab">🧩 Puzzle</button>
-  </nav>
+document.querySelectorAll(".hotspot").forEach(btn => {
+  btn.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
 
-  <!-- HOTEL VIEW -->
-  <main id="viewHotel" class="view active">
-    <section class="grid">
+    clearSelected();
+    btn.classList.add("selected");
+    selectedSpot = btn.dataset.spot;
 
-      <!-- Left: Rooms -->
-      <div class="card">
-        <div class="cardHeader">
-          <h2>Rooms</h2>
-          <div class="small">Tap snack → then tap room to deliver.</div>
-        </div>
+    hint.textContent = `Selected: ${selectedSpot}`;
+    console.log("Clicked:", selectedSpot);
+  });
+});
 
-        <div id="rooms" class="rooms"></div>
+debugToggle?.addEventListener("change", () => {
+  scene?.classList.toggle("debug", debugToggle.checked);
+});
 
-        <div class="actions">
-          <button id="btnAddRoom" class="btn">➕ Add Room (25🪙)</button>
-          <button id="btnSpawnGuest" class="btn">👤 Spawn Guest</button>
-          <button id="btnClear" class="btn danger">🧹 Reset Save</button>
-        </div>
-      </div>
+// Buttons (placeholders for now)
+document.getElementById("btnSpawn")?.addEventListener("click", () => {
+  hint.textContent = "Spawn guest (next step).";
+});
 
-      <!-- Right: Snack Corner -->
-      <div class="card">
-        <div class="cardHeader">
-          <h2>Snack Corner</h2>
-          <div class="small">Select a snack to deliver to the room that ordered.</div>
-        </div>
+document.getElementById("btnDeliver")?.addEventListener("click", () => {
+  hint.textContent = selectedSpot ? `Deliver → ${selectedSpot}` : "Select a door first.";
+});
 
-        <div class="snacks">
-          <button class="snack" data-snack="🍟">🍟 Fries</button>
-          <button class="snack" data-snack="🍹">🍹 Juice</button>
-          <button class="snack" data-snack="🍉">🍉 Fruit</button>
-          <button class="snack" data-snack="🍔">🍔 Burger</button>
-        </div>
+document.getElementById("btnClean")?.addEventListener("click", () => {
+  hint.textContent = selectedSpot ? `Clean → ${selectedSpot}` : "Select a door first.";
+});
 
-        <div class="notice" id="deliveryHint">
-          No delivery selected.
-        </div>
-
-        <div class="mini">
-          <div class="miniTitle">How it works</div>
-          <ol>
-            <li>Guests check in & may order snacks (not all at once).</li>
-            <li>Tap a snack to “hold” it.</li>
-            <li>Tap the correct room to deliver.</li>
-            <li>Delivered → room shows 😍 for a moment.</li>
-          </ol>
-        </div>
-      </div>
-
-    </section>
-  </main>
-
-  <!-- PUZZLE VIEW -->
-  <main id="viewPuzzle" class="view">
-    <section class="grid">
-
-      <div class="card">
-        <div class="cardHeader">
-          <h2>Match-3 Puzzle</h2>
-          <div class="small">Every valid move earns <b>+1 coin</b>.</div>
-        </div>
-
-        <div class="puzzleTop">
-          <div class="pill">Moves: <span id="pMoves">0</span></div>
-          <div class="pill">Matches: <span id="pMatches">0</span></div>
-        </div>
-
-        <div id="board" class="board" aria-label="match 3 board"></div>
-
-        <div class="actions">
-          <button id="btnShuffle" class="btn">🔀 Shuffle</button>
-          <button id="btnNewPuzzle" class="btn">🧩 New Puzzle</button>
-        </div>
-
-        <div class="mini">
-          <div class="miniTitle">Rules</div>
-          <ul>
-            <li>Swap 2 adjacent tiles.</li>
-            <li>If it creates a match of 3+, it clears and drops.</li>
-            <li>Each successful swap = +1 coin (goes to your hotel too).</li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="cardHeader">
-          <h2>Hotel Boost</h2>
-          <div class="small">Puzzle coins instantly update your hotel HUD.</div>
-        </div>
-
-        <div class="mini">
-          <p>
-            Use puzzle coins to buy more rooms (25🪙 each).  
-            This is linked through <code>localStorage</code>.
-          </p>
-          <p class="small">
-            Tip: If you want “earn coin per swap even if not a match”, tell me and I’ll change it.
-          </p>
-        </div>
-      </div>
-
-    </section>
-  </main>
-
-  <script src="hotel.js"></script>
-</body>
-</html>
