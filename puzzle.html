@@ -1,78 +1,201 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Puzzle • Safari Stay</title>
+  <title>Safari Stay – Puzzle</title>
   <link rel="stylesheet" href="style.css" />
   <style>
-    .puzzleWrap{display:grid; gap:14px;}
-    .hud{display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between;}
-    .grid{
-      display:grid;
-      grid-template-columns: repeat(8, 1fr);
-      gap:8px;
-      user-select:none;
+    .tabsBar{
+      display:flex; gap:10px; padding:10px 14px;
+      max-width:1100px; margin:0 auto;
     }
-    .cell{
-      aspect-ratio: 1 / 1;
+    .tabLink{
+      text-decoration:none; color:#eaf1ff;
+      background:rgba(255,255,255,.08);
+      padding:8px 12px; border-radius:999px;
+      font-weight:800;
+    }
+    .tabLink.active{
+      outline:2px solid rgba(255,211,110,.9);
+      outline-offset:2px;
+    }
+
+    .pwrap{max-width:1100px;margin:0 auto;padding:14px;}
+    .pcard{
+      background: rgba(255,255,255,.04);
+      border-radius: 18px;
+      box-shadow: 0 12px 30px rgba(0,0,0,.35);
+      padding: 14px;
+      display:grid;
+      gap:12px;
+    }
+    .board{
+      display:grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap:10px;
+    }
+    .tile{
+      aspect-ratio: 1/1;
+      border-radius: 16px;
+      border: 2px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.06);
       display:grid;
       place-items:center;
-      font-size:28px;
-      background: rgba(255,255,255,.06);
-      border:1px solid rgba(255,255,255,.10);
-      border-radius:14px;
       cursor:pointer;
-      transition: transform .08s ease, border-color .12s ease;
+      overflow:hidden;
+      user-select:none;
     }
-    .cell.selected{
-      transform: scale(0.97);
-      border-color: rgba(255,209,102,.55);
-      box-shadow: 0 0 0 2px rgba(255,209,102,.20) inset;
+    .tile.selected{
+      outline: 3px solid rgba(255,211,110,.95);
+      outline-offset: 2px;
     }
+    .tile img{
+      width: 88%;
+      height: 88%;
+      object-fit: contain;
+      pointer-events:none;
+      filter: drop-shadow(0 10px 18px rgba(0,0,0,.35));
+    }
+    .prow{
+      display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;
+    }
+    .smallhint{color:#9fb3d6;font-size:13px;}
   </style>
 </head>
+
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <a class="logo" href="Mombasa.html" title="Back to Mombasa">⬅️</a>
-      <div>
-        <h1>🧩 Match Puzzle</h1>
-        <p class="muted">Make matches • Score points • Convert to coins</p>
-      </div>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="logo">🧩</div>
+    <div>
+      <div class="title">Safari Stay</div>
+      <div class="subtitle">Mombasa Puzzle</div>
     </div>
+  </div>
 
-    <div class="pill">
-      <span>💰 Coins:</span>
-      <strong id="coins">0</strong>
+  <div class="hud">
+    <div class="pill">🪙 Coins: <span id="coins">0</span></div>
+  </div>
+</header>
+
+<nav class="tabsBar">
+  <a class="tabLink" href="index.html">🏨 Hotel</a>
+  <a class="tabLink active" href="puzzle.html">🧩 Puzzle</a>
+</nav>
+
+<main class="pwrap">
+  <section class="pcard">
+    <div class="prow">
+      <div class="smallhint">Tap two tiles to swap. Every swap gives <b>+1 coin</b>.</div>
+      <button id="btnShuffle">🔄 Shuffle</button>
     </div>
-  </header>
+    <div class="board" id="board"></div>
+    <div class="smallhint" id="phint">Make matches later — for now swaps earn coins (so puzzle feeds the hotel).</div>
+  </section>
+</main>
 
-  <main class="container">
-    <section class="card puzzleWrap">
-      <div class="hud">
-        <div class="muted">Score: <b id="score">0</b> • Moves: <b id="moves">20</b></div>
-        <div style="display:flex; gap:10px; align-items:center;">
-          <button class="btn small" id="cashOutBtn">Cash out</button>
-          <button class="btn small" id="resetPuzzle">New board</button>
-        </div>
-      </div>
+<script>
+  // Coins shared with hotel
+  const getNum = (k, fb=0) => {
+    const v = Number(localStorage.getItem(k));
+    return Number.isFinite(v) ? v : fb;
+  };
+  const setNum = (k, v) => localStorage.setItem(k, String(v));
 
-      <div class="grid" id="grid"></div>
+  let coins = getNum("coins", 0);
+  const uiCoins = document.getElementById("coins");
+  const boardEl = document.getElementById("board");
+  const phint = document.getElementById("phint");
 
-      <p class="muted" id="msg">
-        Tap one item, then tap a neighbor to swap. Make 3+ in a row/column.
-      </p>
-      <p class="muted">
-        Cash out converts score into coins: <b>+1 coin for every 10 score</b>.
-      </p>
-    </section>
-  </main>
+  function renderCoins(){ uiCoins.textContent = coins; }
 
-  <footer class="footer muted">
-    Back to <a href="Mombasa.html">Mombasa</a> • Safari Stay
-  </footer>
+  // 6 Mombasa tiles (put these files in images/tiles/)
+  const tileImgs = [
+    "images/tiles/palm.png",
+    "images/tiles/shell.png",
+    "images/tiles/fish.png",
+    "images/tiles/coconut.png",
+    "images/tiles/wave.png",
+    "images/tiles/sun.png",
+  ];
 
-  <script src="puzzle.js"></script>
+  const SIZE = 6;
+  let grid = [];
+  let selected = null;
+
+  function randTile(){ return Math.floor(Math.random() * tileImgs.length); }
+
+  function buildGrid(){
+    grid = Array.from({length: SIZE*SIZE}, () => randTile());
+  }
+
+  function draw(){
+    boardEl.innerHTML = "";
+    grid.forEach((t, i) => {
+      const b = document.createElement("button");
+      b.className = "tile";
+      b.dataset.i = String(i);
+
+      const img = document.createElement("img");
+      img.src = tileImgs[t];
+      img.alt = "tile";
+      b.appendChild(img);
+
+      b.addEventListener("click", () => onPick(i, b));
+      boardEl.appendChild(b);
+    });
+  }
+
+  function clearSelectionUI(){
+    document.querySelectorAll(".tile").forEach(x => x.classList.remove("selected"));
+  }
+
+  function swap(i, j){
+    const tmp = grid[i];
+    grid[i] = grid[j];
+    grid[j] = tmp;
+  }
+
+  function onPick(i, btn){
+    if (selected === null){
+      selected = i;
+      clearSelectionUI();
+      btn.classList.add("selected");
+      return;
+    }
+
+    if (selected === i){
+      selected = null;
+      clearSelectionUI();
+      return;
+    }
+
+    // Swap
+    swap(selected, i);
+    selected = null;
+    clearSelectionUI();
+    draw();
+
+    // +1 coin per move
+    coins += 1;
+    setNum("coins", coins);
+    renderCoins();
+    phint.textContent = "✅ Swap made! +1 coin saved for the hotel.";
+  }
+
+  document.getElementById("btnShuffle").addEventListener("click", () => {
+    buildGrid();
+    draw();
+    phint.textContent = "🔄 Shuffled!";
+  });
+
+  // init
+  buildGrid();
+  draw();
+  renderCoins();
+</script>
+
 </body>
 </html>
