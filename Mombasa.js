@@ -111,6 +111,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     rooms[idx].state = "occupied";
+    applyDoorStyles(); // close instantly
     rooms[idx].wantsSnack = Math.random() < 0.45;
     rooms[idx].stayEndsAt = Date.now() + GUEST_STAY_MS;
 
