@@ -72,13 +72,20 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function applyDoorStyles(){
-    ROOM_KEYS.forEach((k, i) => {
-      const door = document.querySelector(`.hotspot[data-spot="${k}"]`);
-      if (!door) return;
-      door.classList.remove("state-empty","state-occupied","state-dirty","state-cleaning");
-      door.classList.add(`state-${rooms[i].state}`);
-    });
-  }
+  ROOM_KEYS.forEach((k, i) => {
+    const btn = document.querySelector(`.hotspot[data-spot="${k}"]`);
+    if (!btn) return;
+
+    // state classes (keep these)
+    btn.classList.remove("state-empty","state-occupied","state-dirty","state-cleaning");
+    btn.classList.add(`state-${rooms[i].state}`);
+
+    // OPEN/CLOSE animation class (NEW)
+    if (rooms[i].state === "empty") btn.classList.remove("closed");
+    else btn.classList.add("closed");
+  });
+}
+
 
   // Make door states visible even without debug
   (function injectStateCSS(){
