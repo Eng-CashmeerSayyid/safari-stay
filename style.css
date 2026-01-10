@@ -336,7 +336,7 @@ body{
   transition: transform .25s ease;
 
   /* OPEN = mostly hidden INSIDE (slide to the left but still inside) */
-  transform: translateX(-78%);
+  transform: translateX(-100%);
 }
 
 /* CLOSED = covers doorway */
