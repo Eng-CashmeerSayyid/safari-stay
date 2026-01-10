@@ -316,27 +316,41 @@ body{
   background: linear-gradient(180deg, #1d3340, #101f27);
   box-shadow: inset 0 0 0 2px rgba(101,214,255,.75);
 }
-/* ===== Door Open/Close (bulletproof) ===== */
+/* ===== Door Open/Close (inside the doorway) ===== */
 .hotspot.door{
   position: absolute;
   overflow: hidden;
 }
 
-/* the actual door panel */
+/* Door panel sits inside the doorway */
 .hotspot.door::after{
   content:"";
   position:absolute;
-  inset: 8%;
+  inset: 6%;
   border-radius: 12px;
+
+  /* Door look */
   background: rgba(0,0,0,.55);
   box-shadow: inset 0 0 0 2px rgba(255,255,255,.18);
+
   transition: transform .25s ease;
-  
-  /* OPEN by default = slide away */
-  transform: translateX(-85%);
+
+  /* OPEN = mostly hidden INSIDE (slide to the left but still inside) */
+  transform: translateX(-78%);
 }
 
-/* CLOSED */
+/* CLOSED = covers doorway */
 .hotspot.door.closed::after{
   transform: translateX(0%);
 }
+
+/* Optional: make the “open edge” look like a door frame */
+.hotspot.door::before{
+  content:"";
+  position:absolute;
+  inset: 0;
+  border-radius: 14px;
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.10);
+  pointer-events:none;
+}
+
