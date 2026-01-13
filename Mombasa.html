@@ -26,19 +26,28 @@
 
 <main class="wrap">
   <section class="scene">
-    <!-- IMPORTANT: put your image in /images/hotel_scene.png -->
     <img class="sceneImg" src="images/hotel_scene.png" alt="Mombasa hotel scene" />
 
     <!-- Doors: Floor 1 (Snack floor) -->
-    <button class="hotspot door" data-spot="door2L" aria-label="Door 1 (Snack floor left)"></button>
-    <button class="hotspot door" data-spot="door2R" aria-label="Door 2 (Snack floor right)"></button>
+    <button class="hotspot door closed" data-spot="door2L" aria-label="Door 1 (Snack floor left)">
+      <span class="doorOverlay" aria-hidden="true"></span>
+    </button>
+
+    <button class="hotspot door closed" data-spot="door2R" aria-label="Door 2 (Snack floor right)">
+      <span class="doorOverlay" aria-hidden="true"></span>
+    </button>
 
     <!-- Snack station -->
     <button class="hotspot station" data-spot="snack" aria-label="Snack station"></button>
 
     <!-- Doors: Floor 2 (Cleaning floor) -->
-    <button class="hotspot door" data-spot="door3L" aria-label="Door 3 (Cleaning floor left)"></button>
-    <button class="hotspot door" data-spot="door3R" aria-label="Door 4 (Cleaning floor right)"></button>
+    <button class="hotspot door closed" data-spot="door3L" aria-label="Door 3 (Cleaning floor left)">
+      <span class="doorOverlay" aria-hidden="true"></span>
+    </button>
+
+    <button class="hotspot door closed" data-spot="door3R" aria-label="Door 4 (Cleaning floor right)">
+      <span class="doorOverlay" aria-hidden="true"></span>
+    </button>
 
     <!-- Cleaning station -->
     <button class="hotspot station" data-spot="clean" aria-label="Cleaning station"></button>
@@ -50,16 +59,17 @@
 
     <!-- Stairs -->
     <button class="hotspot stairs" data-spot="stairs" aria-label="Stairs"></button>
+
     <div class="bubble" id="bubble" hidden></div>
-     </section>
+  </section>
 
   <section class="actions">
     <button id="btnSpawn">➕ Add Guest</button>
     <button id="btnDeliver">🛎️ Deliver Snack</button>
     <button id="btnClean">🧼 Clean Room</button>
+
     <div class="hint" id="hint">Tap a door or station.</div>
 
-    <!-- Turn on while positioning hotspots -->
     <label class="debugToggle">
       <input type="checkbox" id="debugHotspots" />
       Show hotspot boxes
