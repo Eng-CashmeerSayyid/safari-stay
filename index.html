@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Safari Stay – Mombasa</title>
   <link rel="stylesheet" href="style.css" />
+
   <style>
     .tabsBar{
       display:flex; gap:10px; padding:10px 14px;
@@ -51,13 +52,25 @@
   <section class="scene">
     <img class="sceneImg" src="images/hotel_scene.png" alt="Mombasa hotel scene" />
 
-    <!-- Doors -->
-    <button class="hotspot door" data-spot="door2L" aria-label="Door 1"></button>
-    <button class="hotspot door" data-spot="door2R" aria-label="Door 2"></button>
+    <!-- Doors (with overlay door image) -->
+    <button class="hotspot door closed" data-spot="door2L" aria-label="Door 1">
+      <span class="doorOverlay" aria-hidden="true"></span>
+    </button>
+
+    <button class="hotspot door closed" data-spot="door2R" aria-label="Door 2">
+      <span class="doorOverlay" aria-hidden="true"></span>
+    </button>
+
     <button class="hotspot station" data-spot="snack" aria-label="Snack station"></button>
 
-    <button class="hotspot door" data-spot="door3L" aria-label="Door 3"></button>
-    <button class="hotspot door" data-spot="door3R" aria-label="Door 4"></button>
+    <button class="hotspot door closed" data-spot="door3L" aria-label="Door 3">
+      <span class="doorOverlay" aria-hidden="true"></span>
+    </button>
+
+    <button class="hotspot door closed" data-spot="door3R" aria-label="Door 4">
+      <span class="doorOverlay" aria-hidden="true"></span>
+    </button>
+
     <button class="hotspot station" data-spot="clean" aria-label="Cleaning station"></button>
 
     <button class="hotspot ground" data-spot="reception" aria-label="Reception"></button>
@@ -65,6 +78,7 @@
     <button class="hotspot ground" data-spot="ocean" aria-label="Ocean view"></button>
 
     <button class="hotspot stairs" data-spot="stairs" aria-label="Stairs"></button>
+
     <div class="bubble" id="bubble" hidden></div>
   </section>
 
@@ -73,7 +87,6 @@
     <button id="btnDeliver">🛎️ Deliver Snack</button>
     <button id="btnClean">🧼 Clean Room</button>
     <button id="btnReset">♻️ Reset Hotel</button>
-
 
     <div class="hint" id="hint">Tap a door or station.</div>
 
