@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Safari Stay – Web Prototype</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Safari Stay – Mombasa</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -26,73 +26,102 @@
     </div>
   </header>
 
-  <!-- GAME AREA -->
-  <main id="game">
-    <div id="scene">
+  <!-- TABS -->
+  <nav class="tabs">
+    <button class="tab active" data-view="hotelView">Hotel</button>
+    <button class="tab" data-view="puzzleView">Puzzle</button>
+  </nav>
 
-      <!-- FLOORS -->
-      <section class="floor floor-2">
-        <div class="room" data-room="0">
-          <div class="roomNo">101</div>
-          <button class="door hotspot" data-spot="R0" aria-label="Room 101"></button>
-          <div class="status" id="status0"></div>
+  <!-- VIEWS -->
+  <main id="main">
+
+    <!-- HOTEL VIEW -->
+    <section id="hotelView" class="view active">
+      <div id="scene">
+
+        <!-- ROOMS FLOOR -->
+        <section class="floor floor-2">
+          <div class="room" data-room="0">
+            <div class="roomNo">101</div>
+            <button class="door hotspot" data-spot="R0" aria-label="Room 101"></button>
+            <div class="status" id="status0"></div>
+          </div>
+
+          <div class="room" data-room="1">
+            <div class="roomNo">102</div>
+            <button class="door hotspot" data-spot="R1" aria-label="Room 102"></button>
+            <div class="status" id="status1"></div>
+          </div>
+
+          <div class="room" data-room="2">
+            <div class="roomNo">103</div>
+            <button class="door hotspot" data-spot="R2" aria-label="Room 103"></button>
+            <div class="status" id="status2"></div>
+          </div>
+
+          <div class="room" data-room="3">
+            <div class="roomNo">104</div>
+            <button class="door hotspot" data-spot="R3" aria-label="Room 104"></button>
+            <div class="status" id="status3"></div>
+          </div>
+        </section>
+
+        <!-- RECEPTION FLOOR -->
+        <section class="floor floor-1">
+          <div class="counterArea">
+            <div class="counterTitle">Reception</div>
+            <div class="counterDesk"></div>
+            <div class="counterHint" id="hint">Welcome! Guests will arrive soon…</div>
+          </div>
+
+          <div class="queueLane">
+            <div class="queueTitle">Queue</div>
+            <div class="queueDots" id="queueDots"></div>
+          </div>
+        </section>
+
+        <!-- SPRITES -->
+        <div id="sprites" aria-hidden="true"></div>
+
+        <!-- MODE TAG -->
+        <div id="modeTag" class="modeTag hidden">MODE</div>
+      </div>
+
+      <!-- HOTEL ACTIONS -->
+      <footer class="actions">
+        <button id="btnClean" class="btn">🧹 Clean</button>
+        <button id="btnSnack" class="btn">🧃 Snacks</button>
+        <button id="btnSpawn" class="btn ghost">➕ Guest</button>
+        <button id="btnReset" class="btn danger">↻ Reset</button>
+      </footer>
+    </section>
+
+    <!-- PUZZLE VIEW -->
+    <section id="puzzleView" class="view">
+      <div class="puzzleWrap">
+        <div class="puzzleHeader">
+          <div>
+            <div class="pTitle">Mombasa Puzzle</div>
+            <div class="pSub">Tap 2 tiles to swap. Solve to unlock a reward later.</div>
+          </div>
+          <div class="pBtns">
+            <button id="puzzleReset" class="btn ghost">↻ Shuffle</button>
+          </div>
         </div>
 
-        <div class="room" data-room="1">
-          <div class="roomNo">102</div>
-          <button class="door hotspot" data-spot="R1" aria-label="Room 102"></button>
-          <div class="status" id="status1"></div>
+        <div id="puzzleBoard" class="puzzleBoard"></div>
+        <div id="puzzleMsg" class="puzzleMsg">Loading…</div>
+
+        <div class="puzzleNote">
+          Put your 6 images in <b>assets/</b> with these names:
+          <code>palm.png shell.png fish.png coconut.png wave.png sun.png</code>
         </div>
+      </div>
+    </section>
 
-        <div class="room" data-room="2">
-          <div class="roomNo">103</div>
-          <button class="door hotspot" data-spot="R2" aria-label="Room 103"></button>
-          <div class="status" id="status2"></div>
-        </div>
-
-        <div class="room" data-room="3">
-          <div class="roomNo">104</div>
-          <button class="door hotspot" data-spot="R3" aria-label="Room 104"></button>
-          <div class="status" id="status3"></div>
-        </div>
-      </section>
-
-      <section class="floor floor-1">
-        <div class="counterArea">
-          <div class="counterTitle">Reception</div>
-          <div class="counterDesk"></div>
-          <div class="counterHint" id="hint">Welcome! Guests will arrive soon…</div>
-        </div>
-
-        <div class="stair"></div>
-      </section>
-
-      <!-- LOBBY -->
-      <section class="floor lobby">
-        <div class="sofa"></div>
-        <div class="plants"></div>
-        <div class="queueLane">
-          <div class="queueTitle">Queue</div>
-          <div class="queueDots" id="queueDots"></div>
-        </div>
-      </section>
-
-      <!-- SPRITES LAYER -->
-      <div id="sprites" aria-hidden="true"></div>
-
-      <!-- MODE TAG -->
-      <div id="modeTag" class="modeTag hidden">MODE</div>
-    </div>
   </main>
-
-  <!-- BOTTOM ACTIONS -->
-  <footer class="actions">
-    <button id="btnClean" class="btn">🧹 Clean</button>
-    <button id="btnSnack" class="btn">🧃 Snacks</button>
-    <button id="btnSpawn" class="btn ghost">➕ Guest</button>
-    <button id="btnReset" class="btn danger">↻ Reset</button>
-  </footer>
 
   <script src="game.js"></script>
 </body>
 </html>
+
