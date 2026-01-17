@@ -1,221 +1,317 @@
-/* ================= RESET ================= */
-*{
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-/* ================= THEME ================= */
+*{ box-sizing:border-box; }
 :root{
   --bg:#0b1220;
   --card:#0f1b33;
   --text:#eaf1ff;
   --muted:#9fb3d6;
   --accent:#ffd36e;
+  --danger:#ff7b7b;
+  --ok:#7dffb2;
+  --sky:#65d6ff;
   --shadow: 0 12px 30px rgba(0,0,0,.35);
   --radius:18px;
 }
 
 body{
+  margin:0;
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  color:var(--text);
   background: radial-gradient(1200px 600px at 20% 10%, #132a66 0%, #0b1220 55%, #07101f 100%);
-  color: var(--text);
+  overflow-x:hidden;
 }
 
-/* ================= TOP BAR ================= */
 .topbar{
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 14px 16px;
-  background: rgba(9,16,32,.75);
+  position:sticky; top:0; z-index:50;
+  display:flex; gap:14px; align-items:center; justify-content:space-between;
+  padding:12px 14px;
+  background: rgba(10,16,30,.55);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(255,255,255,.08);
 }
 
-.brand{
-  display: flex;
-  gap: 10px;
-  align-items: center;
+.brand{ display:flex; gap:10px; align-items:center; }
+.logo{
+  width:42px; height:42px; border-radius:14px;
+  display:grid; place-items:center;
+  background: rgba(255,211,110,.12);
+  border:1px solid rgba(255,211,110,.2);
+  box-shadow: var(--shadow);
 }
+.title{ font-weight:800; letter-spacing:.2px; }
+.subtitle{ font-size:12px; color:var(--muted); margin-top:2px; }
 
-.logo{ font-size: 26px; }
-.title{ font-weight: 800; }
-
-.subtitle{
-  font-size: 12px;
-  color: var(--muted);
-}
-
-.hud{
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
+.hud{ display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
 .pill{
   background: rgba(255,255,255,.08);
-  padding: 6px 10px;
-  border-radius: 999px;
-  font-size: 14px;
-  box-shadow: var(--shadow);
+  border:1px solid rgba(255,255,255,.10);
+  padding:8px 12px;
+  border-radius:999px;
+  font-weight:700;
+  box-shadow: 0 10px 24px rgba(0,0,0,.22);
 }
 
-/* ================= LAYOUT ================= */
-.wrap{
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 14px;
-  display: grid;
+#game{
+  padding: 18px 12px 90px;
+  display:flex;
+  justify-content:center;
+}
+
+#scene{
+  width:min(1100px, 96vw);
+  height:min(620px, 80vh);
+  position:relative;
+  border-radius: 26px;
+  overflow:hidden;
+  box-shadow: var(--shadow);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.02)),
+    radial-gradient(800px 420px at 30% 20%, rgba(101,214,255,.18), transparent 60%),
+    radial-gradient(700px 500px at 80% 70%, rgba(255,211,110,.12), transparent 60%),
+    #0f1b33;
+  border: 1px solid rgba(255,255,255,.08);
+}
+
+/* Floors */
+.floor{
+  position:absolute; left:0; right:0;
+  padding: 14px 18px;
+}
+
+.floor-2{
+  top:0;
+  height: 42%;
+  display:grid;
+  grid-template-columns: repeat(4, 1fr);
   gap: 14px;
+  align-items:stretch;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(0,0,0,0));
 }
 
-/* ================= SCENE ================= */
-.scene{
-  position: relative;
-  background: rgba(255,255,255,.04);
-  border-radius: var(--radius);
-  overflow: hidden;
-  box-shadow: var(--shadow);
+.floor-1{
+  top:42%;
+  height: 26%;
+  display:flex;
+  justify-content:space-between;
+  align-items:stretch;
+  gap: 14px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(0,0,0,0));
 }
 
-/* VERY IMPORTANT: image must NEVER eat clicks */
-.sceneImg{
-  width: 100%;
-  display: block;
-  pointer-events: none;
+.lobby{
+  top:68%;
+  height: 32%;
+  display:flex;
+  gap: 14px;
+  align-items:stretch;
 }
 
-/* ================= HOTSPOTS ================= */
-.hotspot{
-  position: absolute;
-  border-radius: 14px;
-  cursor: pointer;
-  z-index: 5;
-  pointer-events: auto;
-
-  border: 2px solid rgba(255,211,110,0);
-  background: rgba(255,211,110,0);
-
-  -webkit-tap-highlight-color: transparent;
-}
-
-.hotspot.selected{
-  border-color: rgba(255,211,110,.9);
-  background: rgba(255,211,110,.18);
-}
-
-/* Debug mode */
-.scene.debug .hotspot{
-  border-color: rgba(255,211,110,.9);
-  background: rgba(255,211,110,.12);
-}
-
-/* ================= HOTSPOT MAP ================= */
-/* First floor (snack floor) */
-.hotspot[data-spot="door2L"]{ left:12.7%; top:41.5%; width:12.7%; height:18.0%; }
-.hotspot[data-spot="door2R"]{ left:54.2%; top:41.5%; width:12.7%; height:18.0%; }
-.hotspot[data-spot="snack"] { left:33.7%; top:43.9%; width:18.5%; height:15.1%; }
-
-/* Second floor (cleaning floor) */
-.hotspot[data-spot="door3L"]{ left:14.6%; top:18.5%; width:11.7%; height:18.5%; }
-.hotspot[data-spot="door3R"]{ left:52.7%; top:18.5%; width:12.7%; height:18.5%; }
-.hotspot[data-spot="clean"] { left:34.1%; top:22.9%; width:15.6%; height:14.1%; }
-
-/* Ground floor */
-.hotspot[data-spot="reception"]{ left:5.3%;  top:68.3%; width:26.8%; height:15.1%; }
-.hotspot[data-spot="lounge"]   { left:33.6%; top:70.8%; width:23.9%; height:13.6%; }
-.hotspot[data-spot="ocean"]    { left:57.6%; top:64.9%; width:17.5%; height:19.5%; }
-
-/* Stairs */
-.hotspot[data-spot="stairs"]{
-  left:80%;
-  top:15%;
-  width:12%;
-  height:65%;
-}
-
-/* ================= ACTIONS ================= */
-.actions{
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: center;
+.room{
+  position:relative;
+  border-radius: 18px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.10);
   padding: 12px;
-  background: rgba(255,255,255,.04);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
+  overflow:hidden;
 }
 
-.actions button{
-  background: rgba(255,255,255,.10);
-  color: var(--text);
-  border: none;
-  padding: 10px 12px;
+.roomNo{
+  font-weight:900;
+  letter-spacing:.3px;
+  color: rgba(255,255,255,.9);
+  background: rgba(0,0,0,.22);
+  border:1px solid rgba(255,255,255,.12);
+  padding: 6px 10px;
   border-radius: 12px;
-  cursor: pointer;
+  width:max-content;
 }
 
-.actions button:hover{
-  background: rgba(255,255,255,.18);
-}
-
-.hint{
-  font-size: 13px;
+.status{
+  position:absolute;
+  left:12px; bottom:12px;
+  font-weight:800;
+  font-size:12px;
+  padding:6px 10px;
+  border-radius: 999px;
+  border:1px solid rgba(255,255,255,.12);
+  background: rgba(0,0,0,.25);
   color: var(--muted);
 }
 
-.debugToggle{
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
+/* Doors */
+.door{
+  position:absolute;
+  right:14px;
+  bottom:14px;
+  width: 72px;
+  height: 90px;
+  border-radius: 14px;
+  border: 2px solid rgba(255,255,255,.18);
+  background: rgba(255,255,255,.10);
+  cursor:pointer;
+  box-shadow: 0 12px 24px rgba(0,0,0,.22);
+}
+
+.hotspot.state-empty{ outline: 0; }
+.hotspot.state-occupied{ box-shadow: 0 0 0 4px rgba(101,214,255,.18), 0 12px 24px rgba(0,0,0,.22); }
+.hotspot.state-dirty{ box-shadow: 0 0 0 4px rgba(255,123,123,.18), 0 12px 24px rgba(0,0,0,.22); }
+.hotspot.state-cleaning{ box-shadow: 0 0 0 4px rgba(255,211,110,.18), 0 12px 24px rgba(0,0,0,.22); }
+
+.hotspot.closed{
+  background: rgba(0,0,0,.20);
+}
+
+/* Reception */
+.counterArea{
+  flex:1;
+  border-radius: 18px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.10);
+  padding: 12px;
+  position:relative;
+}
+.counterTitle{
+  font-weight:900;
+  color: rgba(255,255,255,.9);
+}
+.counterDesk{
+  margin-top:10px;
+  height: 52px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255,211,110,.22), rgba(255,255,255,.08));
+  border:1px solid rgba(255,255,255,.14);
+}
+.counterHint{
+  margin-top:10px;
+  font-weight:700;
   color: var(--muted);
 }
+
+.stair{
+  width: 220px;
+  border-radius: 18px;
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.08);
+}
+
+/* Lobby decor */
+.sofa{
+  flex:1;
+  border-radius: 18px;
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.08);
+}
+.plants{
+  width: 220px;
+  border-radius: 18px;
+  background: rgba(101,214,255,.08);
+  border: 1px solid rgba(255,255,255,.08);
+}
+.queueLane{
+  width: 280px;
+  border-radius: 18px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.10);
+  padding: 12px;
+  position:relative;
+}
+.queueTitle{ font-weight:900; }
+.queueDots{
+  margin-top:10px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.dot{
+  width: 34px; height:34px;
+  border-radius: 12px;
+  display:grid; place-items:center;
+  background: rgba(0,0,0,.20);
+  border: 1px solid rgba(255,255,255,.10);
+}
+
+/* Sprites */
+#sprites{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  z-index:20;
+}
+
+.sprite{
+  position:absolute;
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  display:grid;
+  place-items:center;
+  font-size: 30px;
+  transform: translate(-50%, -50%);
+  border:1px solid rgba(255,255,255,.14);
+  background: rgba(0,0,0,.18);
+  box-shadow: 0 16px 28px rgba(0,0,0,.25);
+}
+
+.sprite.guest{ background: rgba(255,255,255,.10); }
+.sprite.bellboy{ background: rgba(255,211,110,.14); }
+.sprite.cleaner{ background: rgba(125,255,178,.12); }
 
 .bubble{
   position:absolute;
-  left:12px;
-  bottom:12px;
+  top:-18px; left:50%;
+  transform: translateX(-50%);
   background: rgba(0,0,0,.55);
-  border: 1px solid rgba(255,255,255,.18);
-  padding: 8px 10px;
-  border-radius: 14px;
-  font-size: 13px;
-  z-index: 10;
+  border: 1px solid rgba(255,255,255,.14);
+  color:#fff;
+  font-size: 12px;
+  font-weight: 900;
+  padding: 5px 8px;
+  border-radius: 999px;
+  white-space:nowrap;
 }
 
-/* ================= ROOM STATE BORDER COLORS ================= */
-.state-empty{ border-color: rgba(255,255,255,.10); }
-.state-occupied{ border-color: rgba(125,255,178,.85); }
-.state-dirty{ border-color: rgba(255,123,123,.90); }
-.state-cleaning{ border-color: rgba(101,214,255,.90); }
-
-/* ================= LUXURY DOOR SPRITE (ONLY SYSTEM) ================= */
-/* Put your PNG here: images/door.png */
-.hotspot.door{
-  overflow: visible;         /* allow swing outside */
-  perspective: 900px;
-}
-
-/* Door sprite */
-.hotspot.door::after{
-  content:"";
+/* Mode tag */
+.modeTag{
   position:absolute;
-  inset: -10%;               /* slightly bigger to cover doorway */
-  background: url("images/door.png") center/contain no-repeat;
+  left: 14px;
+  top: 14px;
+  z-index:60;
+  font-weight:900;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(0,0,0,.35);
+  border: 1px solid rgba(255,255,255,.12);
+}
+.hidden{ display:none; }
 
-  transform-origin: left center;
-  transition: transform .35s ease;
-
-  /* OPEN */
-  transform: rotateY(-72deg);
+/* Bottom actions */
+.actions{
+  position:fixed;
+  left:50%;
+  transform: translateX(-50%);
+  bottom: 12px;
+  z-index:100;
+  display:flex;
+  gap: 10px;
+  padding: 10px;
+  background: rgba(10,16,30,.55);
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 18px;
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow);
 }
 
-/* CLOSED (JS should toggle .closed) */
-.hotspot.door.closed::after{
-  transform: rotateY(0deg);
+.btn{
+  border:none;
+  padding: 12px 14px;
+  border-radius: 14px;
+  font-weight:900;
+  cursor:pointer;
+  color: var(--text);
+  background: rgba(255,255,255,.10);
+  border: 1px solid rgba(255,255,255,.12);
 }
+.btn:hover{ filter:brightness(1.08); }
+.btn.ghost{ background: rgba(101,214,255,.10); }
+.btn.danger{ background: rgba(255,123,123,.12); }
