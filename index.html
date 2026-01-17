@@ -2,101 +2,97 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Safari Stay – Mombasa</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Safari Stay – Web Prototype</title>
   <link rel="stylesheet" href="style.css" />
-
-  <style>
-    .tabsBar{
-      display:flex; gap:10px; padding:10px 14px;
-      max-width:1100px; margin:0 auto;
-    }
-    .tabLink{
-      text-decoration:none; color:#eaf1ff;
-      background:rgba(255,255,255,.08);
-      padding:8px 12px; border-radius:999px;
-      font-weight:800;
-    }
-    .tabLink.active{
-      outline:2px solid rgba(255,211,110,.9);
-      outline-offset:2px;
-    }
-  </style>
 </head>
-
 <body>
 
-<header class="topbar">
-  <div class="brand">
-    <div class="logo">🏝️</div>
-    <div>
-      <div class="title">Safari Stay</div>
-      <div class="subtitle">Mombasa Hotel</div>
+  <!-- TOP HUD -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">🏝️</div>
+      <div>
+        <div class="title">Safari Stay</div>
+        <div class="subtitle">Mombasa Hotel</div>
+      </div>
     </div>
-  </div>
 
-  <div class="hud">
-    <div class="pill">🪙 Coins: <span id="coins">0</span></div>
-    <div class="pill">👥 Queue: <span id="queue">0</span></div>
-    <div class="pill">✅ Served: <span id="served">0</span></div>
-  </div>
-</header>
+    <div class="hud">
+      <div class="pill">⏱ <span id="timer">00:00</span></div>
+      <div class="pill">🪙 Coins: <span id="coins">0</span></div>
+      <div class="pill">👥 Queue: <span id="queue">0</span></div>
+      <div class="pill">✅ Served: <span id="served">0</span></div>
+    </div>
+  </header>
 
-<!-- Tabs -->
-<nav class="tabsBar">
-  <a class="tabLink active" href="index.html">🏨 Hotel</a>
-  <a class="tabLink" href="puzzle.html">🧩 Puzzle</a>
-</nav>
+  <!-- GAME AREA -->
+  <main id="game">
+    <div id="scene">
 
-<main class="wrap">
-  <section class="scene">
-    <img class="sceneImg" src="images/hotel_scene.png" alt="Mombasa hotel scene" />
+      <!-- FLOORS -->
+      <section class="floor floor-2">
+        <div class="room" data-room="0">
+          <div class="roomNo">101</div>
+          <button class="door hotspot" data-spot="R0" aria-label="Room 101"></button>
+          <div class="status" id="status0"></div>
+        </div>
 
-    <!-- Doors (with overlay door image) -->
-    <button class="hotspot door closed" data-spot="door2L" aria-label="Door 1">
-      <span class="doorOverlay" aria-hidden="true"></span>
-    </button>
+        <div class="room" data-room="1">
+          <div class="roomNo">102</div>
+          <button class="door hotspot" data-spot="R1" aria-label="Room 102"></button>
+          <div class="status" id="status1"></div>
+        </div>
 
-    <button class="hotspot door closed" data-spot="door2R" aria-label="Door 2">
-      <span class="doorOverlay" aria-hidden="true"></span>
-    </button>
+        <div class="room" data-room="2">
+          <div class="roomNo">103</div>
+          <button class="door hotspot" data-spot="R2" aria-label="Room 103"></button>
+          <div class="status" id="status2"></div>
+        </div>
 
-    <button class="hotspot station" data-spot="snack" aria-label="Snack station"></button>
+        <div class="room" data-room="3">
+          <div class="roomNo">104</div>
+          <button class="door hotspot" data-spot="R3" aria-label="Room 104"></button>
+          <div class="status" id="status3"></div>
+        </div>
+      </section>
 
-    <button class="hotspot door closed" data-spot="door3L" aria-label="Door 3">
-      <span class="doorOverlay" aria-hidden="true"></span>
-    </button>
+      <section class="floor floor-1">
+        <div class="counterArea">
+          <div class="counterTitle">Reception</div>
+          <div class="counterDesk"></div>
+          <div class="counterHint" id="hint">Welcome! Guests will arrive soon…</div>
+        </div>
 
-    <button class="hotspot door closed" data-spot="door3R" aria-label="Door 4">
-      <span class="doorOverlay" aria-hidden="true"></span>
-    </button>
+        <div class="stair"></div>
+      </section>
 
-    <button class="hotspot station" data-spot="clean" aria-label="Cleaning station"></button>
+      <!-- LOBBY -->
+      <section class="floor lobby">
+        <div class="sofa"></div>
+        <div class="plants"></div>
+        <div class="queueLane">
+          <div class="queueTitle">Queue</div>
+          <div class="queueDots" id="queueDots"></div>
+        </div>
+      </section>
 
-    <button class="hotspot ground" data-spot="reception" aria-label="Reception"></button>
-    <button class="hotspot ground" data-spot="lounge" aria-label="Lounge"></button>
-    <button class="hotspot ground" data-spot="ocean" aria-label="Ocean view"></button>
+      <!-- SPRITES LAYER -->
+      <div id="sprites" aria-hidden="true"></div>
 
-    <button class="hotspot stairs" data-spot="stairs" aria-label="Stairs"></button>
+      <!-- MODE TAG -->
+      <div id="modeTag" class="modeTag hidden">MODE</div>
+    </div>
+  </main>
 
-    <div class="bubble" id="bubble" hidden></div>
-  </section>
+  <!-- BOTTOM ACTIONS -->
+  <footer class="actions">
+    <button id="btnClean" class="btn">🧹 Clean</button>
+    <button id="btnSnack" class="btn">🧃 Snacks</button>
+    <button id="btnSpawn" class="btn ghost">➕ Guest</button>
+    <button id="btnReset" class="btn danger">↻ Reset</button>
+  </footer>
 
-  <section class="actions">
-    <button id="btnSpawn">➕ Add Guest</button>
-    <button id="btnDeliver">🛎️ Deliver Snack</button>
-    <button id="btnClean">🧼 Clean Room</button>
-    <button id="btnReset">♻️ Reset Hotel</button>
-
-    <div class="hint" id="hint">Tap a door or station.</div>
-
-    <label class="debugToggle">
-      <input type="checkbox" id="debugHotspots" />
-      Show hotspot boxes
-    </label>
-  </section>
-</main>
-
-<script src="Mombasa.js"></script>
+  <script src="game.js"></script>
 </body>
 </html>
