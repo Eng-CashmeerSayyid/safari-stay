@@ -1,3 +1,7 @@
+<!-- =========================
+File: Mombasa.html
+Safari Stay – Mombasa Hotel
+========================= -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,75 +12,146 @@
 </head>
 <body>
 
-<header class="topbar">
-  <div class="brand">
-    <div class="logo">🏝️</div>
-    <div>
-      <div class="title">Safari Stay</div>
-      <div class="subtitle">Mombasa Hotel</div>
+  <header class="topbar">
+    <div class="brand">
+      <a class="logoLink" href="index.html" title="Back">
+        <div class="logo">🏝️</div>
+      </a>
+      <div>
+        <div class="title">Safari Stay</div>
+        <div class="subtitle">Mombasa Hotel</div>
+      </div>
     </div>
-  </div>
 
-  <div class="hud">
-    <div class="pill">🪙 Coins: <span id="coins">0</span></div>
-    <div class="pill">👥 Queue: <span id="queue">0</span></div>
-    <div class="pill">✅ Served: <span id="served">0</span></div>
-  </div>
-</header>
+    <div class="hud">
+      <div class="pill">🪙 Coins: <span id="coins">0</span></div>
+      <div class="pill">👥 Queue: <span id="queue">0</span></div>
+      <div class="pill">✅ Served: <span id="served">0</span></div>
+    </div>
+  </header>
 
-<main class="wrap">
-  <section class="scene">
-    <img class="sceneImg" src="images/hotel_scene.png" alt="Mombasa hotel scene" />
+  <nav class="tabs">
+    <button class="tab active" data-tab="hotel">Hotel</button>
+    <button class="tab" data-tab="puzzle">Puzzle</button>
+    <button class="tab" data-tab="shop">Shop</button>
+  </nav>
 
-    <!-- Doors: Floor 1 (Snack floor) -->
-    <button class="hotspot door closed" data-spot="door2L" aria-label="Door 1 (Snack floor left)">
-      <span class="doorOverlay" aria-hidden="true"></span>
-    </button>
+  <main class="wrap">
+    <!-- HOTEL TAB -->
+    <section class="panel active" id="tab-hotel">
+      <div class="layout">
 
-    <button class="hotspot door closed" data-spot="door2R" aria-label="Door 2 (Snack floor right)">
-      <span class="doorOverlay" aria-hidden="true"></span>
-    </button>
+        <section class="card scene">
+          <div class="sceneHeader">
+            <div class="hint" id="hint">Welcome to Mombasa 🌴</div>
+            <div class="smallMuted">Tap a room to interact. Snack orders show 🛎️.</div>
+          </div>
 
-    <!-- Snack station -->
-    <button class="hotspot station" data-spot="snack" aria-label="Snack station"></button>
+          <div class="hotelGrid" id="hotelGrid">
+            <!-- Rooms (4) are injected by JS -->
+          </div>
 
-    <!-- Doors: Floor 2 (Cleaning floor) -->
-    <button class="hotspot door closed" data-spot="door3L" aria-label="Door 3 (Cleaning floor left)">
-      <span class="doorOverlay" aria-hidden="true"></span>
-    </button>
+          <div class="bottomBar">
+            <button class="btn primary" id="btnCheckIn">➕ Check-in Guest</button>
+            <button class="btn" id="btnServeQueue">🧾 Serve Queue</button>
+            <button class="btn danger" id="btnEmergencyClean">🧼 Clean Selected</button>
+          </div>
+        </section>
 
-    <button class="hotspot door closed" data-spot="door3R" aria-label="Door 4 (Cleaning floor right)">
-      <span class="doorOverlay" aria-hidden="true"></span>
-    </button>
+        <aside class="card side">
+          <h3>Room Details</h3>
+          <div class="roomCard" id="roomCard">
+            <div class="muted">Select a room.</div>
+          </div>
 
-    <!-- Cleaning station -->
-    <button class="hotspot station" data-spot="clean" aria-label="Cleaning station"></button>
+          <div class="divider"></div>
 
-    <!-- Ground floor -->
-    <button class="hotspot ground" data-spot="reception" aria-label="Reception"></button>
-    <button class="hotspot ground" data-spot="lounge" aria-label="Lounge"></button>
-    <button class="hotspot ground" data-spot="ocean" aria-label="Ocean glass"></button>
+          <h3>Actions</h3>
+          <div class="stack">
+            <button class="btn" id="btnDeliverSnack">🍟 Deliver Snack</button>
+            <button class="btn" id="btnCheckout">🚪 Checkout Guest</button>
+            <button class="btn" id="btnClean">🧽 Start Cleaning</button>
+          </div>
 
-    <!-- Stairs -->
-    <button class="hotspot stairs" data-spot="stairs" aria-label="Stairs"></button>
+          <div class="divider"></div>
 
-    <div class="bubble" id="bubble" hidden></div>
-  </section>
+          <h3>How it works</h3>
+          <ul class="list">
+            <li>Guests stay ~10s then become ready to checkout.</li>
+            <li>Some guests order snacks. Only 1–2 can be “active orders” at a time.</li>
+            <li>Cleaning takes ~3s (manual).</li>
+            <li>Delivering snacks gives bonus coins + 😍 moment.</li>
+          </ul>
+        </aside>
 
-  <section class="actions">
-    <button id="btnSpawn">➕ Add Guest</button>
-    <button id="btnDeliver">🛎️ Deliver Snack</button>
-    <button id="btnClean">🧼 Clean Room</button>
+      </div>
+    </section>
 
-    <div class="hint" id="hint">Tap a door or station.</div>
+    <!-- PUZZLE TAB -->
+    <section class="panel" id="tab-puzzle">
+      <section class="card">
+        <div class="rowBetween">
+          <div>
+            <h2>Mombasa Puzzle</h2>
+            <p class="muted">Match 2 of the same tile to earn coins. (Simple + fun)</p>
+          </div>
+          <button class="btn" id="btnShuffle">🔀 Shuffle</button>
+        </div>
 
-    <label class="debugToggle">
-      <input type="checkbox" id="debugHotspots" />
-      Show hotspot boxes
-    </label>
-  </section>
-</main>
+        <div class="puzzleGrid" id="puzzleGrid"></div>
 
-<script src="Mombasa.js"></script>
+        <div class="tip">
+          <strong>Images:</strong> Put them in <code>assets/puzzle/</code>:
+          <code>palm.png</code>, <code>shell.png</code>, <code>fish.png</code>,
+          <code>coconut.png</code>, <code>wave.png</code>, <code>sun.png</code>
+        </div>
+      </section>
+    </section>
+
+    <!-- SHOP TAB -->
+    <section class="panel" id="tab-shop">
+      <section class="card">
+        <h2>Shop</h2>
+        <p class="muted">Buy upgrades using coins.</p>
+
+        <div class="shopGrid">
+          <div class="shopItem">
+            <div class="shopTop">
+              <div class="shopIcon">🧹</div>
+              <div>
+                <div class="shopTitle">Cleaner</div>
+                <div class="muted">Reduces cleaning time a bit.</div>
+              </div>
+            </div>
+            <div class="rowBetween">
+              <div class="price">Cost: <strong>120</strong> coins</div>
+              <button class="btn primary" id="buyCleaner">Buy</button>
+            </div>
+          </div>
+
+          <div class="shopItem">
+            <div class="shopTop">
+              <div class="shopIcon">🛎️</div>
+              <div>
+                <div class="shopTitle">Bellboy</div>
+                <div class="muted">More snack tips.</div>
+              </div>
+            </div>
+            <div class="rowBetween">
+              <div class="price">Cost: <strong>160</strong> coins</div>
+              <button class="btn primary" id="buyBellboy">Buy</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <button class="btn danger" id="btnResetMombasa">♻️ Reset Mombasa Progress</button>
+      </section>
+    </section>
+  </main>
+
+  <script src="Mombasa.js"></script>
 </body>
 </html>
+
