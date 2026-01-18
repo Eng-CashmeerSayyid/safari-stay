@@ -35,38 +35,38 @@
   <!-- VIEWS -->
   <main id="main">
 
-    <!-- HOTEL VIEW -->
+    <!-- ================= HOTEL VIEW ================= -->
     <section id="hotelView" class="view active">
       <div id="scene">
 
         <!-- ROOMS FLOOR -->
         <section class="floor floor-2">
-          <div class="room" data-room="0">
+          <div class="room">
             <div class="roomNo">101</div>
             <button class="door hotspot" data-spot="R0" aria-label="Room 101"></button>
             <div class="status" id="status0"></div>
           </div>
 
-          <div class="room" data-room="1">
+          <div class="room">
             <div class="roomNo">102</div>
             <button class="door hotspot" data-spot="R1" aria-label="Room 102"></button>
             <div class="status" id="status1"></div>
           </div>
 
-          <div class="room" data-room="2">
+          <div class="room">
             <div class="roomNo">103</div>
             <button class="door hotspot" data-spot="R2" aria-label="Room 103"></button>
             <div class="status" id="status2"></div>
           </div>
 
-          <div class="room" data-room="3">
+          <div class="room">
             <div class="roomNo">104</div>
             <button class="door hotspot" data-spot="R3" aria-label="Room 104"></button>
             <div class="status" id="status3"></div>
           </div>
         </section>
 
-        <!-- RECEPTION FLOOR -->
+        <!-- RECEPTION + QUEUE -->
         <section class="floor floor-1">
           <div class="counterArea">
             <div class="counterTitle">Reception</div>
@@ -87,7 +87,7 @@
         <div id="modeTag" class="modeTag hidden">MODE</div>
       </div>
 
-      <!-- HOTEL ACTIONS -->
+      <!-- ACTIONS -->
       <footer class="actions">
         <button id="btnClean" class="btn">🧹 Clean</button>
         <button id="btnSnack" class="btn">🧃 Snacks</button>
@@ -96,24 +96,22 @@
       </footer>
     </section>
 
-    <!-- PUZZLE VIEW -->
+    <!-- ================= PUZZLE VIEW ================= -->
     <section id="puzzleView" class="view">
       <div class="puzzleWrap">
         <div class="puzzleHeader">
           <div>
             <div class="pTitle">Mombasa Puzzle</div>
-            <div class="pSub">Tap 2 tiles to swap. Solve to unlock a reward later.</div>
+            <div class="pSub">Tap two tiles to swap. Solve to unlock rewards later.</div>
           </div>
-          <div class="pBtns">
-            <button id="puzzleReset" class="btn ghost">↻ Shuffle</button>
-          </div>
+          <button id="puzzleReset" class="btn ghost">↻ Shuffle</button>
         </div>
 
         <div id="puzzleBoard" class="puzzleBoard"></div>
         <div id="puzzleMsg" class="puzzleMsg">Loading…</div>
 
         <div class="puzzleNote">
-          Put your 6 images in <b>assets/</b> with these names:
+          Put your 6 images in <b>assets/</b> named:
           <code>palm.png shell.png fish.png coconut.png wave.png sun.png</code>
         </div>
       </div>
