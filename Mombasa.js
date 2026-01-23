@@ -1,334 +1,334 @@
-/* =========================================================
-   Safari Stay – Mombasa.js (UI-WIRED VERSION)
-   Works with your UI (screenshot):
-   - Top HUD: #coins, #queue, #served
-   - Hint line: #hint (optional)
-   - Room list items/cards: .roomCard[data-room="A|B|C|D"]
-   - Room details text: #roomDetails (or change below)
-   - Buttons:
-       #btnCheckIn        (Check-In Guest)
-       #btnServeQueue     (Serve Queue)
-       #btnCleanSelected  (Clean Selected)
-       #btnDeliverSnack   (Deliver Snack)
-       #btnCheckout       (Checkout Guest)
-       #btnStartCleaning  (Start Cleaning)
+const ROOM_KEYS = ["A","B","C","D"];
 
-   Room states:
-   empty | occupied | dirty | cleaning
-   ========================================================= */
+let GUEST_STAY_MS = 10000;
+let CLEAN_TIME_MS = 3000;
 
-/* ====== TUNING ====== */
-const ROOM_KEYS = ["A", "B", "C", "D"];
+const SPAWN_MIN_MS = 2000;
+const SPAWN_MAX_MS = 6000;
 
-const GUEST_STAY_MS = 10_000;        // guest stays ~10s
-const CLEAN_TIME_MS = 3_000;         // cleaning takes ~3s
+const ORDER_PROB = 0.45;
+const ORDER_DELAY_MIN_MS = 1200;
+const ORDER_DELAY_MAX_MS = 4500;
+const ORDER_EXPIRE_MS = 12000;
 
-const SPAWN_MIN_MS = 2_000;          // queue grows every 2–6s
-const SPAWN_MAX_MS = 6_000;
+const ACTIVE_ORDERS_MIN = 1;
+const ACTIVE_ORDERS_MAX = 2;
 
-const ORDER_PROB = 0.45;             // 45% of guests order snacks
-const ORDER_DELAY_MIN_MS = 1_200;    // order appears later (not instant)
-const ORDER_DELAY_MAX_MS = 4_500;
+const KEY = {
+  coins: "coins",
+  queue: "mombasaQueue",
+  served: "mombasaServed",
+  rooms: "mombasaRooms_ui_v2",
+  upgrades: "mombasaUpgrades_v1",
+};
 
-const ORDER_EXPIRE_MS = 12_000;      // order auto-expires if ignored
-
-const COIN_CHECKOUT = 10;
-const COIN_SNACK = 20;
-
-/* ====== STORAGE ====== */
-function getNum(key, fallback = 0) {
-  const v = Number(localStorage.getItem(key));
+function getNum(k, fallback=0){
+  const v = Number(localStorage.getItem(k));
   return Number.isFinite(v) ? v : fallback;
 }
-function setNum(key, value) {
-  localStorage.setItem(key, String(value));
-}
-function getJSON(key, fallback) {
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return fallback;
-    return JSON.parse(raw);
-  } catch {
+function setNum(k, v){ localStorage.setItem(k, String(v)); }
+
+function getJSON(k, fallback){
+  try{
+    const raw = localStorage.getItem(k);
+    return raw ? JSON.parse(raw) : fallback;
+  }catch{
     return fallback;
   }
 }
-function setJSON(key, value) {
-  localStorage.setItem(key, JSON.stringify(value));
-}
+function setJSON(k, v){ localStorage.setItem(k, JSON.stringify(v)); }
 
-/* ====== STATE ====== */
-function defaultRooms() {
-  return ROOM_KEYS.map(() => ({
-    state: "empty",
-    stayEndsAt: 0,
-    wantsSnack: false,
-    snack: null,
-    orderCreatedAt: 0,
-    cleaningEndsAt: 0,
-    loveUntil: 0,
+function defaultRooms(){
+  return ROOM_KEYS.map(()=>({
+    state:"empty",
+    stayEndsAt:0,
+    wantsSnack:false,
+    snack:null,
+    orderCreatedAt:0,
+    cleaningEndsAt:0,
+    loveUntil:0
   }));
 }
 
-let coins = getNum("coins", 0);
-let queue = getNum("mombasaQueue", 0);
-let served = getNum("mombasaGuestsServed", 0);
+let coins = getNum(KEY.coins, 0);
+let queue = getNum(KEY.queue, 0);
+let served = getNum(KEY.served, 0);
 
-let rooms = getJSON("mombasaRooms_ui_v1", null);
-if (!Array.isArray(rooms) || rooms.length !== ROOM_KEYS.length) rooms = defaultRooms();
+let rooms = getJSON(KEY.rooms, null);
+if(!Array.isArray(rooms) || rooms.length !== ROOM_KEYS.length) rooms = defaultRooms();
+
+let upgrades = getJSON(KEY.upgrades, {cleaner:false, bellboy:false});
+if(!upgrades || typeof upgrades !== "object") upgrades = {cleaner:false, bellboy:false};
 
 let selectedRoomIndex = null;
+let spawnTimer = null;
 
-/* ====== DOM ====== */
-const $ = (sel) => document.querySelector(sel);
-const $all = (sel) => Array.from(document.querySelectorAll(sel));
-const $id = (id) => document.getElementById(id);
+// DOM
+const $id = (id)=>document.getElementById(id);
+const $ = (sel)=>document.querySelector(sel);
+const $all = (sel)=>Array.from(document.querySelectorAll(sel));
 
 const elCoins = $id("coins");
 const elQueue = $id("queue");
 const elServed = $id("served");
 const elHint = $id("hint");
-const elRoomDetails = $id("roomDetails"); // change if your ID differs
+const elHotelGrid = $id("hotelGrid");
+const elRoomCard = $id("roomCard");
 
 const btnCheckIn = $id("btnCheckIn");
 const btnServeQueue = $id("btnServeQueue");
-const btnCleanSelected = $id("btnCleanSelected");
+const btnEmergencyClean = $id("btnEmergencyClean");
 
 const btnDeliverSnack = $id("btnDeliverSnack");
 const btnCheckout = $id("btnCheckout");
-const btnStartCleaning = $id("btnStartCleaning");
+const btnClean = $id("btnClean");
 
-/* ====== UI HELPERS ====== */
-function save() {
-  setNum("coins", coins);
-  setNum("mombasaQueue", queue);
-  setNum("mombasaGuestsServed", served);
-  setJSON("mombasaRooms_ui_v1", rooms);
+const btnReset = $id("btnResetMombasa");
+const buyCleaner = $id("buyCleaner");
+const buyBellboy = $id("buyBellboy");
+
+// Tabs
+const tabButtons = $all(".tab");
+const panels = $all(".panel");
+
+function applyUpgradesToTuning(){
+  CLEAN_TIME_MS = upgrades.cleaner ? 2200 : 3000;
 }
 
-function hint(msg) {
-  if (elHint) elHint.textContent = msg;
+applyUpgradesToTuning();
+
+function save(){
+  setNum(KEY.coins, coins);
+  setNum(KEY.queue, queue);
+  setNum(KEY.served, served);
+  setJSON(KEY.rooms, rooms);
+  setJSON(KEY.upgrades, upgrades);
 }
 
-function bubble(msg) {
+function hint(msg){
+  if(elHint) elHint.textContent = msg;
+}
+
+function bubble(msg){
   const b = document.createElement("div");
   b.textContent = msg;
-  b.style.position = "fixed";
-  b.style.left = "50%";
-  b.style.bottom = "24px";
-  b.style.transform = "translateX(-50%)";
-  b.style.padding = "10px 14px";
-  b.style.borderRadius = "14px";
-  b.style.background = "rgba(0,0,0,0.78)";
-  b.style.color = "#fff";
-  b.style.fontSize = "14px";
-  b.style.zIndex = "9999";
-  b.style.opacity = "0";
-  b.style.transition = "opacity 200ms ease, transform 200ms ease";
+  b.style.position="fixed";
+  b.style.left="50%";
+  b.style.bottom="24px";
+  b.style.transform="translateX(-50%)";
+  b.style.padding="10px 14px";
+  b.style.borderRadius="14px";
+  b.style.background="rgba(0,0,0,0.78)";
+  b.style.color="#fff";
+  b.style.fontSize="14px";
+  b.style.zIndex="9999";
+  b.style.opacity="0";
+  b.style.transition="opacity 200ms ease, transform 200ms ease";
   document.body.appendChild(b);
 
-  requestAnimationFrame(() => {
-    b.style.opacity = "1";
-    b.style.transform = "translateX(-50%) translateY(-6px)";
+  requestAnimationFrame(()=>{
+    b.style.opacity="1";
+    b.style.transform="translateX(-50%) translateY(-6px)";
   });
 
-  setTimeout(() => {
-    b.style.opacity = "0";
-    b.style.transform = "translateX(-50%) translateY(6px)";
-    setTimeout(() => b.remove(), 250);
+  setTimeout(()=>{
+    b.style.opacity="0";
+    b.style.transform="translateX(-50%) translateY(6px)";
+    setTimeout(()=>b.remove(), 250);
   }, 1200);
 }
 
-function renderHUD() {
-  if (elCoins) elCoins.textContent = String(coins);
-  if (elQueue) elQueue.textContent = String(queue);
-  if (elServed) elServed.textContent = String(served);
+function renderHUD(){
+  if(elCoins) elCoins.textContent = String(coins);
+  if(elQueue) elQueue.textContent = String(queue);
+  if(elServed) elServed.textContent = String(served);
 }
 
-function roomLabel(r, idx) {
-  const k = ROOM_KEYS[idx];
-  if (r.state === "empty") return `Room ${k} • Empty`;
-  if (r.state === "dirty") return `Room ${k} • Dirty 🧽`;
-  if (r.state === "cleaning") return `Room ${k} • Cleaning…`;
-  if (r.state === "occupied") {
-    if (r.wantsSnack) return `Room ${k} • Occupied • Order: ${r.snack} 🛎️`;
-    return `Room ${k} • Occupied`;
-  }
-  return `Room ${k}`;
+function roomTitle(idx){
+  return "Room " + ROOM_KEYS[idx];
 }
 
-function renderRooms() {
-  // You must have elements like:
-  // <button class="roomCard" data-room="A"></button> ...
-  ROOM_KEYS.forEach((k, idx) => {
-    const card = $(`.roomCard[data-room="${k}"]`);
-    if (!card) return;
+function stateLabel(r){
+  if(r.state==="empty") return "Empty";
+  if(r.state==="occupied") return r.wantsSnack ? ("Occupied • Order: " + r.snack + " 🛎️") : "Occupied";
+  if(r.state==="dirty") return "Dirty 🧽";
+  if(r.state==="cleaning") return "Cleaning…";
+  return r.state;
+}
 
-    const r = rooms[idx];
+function createRoomButtons(){
+  if(!elHotelGrid) return;
+  elHotelGrid.innerHTML = "";
 
-    // Selection style
-    card.classList.toggle("selected", selectedRoomIndex === idx);
-
-    // State classes (optional, if your CSS uses them)
-    card.classList.remove("state-empty","state-occupied","state-dirty","state-cleaning");
-    card.classList.add(`state-${r.state}`);
-
-    // Text label
-    card.textContent = roomLabel(r, idx);
-
-    // Quick emoji badge (optional)
-    if (r.state === "occupied" && Date.now() < r.loveUntil) {
-      card.textContent += " 😍";
-    }
+  ROOM_KEYS.forEach((k, idx)=>{
+    const btn = document.createElement("button");
+    btn.className = "roomBtn";
+    btn.dataset.roomIndex = String(idx);
+    btn.addEventListener("click", ()=>{
+      selectedRoomIndex = idx;
+      renderAll();
+    });
+    elHotelGrid.appendChild(btn);
   });
 }
 
-function renderDetailsAndButtons() {
-  if (selectedRoomIndex === null) {
-    if (elRoomDetails) elRoomDetails.textContent = "Select a room.";
-    setButtonsEnabled(false);
+function renderRooms(){
+  if(!elHotelGrid) return;
+  const buttons = $all("#hotelGrid .roomBtn");
+
+  buttons.forEach((btn)=>{
+    const idx = Number(btn.dataset.roomIndex);
+    const r = rooms[idx];
+
+    btn.classList.toggle("selected", idx === selectedRoomIndex);
+    btn.classList.remove("state-empty","state-occupied","state-dirty","state-cleaning");
+    btn.classList.add("state-" + r.state);
+
+    let text = roomTitle(idx) + "\n" + stateLabel(r);
+    if(r.state==="occupied" && Date.now() < r.loveUntil) text += " 😍";
+    btn.textContent = text;
+  });
+}
+
+function renderRoomDetails(){
+  if(!elRoomCard) return;
+
+  if(selectedRoomIndex === null){
+    elRoomCard.innerHTML = '<div class="muted">Select a room.</div>';
     return;
   }
 
   const r = rooms[selectedRoomIndex];
-  const k = ROOM_KEYS[selectedRoomIndex];
   const now = Date.now();
 
-  let details = `Room ${k}\nState: ${r.state.toUpperCase()}\n`;
+  let html = "";
+  html += '<div style="font-weight:700; margin-bottom:6px;">' + roomTitle(selectedRoomIndex) + "</div>";
+  html += '<div class="muted" style="margin-bottom:10px;">' + stateLabel(r) + "</div>";
 
-  if (r.state === "occupied") {
+  if(r.state==="occupied"){
     const left = Math.max(0, r.stayEndsAt - now);
-    details += `Guest stay ends in: ${Math.ceil(left / 1000)}s\n`;
-    if (r.wantsSnack) {
-      details += `Snack order: ${r.snack}\n`;
-    } else {
-      details += `Snack order: none\n`;
-    }
+    html += '<div class="muted">Checkout ready in: <strong>' + Math.ceil(left/1000) + "s</strong></div>";
+    html += '<div class="muted">Snack order: <strong>' + (r.wantsSnack ? r.snack : "None") + "</strong></div>";
   }
 
-  if (r.state === "cleaning") {
+  if(r.state==="cleaning"){
     const left = Math.max(0, r.cleaningEndsAt - now);
-    details += `Cleaning ends in: ${Math.ceil(left / 1000)}s\n`;
+    html += '<div class="muted">Cleaning ends in: <strong>' + Math.ceil(left/1000) + "s</strong></div>";
   }
 
-  if (r.state === "dirty") {
-    details += `Needs cleaning.`;
+  if(r.state==="dirty"){
+    html += '<div class="muted">Needs cleaning.</div>';
   }
 
-  if (elRoomDetails) elRoomDetails.textContent = details;
-
-  setButtonsEnabled(true);
+  elRoomCard.innerHTML = html;
 }
 
-function setButtonsEnabled(hasSelection) {
-  // Top row buttons
-  if (btnCheckIn) btnCheckIn.disabled = !hasSelection;
-  if (btnServeQueue) btnServeQueue.disabled = !hasSelection;
-  if (btnCleanSelected) btnCleanSelected.disabled = !hasSelection;
+function setButtonStates(){
+  const hasSel = selectedRoomIndex !== null;
 
-  // Action buttons
-  if (btnDeliverSnack) btnDeliverSnack.disabled = !hasSelection;
-  if (btnCheckout) btnCheckout.disabled = !hasSelection;
-  if (btnStartCleaning) btnStartCleaning.disabled = !hasSelection;
-
-  if (!hasSelection) return;
-
-  const r = rooms[selectedRoomIndex];
-
-  // Smarter enable/disable by state
-  if (btnCheckIn) btnCheckIn.disabled = !(r.state === "empty" && queue > 0);
-  if (btnServeQueue) btnServeQueue.disabled = !(r.state === "empty" && queue > 0);
-
-  if (btnDeliverSnack) btnDeliverSnack.disabled = !(r.state === "occupied" && r.wantsSnack);
-  if (btnCheckout) btnCheckout.disabled = !(r.state === "occupied" && Date.now() >= r.stayEndsAt);
-  if (btnStartCleaning) btnStartCleaning.disabled = !(r.state === "dirty");
-  if (btnCleanSelected) btnCleanSelected.disabled = !(r.state === "dirty");
-}
-
-/* ====== GAMEPLAY ====== */
-function randomSnack() {
-  const snacks = ["Soda", "Chips", "Juice", "Water", "Cookies", "Burger"];
-  return snacks[Math.floor(Math.random() * snacks.length)];
-}
-function rand(min, max) {
-  return Math.floor(min + Math.random() * (max - min + 1));
-}
-
-function checkIn(roomIndex) {
-  const r = rooms[roomIndex];
-  if (!(r.state === "empty" && queue > 0)) {
-    bubble("Pick an empty room + make sure queue > 0");
+  const allBtns = [btnCheckIn,btnServeQueue,btnEmergencyClean,btnDeliverSnack,btnCheckout,btnClean];
+  if(!hasSel){
+    allBtns.forEach(b=>{ if(b) b.disabled = true; });
     return;
   }
+
+  const r = rooms[selectedRoomIndex];
+  if(btnCheckIn) btnCheckIn.disabled = !(r.state==="empty" && queue>0);
+  if(btnServeQueue) btnServeQueue.disabled = !(r.state==="empty" && queue>0);
+  if(btnEmergencyClean) btnEmergencyClean.disabled = !(r.state==="dirty");
+
+  if(btnDeliverSnack) btnDeliverSnack.disabled = !(r.state==="occupied" && r.wantsSnack);
+  if(btnCheckout) btnCheckout.disabled = !(r.state==="occupied" && Date.now() >= r.stayEndsAt);
+  if(btnClean) btnClean.disabled = !(r.state==="dirty");
+}
+
+function renderAll(){
+  renderHUD();
+  renderRooms();
+  renderRoomDetails();
+  setButtonStates();
+}
+
+// gameplay helpers
+function rand(min,max){ return Math.floor(min + Math.random()*(max-min+1)); }
+function randomSnack(){
+  const snacks = ["Soda","Chips","Juice","Water","Cookies","Burger"];
+  return snacks[Math.floor(Math.random()*snacks.length)];
+}
+function activeOrdersCount(){
+  return rooms.reduce((n,r)=> n + ((r.state==="occupied" && r.wantsSnack) ? 1 : 0), 0);
+}
+
+function scheduleSnackOrder(roomIndex){
+  const stayStamp = rooms[roomIndex].stayEndsAt;
+  const delay = rand(ORDER_DELAY_MIN_MS, ORDER_DELAY_MAX_MS);
+  const snack = randomSnack();
+
+  setTimeout(()=>{
+    const rr = rooms[roomIndex];
+    if(rr.state !== "occupied") return;
+    if(rr.stayEndsAt !== stayStamp) return;
+
+    const maxActive = upgrades.bellboy ? ACTIVE_ORDERS_MAX : ACTIVE_ORDERS_MIN;
+    if(activeOrdersCount() >= maxActive) return;
+
+    rr.wantsSnack = true;
+    rr.snack = snack;
+    rr.orderCreatedAt = Date.now();
+
+    hint(roomTitle(roomIndex) + " ordered: " + snack + " 🛎️");
+    bubble("Order: " + snack + " 🛎️");
+    save();
+    renderAll();
+  }, delay);
+}
+
+function checkInSelected(){
+  if(selectedRoomIndex === null) return bubble("Select a room first.");
+  const r = rooms[selectedRoomIndex];
+  if(!(r.state==="empty" && queue>0)) return bubble("Need an empty room + queue > 0.");
 
   queue -= 1;
   r.state = "occupied";
   r.stayEndsAt = Date.now() + GUEST_STAY_MS;
-
   r.wantsSnack = false;
   r.snack = null;
   r.orderCreatedAt = 0;
   r.loveUntil = 0;
 
-  // Maybe schedule a snack order later
-  if (Math.random() < ORDER_PROB) {
-    const delay = rand(ORDER_DELAY_MIN_MS, ORDER_DELAY_MAX_MS);
-    const snack = randomSnack();
-    const stayStamp = r.stayEndsAt;
+  if(Math.random() < ORDER_PROB) scheduleSnackOrder(selectedRoomIndex);
 
-    setTimeout(() => {
-      const rr = rooms[roomIndex];
-      if (rr.state !== "occupied") return;
-      if (rr.stayEndsAt !== stayStamp) return;
-
-      rr.wantsSnack = true;
-      rr.snack = snack;
-      rr.orderCreatedAt = Date.now();
-      hint(`Room ${ROOM_KEYS[roomIndex]} ordered: ${snack} 🛎️`);
-      bubble(`Order: ${snack} 🛎️`);
-      save();
-      renderAll();
-    }, delay);
-  }
-
-  served += 0; // not served yet
-  coins += 0;
-
-  hint(`Checked in Room ${ROOM_KEYS[roomIndex]} ✅`);
-  bubble(`Checked in: Room ${ROOM_KEYS[roomIndex]} ✅`);
+  hint("Checked in guest to " + roomTitle(selectedRoomIndex) + " ✅");
+  bubble("Checked in ✅");
 
   save();
   renderAll();
 }
 
-function deliverSnack(roomIndex) {
-  const r = rooms[roomIndex];
-  if (!(r.state === "occupied" && r.wantsSnack)) {
-    bubble("No snack order here.");
-    return;
-  }
+function deliverSnackSelected(){
+  if(selectedRoomIndex === null) return bubble("Select a room first.");
+  const r = rooms[selectedRoomIndex];
+  if(!(r.state==="occupied" && r.wantsSnack)) return bubble("No snack order in this room.");
 
-  // Simple deliver = always correct (no snack picker needed)
   r.wantsSnack = false;
+  r.snack = null;
   r.orderCreatedAt = 0;
 
-  coins += COIN_SNACK;
+  coins += upgrades.bellboy ? 30 : 20;
   r.loveUntil = Date.now() + 1200;
 
-  hint(`Snack delivered to Room ${ROOM_KEYS[roomIndex]} ✅ +${COIN_SNACK} coins`);
-  bubble(`Delivered ✅ +${COIN_SNACK} coins`);
+  hint("Snack delivered to " + roomTitle(selectedRoomIndex) + " ✅");
+  bubble("Delivered ✅");
 
   save();
   renderAll();
 }
 
-function checkout(roomIndex) {
-  const r = rooms[roomIndex];
-  if (r.state !== "occupied") return;
-
-  if (Date.now() < r.stayEndsAt) {
-    bubble("Guest is not ready to checkout yet.");
-    return;
-  }
+function checkoutSelected(){
+  if(selectedRoomIndex === null) return bubble("Select a room first.");
+  const r = rooms[selectedRoomIndex];
+  if(r.state !== "occupied") return bubble("Room is not occupied.");
+  if(Date.now() < r.stayEndsAt) return bubble("Not ready to checkout yet.");
 
   r.state = "dirty";
   r.stayEndsAt = 0;
@@ -338,71 +338,66 @@ function checkout(roomIndex) {
   r.loveUntil = 0;
 
   served += 1;
-  coins += COIN_CHECKOUT;
+  coins += 10;
 
-  hint(`Checked out Room ${ROOM_KEYS[roomIndex]} 🚪 (now dirty)`);
-  bubble(`Checkout 🚪 +${COIN_CHECKOUT}`);
+  hint(roomTitle(selectedRoomIndex) + " checked out 🚪 (dirty)");
+  bubble("Checkout 🚪");
 
   save();
   renderAll();
 }
 
-function startCleaning(roomIndex) {
-  const r = rooms[roomIndex];
-  if (r.state !== "dirty") return;
+function startCleaningSelected(){
+  if(selectedRoomIndex === null) return bubble("Select a room first.");
+  const r = rooms[selectedRoomIndex];
+  if(r.state !== "dirty") return bubble("Room is not dirty.");
 
   r.state = "cleaning";
   r.cleaningEndsAt = Date.now() + CLEAN_TIME_MS;
 
-  hint(`Cleaning Room ${ROOM_KEYS[roomIndex]}… 🧽`);
+  hint("Cleaning " + roomTitle(selectedRoomIndex) + "… 🧽");
   bubble("Cleaning… 🧽");
 
   save();
   renderAll();
 }
 
-/* ====== SPAWN QUEUE ====== */
-let spawnTimer = null;
-
-function scheduleSpawn() {
+function scheduleSpawn(){
   const delay = rand(SPAWN_MIN_MS, SPAWN_MAX_MS);
   clearTimeout(spawnTimer);
-  spawnTimer = setTimeout(() => {
+  spawnTimer = setTimeout(()=>{
     queue += 1;
     save();
     renderAll();
-    bubble("New guest arrived 👥");
     scheduleSpawn();
   }, delay);
 }
 
-/* ====== TICK LOOP ====== */
-function tick() {
+function tick(){
   const now = Date.now();
 
-  // Auto-finish cleaning
-  rooms.forEach((r, idx) => {
-    if (r.state === "cleaning" && now >= r.cleaningEndsAt) {
-      r.state = "empty";
-      r.cleaningEndsAt = 0;
-      r.stayEndsAt = 0;
-      r.wantsSnack = false;
-      r.snack = null;
-      r.orderCreatedAt = 0;
-      r.loveUntil = 0;
-      bubble(`Room ${ROOM_KEYS[idx]} is clean ✨`);
+  rooms.forEach((r, idx)=>{
+    if(r.state==="cleaning" && now >= r.cleaningEndsAt){
+      r.state="empty";
+      r.cleaningEndsAt=0;
+      r.stayEndsAt=0;
+      r.wantsSnack=false;
+      r.snack=null;
+      r.orderCreatedAt=0;
+      r.loveUntil=0;
+
+      hint(roomTitle(idx) + " is clean ✨");
       save();
     }
   });
 
-  // Auto-expire snack orders
-  rooms.forEach((r, idx) => {
-    if (r.state === "occupied" && r.wantsSnack && r.orderCreatedAt) {
-      if (now - r.orderCreatedAt >= ORDER_EXPIRE_MS) {
-        r.wantsSnack = false;
-        r.snack = null;
-        r.orderCreatedAt = 0;
-        hint(`Order expired in Room ${ROOM_KEYS[idx]} 😬`);
+  rooms.forEach((r, idx)=>{
+    if(r.state==="occupied" && r.wantsSnack && r.orderCreatedAt){
+      if(now - r.orderCreatedAt >= ORDER_EXPIRE_MS){
+        r.wantsSnack=false;
+        r.snack=null;
+        r.orderCreatedAt=0;
+        hint("Order expired in " + roomTitle(idx) + " 😬");
         save();
       }
     }
@@ -412,68 +407,81 @@ function tick() {
   requestAnimationFrame(tick);
 }
 
-/* ====== RENDER ALL ====== */
-function renderAll() {
-  renderHUD();
-  renderRooms();
-  renderDetailsAndButtons();
+function buyUpgrade(name){
+  if(name==="cleaner"){
+    if(upgrades.cleaner) return bubble("Cleaner already purchased.");
+    if(coins < 120) return bubble("Not enough coins for Cleaner.");
+    coins -= 120;
+    upgrades.cleaner = true;
+    applyUpgradesToTuning();
+    save(); renderAll();
+    return bubble("Cleaner purchased ✅");
+  }
+  if(name==="bellboy"){
+    if(upgrades.bellboy) return bubble("Bellboy already purchased.");
+    if(coins < 160) return bubble("Not enough coins for Bellboy.");
+    coins -= 160;
+    upgrades.bellboy = true;
+    save(); renderAll();
+    return bubble("Bellboy purchased ✅");
+  }
 }
 
-/* ====== EVENTS ====== */
-function hookRoomClicks() {
-  ROOM_KEYS.forEach((k, idx) => {
-    const card = $(`.roomCard[data-room="${k}"]`);
-    if (!card) return;
+function resetMombasa(){
+  if(!confirm("Reset Mombasa progress?")) return;
 
-    card.addEventListener("click", () => {
-      selectedRoomIndex = idx;
-      renderAll();
+  coins=0; queue=0; served=0;
+  rooms = defaultRooms();
+  upgrades = {cleaner:false, bellboy:false};
+  selectedRoomIndex = null;
+
+  applyUpgradesToTuning();
+  save();
+  renderAll();
+  bubble("Reset done ✅");
+  hint("Welcome to Mombasa 🌴");
+}
+
+function hookTabs(){
+  tabButtons.forEach((btn)=>{
+    btn.addEventListener("click", ()=>{
+      tabButtons.forEach(b=>b.classList.remove("active"));
+      btn.classList.add("active");
+
+      const tab = btn.dataset.tab;
+      panels.forEach(p=>p.classList.remove("active"));
+      const panel = $id("tab-" + tab);
+      if(panel) panel.classList.add("active");
     });
   });
 }
 
-function hookButtons() {
-  if (btnCheckIn) btnCheckIn.addEventListener("click", () => {
-    if (selectedRoomIndex === null) return;
-    checkIn(selectedRoomIndex);
-  });
+function hookButtons(){
+  if(btnCheckIn) btnCheckIn.addEventListener("click", checkInSelected);
+  if(btnServeQueue) btnServeQueue.addEventListener("click", checkInSelected);
 
-  // Serve Queue = same as check-in (just a different UX label)
-  if (btnServeQueue) btnServeQueue.addEventListener("click", () => {
-    if (selectedRoomIndex === null) return;
-    checkIn(selectedRoomIndex);
-  });
+  if(btnDeliverSnack) btnDeliverSnack.addEventListener("click", deliverSnackSelected);
+  if(btnCheckout) btnCheckout.addEventListener("click", checkoutSelected);
 
-  if (btnCleanSelected) btnCleanSelected.addEventListener("click", () => {
-    if (selectedRoomIndex === null) return;
-    startCleaning(selectedRoomIndex);
-  });
+  if(btnClean) btnClean.addEventListener("click", startCleaningSelected);
+  if(btnEmergencyClean) btnEmergencyClean.addEventListener("click", startCleaningSelected);
 
-  if (btnDeliverSnack) btnDeliverSnack.addEventListener("click", () => {
-    if (selectedRoomIndex === null) return;
-    deliverSnack(selectedRoomIndex);
-  });
+  if(btnReset) btnReset.addEventListener("click", resetMombasa);
 
-  if (btnCheckout) btnCheckout.addEventListener("click", () => {
-    if (selectedRoomIndex === null) return;
-    checkout(selectedRoomIndex);
-  });
-
-  if (btnStartCleaning) btnStartCleaning.addEventListener("click", () => {
-    if (selectedRoomIndex === null) return;
-    startCleaning(selectedRoomIndex);
-  });
+  if(buyCleaner) buyCleaner.addEventListener("click", ()=>buyUpgrade("cleaner"));
+  if(buyBellboy) buyBellboy.addEventListener("click", ()=>buyUpgrade("bellboy"));
 }
 
-/* ====== INIT ====== */
-function init() {
-  renderAll();
-  hookRoomClicks();
+function init(){
+  hookTabs();
+  createRoomButtons();
   hookButtons();
+
+  renderAll();
   scheduleSpawn();
   requestAnimationFrame(tick);
 
-  hint("Select a room, then use the buttons. Queue will start growing automatically 👥");
+  hint("Tap a room to select it. Then use the buttons below.");
   bubble("Mombasa loaded 🏝️");
 }
 
