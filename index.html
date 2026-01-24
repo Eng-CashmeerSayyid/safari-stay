@@ -72,12 +72,17 @@ Safari Stay – Landing Page
     const coins = getNum("coins", 0);
     document.getElementById("coins").textContent = coins;
 
-    document.getElementById("served").textContent = getNum("mombasaGuestsServed", 0);
+   document.getElementById("served").textContent = getNum("mombasaServed", 0);
 
-    const upgrades =
-      (getBool("mombasaCleaner") ? 1 : 0) +
-      (getBool("mombasaBellboy") ? 1 : 0);
-    document.getElementById("upgrades").textContent = upgrades;
+let upgradeCount = 0;
+try{
+  const up = JSON.parse(localStorage.getItem("mombasaUpgrades_full_v1") || "{}");
+  upgradeCount = (up.cleaner ? 1 : 0) + (up.bellboy ? 1 : 0);
+}catch{
+  upgradeCount = 0;
+}
+document.getElementById("upgrades").textContent = upgradeCount;
+
 
     document.getElementById("resetAll").addEventListener("click", () => {
       if (!confirm("Reset Safari Stay progress?")) return;
