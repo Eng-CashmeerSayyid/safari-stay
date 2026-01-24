@@ -354,3 +354,82 @@ body.landing .wrap{ margin-top: 26px; }
 }
 .shopTitle{ font-weight: 1000; }
 .price{ color: var(--muted); }
+
+/* ===== Safari Stay: Room card styling (FULL block) ===== */
+#hotelGrid{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.roomBtn{
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.06);
+  color: white;
+  padding: 14px;
+  cursor: pointer;
+  text-align: left;
+  min-height: 78px;
+  white-space: normal;
+  transition: transform .12s ease;
+}
+
+.roomBtn:active{ transform: scale(0.99); }
+
+.roomBtn.selected{
+  outline: 2px solid rgba(255,255,255,0.35);
+}
+
+.rRow{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 12px;
+}
+
+.rTitle{ font-weight: 800; font-size: 14px; }
+.rState{ font-size: 12px; opacity: 0.85; margin-top: 6px; }
+
+.rBadge{
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background: rgba(255,255,255,0.08);
+  font-size: 18px;
+}
+
+.roomBtn.state-dirty{ background: rgba(255,80,80,0.14); }
+.roomBtn.state-cleaning{ background: rgba(80,180,255,0.14); }
+
+.detailTitle{
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.detailLine{
+  margin-top: 8px;
+}
+
+/* Puzzle cards fallback styling */
+.pCard{
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.06);
+  color: white;
+  padding: 10px;
+  min-height: 70px;
+  cursor: pointer;
+}
+
+.pBack{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  height: 48px;
+  opacity: .85;
+}
+
