@@ -1,7 +1,9 @@
-// mombasa.js (FULL) — Safari Stay: Mombasa Hotel + Puzzle + Shop
-// ✅ Puzzle images path fixed to: images/tiles/{palm|shell|fish|coconut|wave|sun}.png
-// ✅ Safer renderPuzzle() (no inline onerror strings)
-// ✅ Keeps your existing hotel gameplay, tabs, upgrades, storage
+// mombasa.js (FULL UPDATED) — Safari Stay: Mombasa Hotel + Puzzle + Shop
+// ✅ Puzzle: 16 tiles (4x4) • MATCH 3 • always-visible images
+// ✅ Candy-crush style CRUSH animation + coin pop
+// ✅ Wrong match: SHAKE + vibration (where supported)
+// ✅ Puzzle images path: images/tiles/{palm|shell|fish|coconut|wave|sun}.png
+// NOTE: Add the CSS classes/animations I gave you for .crush/.shake/.coinPop
 
 const ROOM_KEYS = ["A", "B", "C", "D"];
 
@@ -26,7 +28,7 @@ const KEY = {
   served: "mombasaServed",
   rooms: "mombasaRooms_full_v1",
   upgrades: "mombasaUpgrades_full_v1",
-  puzzle: "mombasaPuzzle_full_v1",
+  puzzle: "mombasaPuzzle_full_v2_match3_16",
 };
 
 // ---------- storage helpers ----------
@@ -205,20 +207,13 @@ function renderRooms() {
     btn.classList.remove("state-empty", "state-occupied", "state-dirty", "state-cleaning");
     btn.classList.add("state-" + r.state);
 
-    // Clean compact card (NO long paragraphs)
     btn.innerHTML =
       '<div class="rRow">' +
-      '<div class="rLeft">' +
-      '<div class="rTitle">' +
-      roomTitle(idx) +
-      "</div>" +
-      '<div class="rState">' +
-      stateLabel(r) +
-      "</div>" +
-      "</div>" +
-      '<div class="rBadge">' +
-      statusBadge(r) +
-      "</div>" +
+        '<div class="rLeft">' +
+          '<div class="rTitle">' + roomTitle(idx) + '</div>' +
+          '<div class="rState">' + stateLabel(r) + '</div>' +
+        '</div>' +
+        '<div class="rBadge">' + statusBadge(r) + '</div>' +
       "</div>";
   });
 }
@@ -240,19 +235,12 @@ function renderRoomDetails() {
 
   if (r.state === "occupied") {
     const left = Math.max(0, r.stayEndsAt - now);
-    html +=
-      '<div class="detailLine">Checkout in: <strong>' + Math.ceil(left / 1000) + "s</strong></div>";
-    html +=
-      '<div class="detailLine">Snack: <strong>' +
-      (r.wantsSnack ? r.snack || "Ordered" : "None") +
-      "</strong></div>";
+    html += '<div class="detailLine">Checkout in: <strong>' + Math.ceil(left / 1000) + "s</strong></div>";
+    html += '<div class="detailLine">Snack: <strong>' + (r.wantsSnack ? (r.snack || "Ordered") : "None") + "</strong></div>";
   }
   if (r.state === "cleaning") {
     const left = Math.max(0, r.cleaningEndsAt - now);
-    html +=
-      '<div class="detailLine">Cleaning ends in: <strong>' +
-      Math.ceil(left / 1000) +
-      "s</strong></div>";
+    html += '<div class="detailLine">Cleaning ends in: <strong>' + Math.ceil(left / 1000) + "s</strong></div>";
   }
   if (r.state === "dirty") {
     html += '<div class="detailLine"><strong>Needs cleaning</strong> 🧽</div>';
@@ -425,7 +413,6 @@ function scheduleSpawn() {
 function tick() {
   const now = Date.now();
 
-  // Finish cleaning
   rooms.forEach((r, idx) => {
     if (r.state === "cleaning" && now >= r.cleaningEndsAt) {
       r.state = "empty";
@@ -440,7 +427,6 @@ function tick() {
     }
   });
 
-  // Expire snack orders
   rooms.forEach((r, idx) => {
     if (r.state === "occupied" && r.wantsSnack && r.orderCreatedAt) {
       if (now - r.orderCreatedAt >= ORDER_EXPIRE_MS) {
@@ -496,9 +482,15 @@ function resetMombasa() {
   upgrades = { cleaner: false, bellboy: false };
   selectedRoomIndex = null;
 
+  // also reset puzzle
+  puzzle = { deck: buildPuzzleDeck(), matched: Array(16).fill(false) };
+  picks = [];
+  pLock = false;
+
   applyUpgradesToTuning();
   save();
   renderAll();
+  renderPuzzle();
   hint("Welcome to Mombasa 🌴");
   bubble("Reset done ✅");
 }
@@ -515,31 +507,57 @@ function hookTabs() {
       const panel = $id("tab-" + tab);
       if (panel) panel.classList.add("active");
 
-      // Nice: rerender puzzle when switching to it
       if (tab === "puzzle") renderPuzzle();
     });
   });
 }
-// ---------- puzzle (always show images) ----------
-const PUZZLE_TILES = ["palm", "shell", "fish", "coconut", "wave", "sun"];
+
+// ---------- puzzle (MATCH 3 • 16 tiles • crush + shake + vibration) ----------
+const PUZZLE_TILES = ["palm", "shell", "fish", "coconut", "wave"];
+const WILD_TILE = "sun"; // wildcard to make 16 tiles work nicely
 const PUZZLE_IMG_BASE = "images/tiles/";
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
 function buildPuzzleDeck() {
   const deck = [];
-  PUZZLE_TILES.forEach((t) => deck.push(t, t));
+  PUZZLE_TILES.forEach((t) => deck.push(t, t, t)); // 5*3=15
+  deck.push(WILD_TILE); // +1 = 16
   return shuffle(deck);
 }
 
 let puzzle = getJSON(KEY.puzzle, null);
-if (!puzzle || !Array.isArray(puzzle.deck) || puzzle.deck.length !== 12) {
-  puzzle = { deck: buildPuzzleDeck(), matched: Array(12).fill(false) };
+if (!puzzle || !Array.isArray(puzzle.deck) || puzzle.deck.length !== 16) {
+  puzzle = { deck: buildPuzzleDeck(), matched: Array(16).fill(false) };
 }
 
-let firstPick = null;
-let lock = false;
+let picks = [];
+let pLock = false;
 
+function vibrate(pattern) {
+  try {
+    if ("vibrate" in navigator) navigator.vibrate(pattern);
+  } catch {}
+}
+
+function coinPopOnCard(card, text) {
+  const pop = document.createElement("div");
+  pop.className = "coinPop";
+  pop.textContent = text;
+  card.appendChild(pop);
+  setTimeout(() => pop.remove(), 650);
+}
+
+// preload images
 (function preloadPuzzle() {
-  PUZZLE_TILES.forEach((t) => {
+  [...PUZZLE_TILES, WILD_TILE].forEach((t) => {
     const img = new Image();
     img.src = `${PUZZLE_IMG_BASE}${t}.png`;
   });
@@ -553,10 +571,14 @@ function renderPuzzle() {
     const card = document.createElement("button");
     card.className = "pCard";
     card.type = "button";
-    card.disabled = lock || puzzle.matched[idx];
+    card.dataset.idx = String(idx);
 
+    // disable matched + during lock
+    card.disabled = pLock || puzzle.matched[idx];
+
+    // classes for CSS effects
     if (puzzle.matched[idx]) card.classList.add("matched");
-    if (firstPick === idx) card.classList.add("selected");
+    if (picks.includes(idx)) card.classList.add("selected");
 
     const img = document.createElement("img");
     img.src = `${PUZZLE_IMG_BASE}${tile}.png`;
@@ -573,60 +595,85 @@ function renderPuzzle() {
 }
 
 function onPuzzlePick(idx) {
-  if (lock) return;
+  if (pLock) return;
   if (puzzle.matched[idx]) return;
+  if (picks.includes(idx)) return;
 
-  if (firstPick === idx) {
-    firstPick = null;
-    renderPuzzle();
-    return;
-  }
+  picks.push(idx);
+  renderPuzzle();
 
-  if (firstPick === null) {
-    firstPick = idx;
-    renderPuzzle();
-    return;
-  }
+  if (picks.length < 3) return;
 
-  const a = firstPick;
-  const b = idx;
-  firstPick = null;
+  const pickedTiles = picks.map((i) => puzzle.deck[i]);
+  const nonWild = pickedTiles.filter((t) => t !== WILD_TILE);
 
-  if (puzzle.deck[a] === puzzle.deck[b]) {
-    puzzle.matched[a] = true;
-    puzzle.matched[b] = true;
+  const isMatch = nonWild.length === 0 || nonWild.every((t) => t === nonWild[0]);
 
-    coins += 15;
-    bubble("Match! +15 coins ✅");
+  const pickedCards = picks
+    .map((i) => elPuzzleGrid.querySelector(`.pCard[data-idx="${i}"]`))
+    .filter(Boolean);
+
+  if (isMatch) {
+    pLock = true;
+
+    // mark matched
+    picks.forEach((i) => (puzzle.matched[i] = true));
+
+    const gain = 30;
+    coins += gain;
     renderHUD();
     save();
-    renderPuzzle();
 
-    if (puzzle.matched.every(Boolean)) {
-      coins += 10;
-      bubble("Cleared! +10 bonus 🏆");
-      renderHUD();
-      save();
-    }
-  } else {
-    lock = true;
-    renderPuzzle();
+    pickedCards.forEach((card) => {
+      coinPopOnCard(card, `+${gain}`);
+      card.classList.add("crush");
+    });
+
+    // light happy vibration
+    vibrate(40);
+
     setTimeout(() => {
-      lock = false;
+      picks = [];
+      pLock = false;
       renderPuzzle();
-    }, 350);
+
+      if (puzzle.matched.every(Boolean)) {
+        coins += 20;
+        bubble("Puzzle Cleared! +20 bonus 🏆");
+        renderHUD();
+        save();
+      } else {
+        bubble("Crush! +30 coins 🍬💥");
+      }
+    }, 340);
+  } else {
+    pLock = true;
+
+    pickedCards.forEach((card) => {
+      card.classList.remove("shake");
+      void card.offsetWidth; // reflow to replay animation
+      card.classList.add("shake");
+    });
+
+    // stronger buzz-buzz
+    vibrate([60, 40, 60]);
+
+    setTimeout(() => {
+      picks = [];
+      pLock = false;
+      renderPuzzle();
+    }, 520);
   }
 }
 
 function shufflePuzzle() {
-  puzzle = { deck: buildPuzzleDeck(), matched: Array(12).fill(false) };
-  firstPick = null;
-  lock = false;
+  puzzle = { deck: buildPuzzleDeck(), matched: Array(16).fill(false) };
+  picks = [];
+  pLock = false;
   save();
   renderPuzzle();
   bubble("Shuffled 🔀");
 }
-
 
 // ---------- buttons ----------
 function hookButtons() {
@@ -664,4 +711,3 @@ function init() {
 }
 
 document.addEventListener("DOMContentLoaded", init);
-
