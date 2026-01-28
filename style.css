@@ -1,5 +1,9 @@
 /* =========================
-Safari Stay – style.css (FULL)
+Safari Stay – style.css (IMPROVED)
+- Keeps your look
+- Fixes puzzle tile visuals for image <img> approach (your JS)
+- Adds nicer flip feel + matched glow
+- Removes old assets/puzzle background-image rules (since you use images/tiles/)
 Works for: index.html + Mombasa.html
 ========================= */
 
@@ -207,20 +211,18 @@ a{ color:inherit; text-decoration:none; }
   height:140px;
   border-radius:999px;
   opacity:.25;
-  filter: blur(0px);
 }
 
-.roomBtn.state-empty{ }
 .roomBtn.state-empty::after{ background: rgba(16,185,129,.55); }
-
-.roomBtn.state-occupied{ }
 .roomBtn.state-occupied::after{ background: rgba(99,102,241,.60); }
-
-.roomBtn.state-dirty{ }
 .roomBtn.state-dirty::after{ background: rgba(245,158,11,.65); }
-
-.roomBtn.state-cleaning{ }
 .roomBtn.state-cleaning::after{ background: rgba(56,189,248,.60); }
+
+/* room mini layout (your HTML) */
+.rRow{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.rTitle{ font-size:16px; }
+.rState{ font-size:12px; color: rgba(238,242,255,.70); font-weight:800; margin-top:4px; }
+.rBadge{ font-size:22px; }
 
 /* ---------- side panel ---------- */
 .side h3{ margin:0 0 10px; }
@@ -294,20 +296,30 @@ code{
 .shopTitle{ font-weight:950; }
 .price{ color: rgba(238,242,255,.78); }
 
-/* ---------- puzzle ---------- */
+/* =========================
+PUZZLE — IMPROVED
+Works with your JS that appends:
+- <button class="pCard"><div class="pBack">?</div></button>  (hidden)
+- <button class="pCard"><img ...></button>                  (revealed)
+========================= */
+
 .puzzleGrid{
   display:grid;
-  grid-template-columns: repeat(4, minmax(70px, 1fr));
+  grid-template-columns: repeat(4, minmax(78px, 1fr));
   gap:12px;
   padding:14px 0 6px;
   min-height:260px;
 }
+@media (max-width:520px){
+  .puzzleGrid{ grid-template-columns: repeat(3, minmax(76px, 1fr)); }
+}
 
+/* Tile button */
 .pCard{
-  min-height:78px;
+  min-height:84px;
   border-radius:18px;
   border:1px solid rgba(255,255,255,.12);
-  background: rgba(255,255,255,.07);
+  background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.05));
   color:#eef2ff;
   font-weight:950;
   font-size:18px;
@@ -315,42 +327,72 @@ code{
   display:flex;
   align-items:center;
   justify-content:center;
-  transition: transform .08s ease, background .2s ease, border-color .2s ease;
   position:relative;
   overflow:hidden;
-}
-.pCard:hover{ background: rgba(255,255,255,.10); border-color: rgba(255,255,255,.18); }
-.pCard:active{ transform: translateY(1px); }
-.pCard:disabled{ opacity:.55; cursor:not-allowed; }
-
-/* “card back” look */
-.pCard:not(.revealed){
-  background: linear-gradient(135deg, rgba(99,102,241,.20), rgba(255,255,255,.06));
+  transform: translateZ(0);
+  transition: transform .10s ease, background .2s ease, border-color .2s ease, box-shadow .2s ease, opacity .2s ease;
+  box-shadow: 0 14px 28px rgba(0,0,0,.28);
 }
 
-/* When revealed, we’ll show image (if class is set by JS) */
-.pCard.revealed{
-  background: rgba(255,255,255,.10);
+/* subtle shine */
+.pCard::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background: radial-gradient(120px 80px at 20% 25%, rgba(255,255,255,.14), transparent 60%);
+  pointer-events:none;
 }
 
-/* Optional: tile image backgrounds (works once JS adds tile class) */
-.pCard.tile-palm.revealed    { background-image:url("assets/puzzle/palm.png"); }
-.pCard.tile-shell.revealed   { background-image:url("assets/puzzle/shell.png"); }
-.pCard.tile-fish.revealed    { background-image:url("assets/puzzle/fish.png"); }
-.pCard.tile-coconut.revealed { background-image:url("assets/puzzle/coconut.png"); }
-.pCard.tile-wave.revealed    { background-image:url("assets/puzzle/wave.png"); }
-.pCard.tile-sun.revealed     { background-image:url("assets/puzzle/sun.png"); }
+.pCard:hover{
+  transform: translateY(-2px);
+  background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.06));
+  border-color: rgba(255,255,255,.18);
+  box-shadow: 0 18px 34px rgba(0,0,0,.34);
+}
 
-.pCard.tile-palm.revealed,
-.pCard.tile-shell.revealed,
-.pCard.tile-fish.revealed,
-.pCard.tile-coconut.revealed,
-.pCard.tile-wave.revealed,
-.pCard.tile-sun.revealed{
-  background-repeat:no-repeat;
-  background-position:center;
-  background-size: 56px 56px;
-  color: transparent; /* hide text label when image shows */
+.pCard:active{ transform: translateY(0px) scale(.99); }
+
+.pCard:disabled{
+  opacity:.62;
+  cursor:not-allowed;
+  transform:none;
+}
+
+/* The question mark back */
+.pBack{
+  width:100%;
+  height:100%;
+  display:grid;
+  place-items:center;
+  font-size:22px;
+  font-weight:950;
+  color: rgba(238,242,255,.80);
+  background: linear-gradient(135deg, rgba(99,102,241,.22), rgba(16,185,129,.14));
+}
+
+/* Revealed image */
+.pCard img{
+  width:64px;
+  height:64px;
+  object-fit: contain;
+  image-rendering: auto;
+  filter: drop-shadow(0 8px 12px rgba(0,0,0,.35));
+}
+
+/* Optional: when JS falls back to text (PALM, etc.) */
+.pCard{
+  letter-spacing:.6px;
+}
+
+/* Matched look (JS disables matched cards already) */
+.pCard:disabled img{
+  filter: drop-shadow(0 10px 14px rgba(46,204,113,.12));
+}
+
+/* If you ever add .matched class later, this will glow */
+.pCard.matched{
+  border-color: rgba(46,204,113,.55);
+  box-shadow: 0 0 0 3px rgba(46,204,113,.12), 0 18px 34px rgba(0,0,0,.34);
 }
 
 /* ---------- landing page tweak ---------- */
