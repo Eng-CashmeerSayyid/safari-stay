@@ -520,10 +520,9 @@ function hookTabs() {
     });
   });
 }
-
-// ---------- puzzle ----------
+// ---------- puzzle (always show images) ----------
 const PUZZLE_TILES = ["palm", "shell", "fish", "coconut", "wave", "sun"];
-const PUZZLE_IMG_BASE = "images/tiles/"; // ✅ FIXED
+const PUZZLE_IMG_BASE = "images/tiles/";
 
 function buildPuzzleDeck() {
   const deck = [];
@@ -531,25 +530,14 @@ function buildPuzzleDeck() {
   return shuffle(deck);
 }
 
-// NOTE: your game uses shuffle() here; we keep it exactly once
-function shuffle(arr) {
-  const a = arr.slice();
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
 let puzzle = getJSON(KEY.puzzle, null);
 if (!puzzle || !Array.isArray(puzzle.deck) || puzzle.deck.length !== 12) {
-  puzzle = { deck: buildPuzzleDeck(), revealed: Array(12).fill(false), matched: Array(12).fill(false) };
+  puzzle = { deck: buildPuzzleDeck(), matched: Array(12).fill(false) };
 }
 
 let firstPick = null;
 let lock = false;
 
-// Preload puzzle images to reduce blank flashes
 (function preloadPuzzle() {
   PUZZLE_TILES.forEach((t) => {
     const img = new Image();
@@ -564,28 +552,21 @@ function renderPuzzle() {
   puzzle.deck.forEach((tile, idx) => {
     const card = document.createElement("button");
     card.className = "pCard";
+    card.type = "button";
     card.disabled = lock || puzzle.matched[idx];
 
-    const show = puzzle.revealed[idx] || puzzle.matched[idx];
+    if (puzzle.matched[idx]) card.classList.add("matched");
+    if (firstPick === idx) card.classList.add("selected");
 
-    if (!show) {
-      const back = document.createElement("div");
-      back.className = "pBack";
-      back.textContent = "?";
-      card.appendChild(back);
-    } else {
-      const img = document.createElement("img");
-      img.src = `${PUZZLE_IMG_BASE}${tile}.png`; // ✅ FIXED PATH
-      img.alt = tile;
+    const img = document.createElement("img");
+    img.src = `${PUZZLE_IMG_BASE}${tile}.png`;
+    img.alt = tile;
+    img.onerror = () => {
+      img.remove();
+      card.textContent = tile.toUpperCase();
+    };
 
-      img.onerror = () => {
-        img.remove();
-        card.textContent = tile.toUpperCase();
-      };
-
-      card.appendChild(img);
-    }
-
+    card.appendChild(img);
     card.addEventListener("click", () => onPuzzlePick(idx));
     elPuzzleGrid.appendChild(card);
   });
@@ -593,14 +574,17 @@ function renderPuzzle() {
 
 function onPuzzlePick(idx) {
   if (lock) return;
-  if (puzzle.revealed[idx] || puzzle.matched[idx]) return;
+  if (puzzle.matched[idx]) return;
 
-  puzzle.revealed[idx] = true;
-  renderPuzzle();
-  save();
+  if (firstPick === idx) {
+    firstPick = null;
+    renderPuzzle();
+    return;
+  }
 
   if (firstPick === null) {
     firstPick = idx;
+    renderPuzzle();
     return;
   }
 
@@ -611,15 +595,14 @@ function onPuzzlePick(idx) {
   if (puzzle.deck[a] === puzzle.deck[b]) {
     puzzle.matched[a] = true;
     puzzle.matched[b] = true;
+
     coins += 15;
     bubble("Match! +15 coins ✅");
     renderHUD();
     save();
     renderPuzzle();
 
-    // Bonus when all matched
-    const allMatched = puzzle.matched.every(Boolean);
-    if (allMatched) {
+    if (puzzle.matched.every(Boolean)) {
       coins += 10;
       bubble("Cleared! +10 bonus 🏆");
       renderHUD();
@@ -627,24 +610,23 @@ function onPuzzlePick(idx) {
     }
   } else {
     lock = true;
+    renderPuzzle();
     setTimeout(() => {
-      puzzle.revealed[a] = false;
-      puzzle.revealed[b] = false;
       lock = false;
-      save();
       renderPuzzle();
-    }, 600);
+    }, 350);
   }
 }
 
 function shufflePuzzle() {
-  puzzle = { deck: buildPuzzleDeck(), revealed: Array(12).fill(false), matched: Array(12).fill(false) };
+  puzzle = { deck: buildPuzzleDeck(), matched: Array(12).fill(false) };
   firstPick = null;
   lock = false;
   save();
   renderPuzzle();
   bubble("Shuffled 🔀");
 }
+
 
 // ---------- buttons ----------
 function hookButtons() {
