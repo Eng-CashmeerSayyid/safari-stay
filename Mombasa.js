@@ -1,3 +1,8 @@
+// mombasa.js (FULL) — Safari Stay: Mombasa Hotel + Puzzle + Shop
+// ✅ Puzzle images path fixed to: images/tiles/{palm|shell|fish|coconut|wave|sun}.png
+// ✅ Safer renderPuzzle() (no inline onerror strings)
+// ✅ Keeps your existing hotel gameplay, tabs, upgrades, storage
+
 const ROOM_KEYS = ["A", "B", "C", "D"];
 
 // Base tuning (will be adjusted by upgrades)
@@ -93,7 +98,7 @@ const btnReset = $id("btnResetMombasa");
 const buyCleaner = $id("buyCleaner");
 const buyBellboy = $id("buyBellboy");
 
-// Puzzle hooks (safe)
+// Puzzle hooks
 const btnShuffle = $id("btnShuffle");
 const elPuzzleGrid = $id("puzzleGrid");
 
@@ -156,7 +161,7 @@ function roomTitle(idx) {
 
 function stateLabel(r) {
   if (r.state === "empty") return "Empty";
-  if (r.state === "occupied") return r.wantsSnack ? ("Occupied • Order 🛎️") : "Occupied";
+  if (r.state === "occupied") return r.wantsSnack ? "Occupied • Order 🛎️" : "Occupied";
   if (r.state === "dirty") return "Dirty 🧽";
   if (r.state === "cleaning") return "Cleaning…";
   return r.state;
@@ -203,11 +208,17 @@ function renderRooms() {
     // Clean compact card (NO long paragraphs)
     btn.innerHTML =
       '<div class="rRow">' +
-        '<div class="rLeft">' +
-          '<div class="rTitle">' + roomTitle(idx) + '</div>' +
-          '<div class="rState">' + stateLabel(r) + '</div>' +
-        '</div>' +
-        '<div class="rBadge">' + statusBadge(r) + '</div>' +
+      '<div class="rLeft">' +
+      '<div class="rTitle">' +
+      roomTitle(idx) +
+      "</div>" +
+      '<div class="rState">' +
+      stateLabel(r) +
+      "</div>" +
+      "</div>" +
+      '<div class="rBadge">' +
+      statusBadge(r) +
+      "</div>" +
       "</div>";
   });
 }
@@ -229,12 +240,19 @@ function renderRoomDetails() {
 
   if (r.state === "occupied") {
     const left = Math.max(0, r.stayEndsAt - now);
-    html += '<div class="detailLine">Checkout in: <strong>' + Math.ceil(left / 1000) + "s</strong></div>";
-    html += '<div class="detailLine">Snack: <strong>' + (r.wantsSnack ? (r.snack || "Ordered") : "None") + "</strong></div>";
+    html +=
+      '<div class="detailLine">Checkout in: <strong>' + Math.ceil(left / 1000) + "s</strong></div>";
+    html +=
+      '<div class="detailLine">Snack: <strong>' +
+      (r.wantsSnack ? r.snack || "Ordered" : "None") +
+      "</strong></div>";
   }
   if (r.state === "cleaning") {
     const left = Math.max(0, r.cleaningEndsAt - now);
-    html += '<div class="detailLine">Cleaning ends in: <strong>' + Math.ceil(left / 1000) + "s</strong></div>";
+    html +=
+      '<div class="detailLine">Cleaning ends in: <strong>' +
+      Math.ceil(left / 1000) +
+      "s</strong></div>";
   }
   if (r.state === "dirty") {
     html += '<div class="detailLine"><strong>Needs cleaning</strong> 🧽</div>';
@@ -496,12 +514,16 @@ function hookTabs() {
       panels.forEach((p) => p.classList.remove("active"));
       const panel = $id("tab-" + tab);
       if (panel) panel.classList.add("active");
+
+      // Nice: rerender puzzle when switching to it
+      if (tab === "puzzle") renderPuzzle();
     });
   });
 }
 
-// ---------- puzzle (safe, simple) ----------
+// ---------- puzzle ----------
 const PUZZLE_TILES = ["palm", "shell", "fish", "coconut", "wave", "sun"];
+const PUZZLE_IMG_BASE = "images/tiles/"; // ✅ FIXED
 
 function buildPuzzleDeck() {
   const deck = [];
@@ -509,6 +531,7 @@ function buildPuzzleDeck() {
   return shuffle(deck);
 }
 
+// NOTE: your game uses shuffle() here; we keep it exactly once
 function shuffle(arr) {
   const a = arr.slice();
   for (let i = a.length - 1; i > 0; i--) {
@@ -526,6 +549,14 @@ if (!puzzle || !Array.isArray(puzzle.deck) || puzzle.deck.length !== 12) {
 let firstPick = null;
 let lock = false;
 
+// Preload puzzle images to reduce blank flashes
+(function preloadPuzzle() {
+  PUZZLE_TILES.forEach((t) => {
+    const img = new Image();
+    img.src = `${PUZZLE_IMG_BASE}${t}.png`;
+  });
+})();
+
 function renderPuzzle() {
   if (!elPuzzleGrid) return;
   elPuzzleGrid.innerHTML = "";
@@ -537,10 +568,23 @@ function renderPuzzle() {
 
     const show = puzzle.revealed[idx] || puzzle.matched[idx];
 
-    // Try show image; if missing, show emoji fallback text
-    card.innerHTML = show
-      ? `<img src="assets/puzzle/${tile}.png" alt="${tile}" onerror="this.style.display='none'; this.parentElement.textContent='${tile.toUpperCase()}'" />`
-      : `<div class="pBack">?</div>`;
+    if (!show) {
+      const back = document.createElement("div");
+      back.className = "pBack";
+      back.textContent = "?";
+      card.appendChild(back);
+    } else {
+      const img = document.createElement("img");
+      img.src = `${PUZZLE_IMG_BASE}${tile}.png`; // ✅ FIXED PATH
+      img.alt = tile;
+
+      img.onerror = () => {
+        img.remove();
+        card.textContent = tile.toUpperCase();
+      };
+
+      card.appendChild(img);
+    }
 
     card.addEventListener("click", () => onPuzzlePick(idx));
     elPuzzleGrid.appendChild(card);
@@ -572,6 +616,15 @@ function onPuzzlePick(idx) {
     renderHUD();
     save();
     renderPuzzle();
+
+    // Bonus when all matched
+    const allMatched = puzzle.matched.every(Boolean);
+    if (allMatched) {
+      coins += 10;
+      bubble("Cleared! +10 bonus 🏆");
+      renderHUD();
+      save();
+    }
   } else {
     lock = true;
     setTimeout(() => {
@@ -629,3 +682,4 @@ function init() {
 }
 
 document.addEventListener("DOMContentLoaded", init);
+
