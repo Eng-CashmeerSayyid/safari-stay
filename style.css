@@ -397,3 +397,59 @@ Works with your JS that appends:
 
 /* ---------- landing page tweak ---------- */
 body.landing .tabs{ display:none; }
+/* ===== PUZZLE (Always show images) ===== */
+
+.puzzleGrid{
+  display:grid;
+  grid-template-columns: repeat(4, minmax(78px, 1fr));
+  gap:12px;
+  padding:14px 0 6px;
+}
+
+@media (max-width:520px){
+  .puzzleGrid{ grid-template-columns: repeat(3, minmax(76px, 1fr)); }
+}
+
+.pCard{
+  min-height:84px;
+  border-radius:18px;
+  border:1px solid rgba(255,255,255,.12);
+  background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.05));
+  box-shadow: 0 14px 28px rgba(0,0,0,.28);
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  position:relative;
+  overflow:hidden;
+  transition: transform .10s ease, border-color .2s ease, box-shadow .2s ease, opacity .2s ease;
+}
+
+.pCard:hover{
+  transform: translateY(-2px);
+  border-color: rgba(255,255,255,.18);
+  box-shadow: 0 18px 34px rgba(0,0,0,.34);
+}
+
+.pCard:active{ transform: translateY(0px) scale(.99); }
+
+.pCard img{
+  width:64px;
+  height:64px;
+  object-fit:contain;
+  filter: drop-shadow(0 8px 12px rgba(0,0,0,.35));
+}
+
+/* click selection glow */
+.pCard.selected{
+  border-color: rgba(99,102,241,.75);
+  box-shadow: 0 0 0 3px rgba(99,102,241,.18), 0 18px 34px rgba(0,0,0,.34);
+}
+
+/* matched tiles (locked) */
+.pCard.matched{
+  border-color: rgba(46,204,113,.55);
+  box-shadow: 0 0 0 3px rgba(46,204,113,.12), 0 18px 34px rgba(0,0,0,.34);
+  opacity: .75;
+  cursor: default;
+}
