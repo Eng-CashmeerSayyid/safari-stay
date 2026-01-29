@@ -1,713 +1,403 @@
-// mombasa.js (FULL UPDATED) — Safari Stay: Mombasa Hotel + Puzzle + Shop
-// ✅ Puzzle: 16 tiles (4x4) • MATCH 3 • always-visible images
-// ✅ Candy-crush style CRUSH animation + coin pop
-// ✅ Wrong match: SHAKE + vibration (where supported)
-// ✅ Puzzle images path: images/tiles/{palm|shell|fish|coconut|wave|sun}.png
-// NOTE: Add the CSS classes/animations I gave you for .crush/.shake/.coinPop
+/* =========================
+Safari Stay – mombasa.js (FULL)
+Match-3, 5x5, swap adjacent
+- Crush animation
+- Invalid swap shake + vibration
+- Coins + target + win popup
+Works with image tiles (paths below) or emoji fallback
+========================= */
 
-const ROOM_KEYS = ["A", "B", "C", "D"];
+(() => {
+  "use strict";
 
-// Base tuning (will be adjusted by upgrades)
-let GUEST_STAY_MS = 10000;
-let CLEAN_TIME_MS = 3000;
+  // ====== SETTINGS ======
+  const SIZE = 5;                 // 5x5
+  const TYPES = 6;                // number of tile types (repeat allowed)
+  const TARGET_COINS = 300;       // win target
+  const COINS_PER_TILE = 5;       // reward per crushed tile
+  const ANIM_MS = 220;            // base animation duration
+  const CASCADE_DELAY = 80;       // small delay between cascades
 
-const SPAWN_MIN_MS = 2000;
-const SPAWN_MAX_MS = 6000;
+  // ====== TILE ASSETS ======
+  // Put your images in: ./assets/tiles/
+  // Example names (change to match YOUR files):
+  // palm.png, shell.png, fish.png, coconut.png, wave.png, sun.png
+  const TILE_ASSETS = [
+    "assets/tiles/palm.png",
+    "assets/tiles/shell.png",
+    "assets/tiles/fish.png",
+    "assets/tiles/coconut.png",
+    "assets/tiles/wave.png",
+    "assets/tiles/sun.png",
+  ];
 
-const ORDER_PROB = 0.45;
-const ORDER_DELAY_MIN_MS = 1200;
-const ORDER_DELAY_MAX_MS = 4500;
-const ORDER_EXPIRE_MS = 12000;
+  // Emoji fallback (if images missing)
+  const TILE_EMOJI = ["🌴","🐚","🐟","🥥","🌊","☀️"];
 
-const ACTIVE_ORDERS_MIN = 1;
-const ACTIVE_ORDERS_MAX = 2;
+  // ====== DOM ======
+  const boardEl = document.getElementById("board");
+  const coinsEl = document.getElementById("coins");
+  const targetEl = document.getElementById("target");
+  const msgEl = document.getElementById("msg");
+  const resetBtn = document.getElementById("resetPuzzle");
 
-const KEY = {
-  coins: "coins",
-  queue: "mombasaQueue",
-  served: "mombasaServed",
-  rooms: "mombasaRooms_full_v1",
-  upgrades: "mombasaUpgrades_full_v1",
-  puzzle: "mombasaPuzzle_full_v2_match3_16",
-};
-
-// ---------- storage helpers ----------
-function getNum(k, fallback = 0) {
-  const v = Number(localStorage.getItem(k));
-  return Number.isFinite(v) ? v : fallback;
-}
-function setNum(k, v) {
-  localStorage.setItem(k, String(v));
-}
-function getJSON(k, fallback) {
-  try {
-    const raw = localStorage.getItem(k);
-    return raw ? JSON.parse(raw) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-function setJSON(k, v) {
-  localStorage.setItem(k, JSON.stringify(v));
-}
-
-// ---------- state ----------
-function defaultRooms() {
-  return ROOM_KEYS.map(() => ({
-    state: "empty", // empty | occupied | dirty | cleaning
-    stayEndsAt: 0,
-    wantsSnack: false,
-    snack: null,
-    orderCreatedAt: 0,
-    cleaningEndsAt: 0,
-    loveUntil: 0,
-  }));
-}
-
-let coins = getNum(KEY.coins, 0);
-let queue = getNum(KEY.queue, 0);
-let served = getNum(KEY.served, 0);
-
-let rooms = getJSON(KEY.rooms, null);
-if (!Array.isArray(rooms) || rooms.length !== ROOM_KEYS.length) rooms = defaultRooms();
-
-let upgrades = getJSON(KEY.upgrades, { cleaner: false, bellboy: false });
-if (!upgrades || typeof upgrades !== "object") upgrades = { cleaner: false, bellboy: false };
-
-let selectedRoomIndex = null;
-let spawnTimer = null;
-
-// ---------- DOM ----------
-const $id = (id) => document.getElementById(id);
-const $all = (sel) => Array.from(document.querySelectorAll(sel));
-
-const elCoins = $id("coins");
-const elQueue = $id("queue");
-const elServed = $id("served");
-const elHint = $id("hint");
-const elHotelGrid = $id("hotelGrid");
-const elRoomCard = $id("roomCard");
-
-const btnCheckIn = $id("btnCheckIn");
-const btnServeQueue = $id("btnServeQueue");
-const btnEmergencyClean = $id("btnEmergencyClean");
-
-const btnDeliverSnack = $id("btnDeliverSnack");
-const btnCheckout = $id("btnCheckout");
-const btnClean = $id("btnClean");
-
-const btnReset = $id("btnResetMombasa");
-const buyCleaner = $id("buyCleaner");
-const buyBellboy = $id("buyBellboy");
-
-// Puzzle hooks
-const btnShuffle = $id("btnShuffle");
-const elPuzzleGrid = $id("puzzleGrid");
-
-// Tabs
-const tabButtons = $all(".tab");
-const panels = $all(".panel");
-
-// ---------- UI helpers ----------
-function save() {
-  setNum(KEY.coins, coins);
-  setNum(KEY.queue, queue);
-  setNum(KEY.served, served);
-  setJSON(KEY.rooms, rooms);
-  setJSON(KEY.upgrades, upgrades);
-  setJSON(KEY.puzzle, puzzle);
-}
-
-function hint(msg) {
-  if (elHint) elHint.textContent = msg;
-}
-
-function bubble(msg) {
-  const b = document.createElement("div");
-  b.textContent = msg;
-  b.style.position = "fixed";
-  b.style.left = "50%";
-  b.style.bottom = "24px";
-  b.style.transform = "translateX(-50%)";
-  b.style.padding = "10px 14px";
-  b.style.borderRadius = "14px";
-  b.style.background = "rgba(0,0,0,0.78)";
-  b.style.color = "#fff";
-  b.style.fontSize = "14px";
-  b.style.zIndex = "9999";
-  b.style.opacity = "0";
-  b.style.transition = "opacity 200ms ease, transform 200ms ease";
-  document.body.appendChild(b);
-
-  requestAnimationFrame(() => {
-    b.style.opacity = "1";
-    b.style.transform = "translateX(-50%) translateY(-6px)";
-  });
-
-  setTimeout(() => {
-    b.style.opacity = "0";
-    b.style.transform = "translateX(-50%) translateY(6px)";
-    setTimeout(() => b.remove(), 250);
-  }, 1100);
-}
-
-function renderHUD() {
-  if (elCoins) elCoins.textContent = String(coins);
-  if (elQueue) elQueue.textContent = String(queue);
-  if (elServed) elServed.textContent = String(served);
-}
-
-function roomTitle(idx) {
-  return "Room " + ROOM_KEYS[idx];
-}
-
-function stateLabel(r) {
-  if (r.state === "empty") return "Empty";
-  if (r.state === "occupied") return r.wantsSnack ? "Occupied • Order 🛎️" : "Occupied";
-  if (r.state === "dirty") return "Dirty 🧽";
-  if (r.state === "cleaning") return "Cleaning…";
-  return r.state;
-}
-
-function statusBadge(r) {
-  if (r.state === "empty") return "✨";
-  if (r.state === "occupied") return r.wantsSnack ? "🛎️" : "😌";
-  if (r.state === "dirty") return "🧽";
-  if (r.state === "cleaning") return "🫧";
-  return "•";
-}
-
-function createRoomButtons() {
-  if (!elHotelGrid) return;
-  elHotelGrid.innerHTML = "";
-
-  ROOM_KEYS.forEach((k, idx) => {
-    const btn = document.createElement("button");
-    btn.className = "roomBtn state-empty";
-    btn.dataset.roomIndex = String(idx);
-
-    btn.addEventListener("click", () => {
-      selectedRoomIndex = idx;
-      renderAll();
-    });
-
-    elHotelGrid.appendChild(btn);
-  });
-}
-
-function renderRooms() {
-  if (!elHotelGrid) return;
-  const buttons = $all("#hotelGrid .roomBtn");
-
-  buttons.forEach((btn) => {
-    const idx = Number(btn.dataset.roomIndex);
-    const r = rooms[idx];
-
-    btn.classList.toggle("selected", idx === selectedRoomIndex);
-    btn.classList.remove("state-empty", "state-occupied", "state-dirty", "state-cleaning");
-    btn.classList.add("state-" + r.state);
-
-    btn.innerHTML =
-      '<div class="rRow">' +
-        '<div class="rLeft">' +
-          '<div class="rTitle">' + roomTitle(idx) + '</div>' +
-          '<div class="rState">' + stateLabel(r) + '</div>' +
-        '</div>' +
-        '<div class="rBadge">' + statusBadge(r) + '</div>' +
-      "</div>";
-  });
-}
-
-function renderRoomDetails() {
-  if (!elRoomCard) return;
-
-  if (selectedRoomIndex === null) {
-    elRoomCard.innerHTML = '<div class="muted">Select a room.</div>';
+  if (!boardEl) {
+    console.warn("Match-3: #board not found. Add the puzzle HTML container.");
     return;
   }
 
-  const r = rooms[selectedRoomIndex];
-  const now = Date.now();
+  targetEl.textContent = String(TARGET_COINS);
 
-  let html = "";
-  html += '<div class="detailTitle">' + roomTitle(selectedRoomIndex) + "</div>";
-  html += '<div class="muted">' + stateLabel(r) + "</div>";
+  // ====== STATE ======
+  let grid = [];         // 2D array of tile types (0..TYPES-1), -1 = empty
+  let selected = null;   // {r,c}
+  let locked = false;    // prevents input during animations
+  let coins = 0;
 
-  if (r.state === "occupied") {
-    const left = Math.max(0, r.stayEndsAt - now);
-    html += '<div class="detailLine">Checkout in: <strong>' + Math.ceil(left / 1000) + "s</strong></div>";
-    html += '<div class="detailLine">Snack: <strong>' + (r.wantsSnack ? (r.snack || "Ordered") : "None") + "</strong></div>";
+  // ====== HELPERS ======
+  const sleep = (ms) => new Promise(res => setTimeout(res, ms));
+
+  const inBounds = (r, c) => r >= 0 && r < SIZE && c >= 0 && c < SIZE;
+
+  const neighbors = (a, b) =>
+    (Math.abs(a.r - b.r) + Math.abs(a.c - b.c)) === 1;
+
+  function vibrate(ms = 60) {
+    if (navigator.vibrate) navigator.vibrate(ms);
   }
-  if (r.state === "cleaning") {
-    const left = Math.max(0, r.cleaningEndsAt - now);
-    html += '<div class="detailLine">Cleaning ends in: <strong>' + Math.ceil(left / 1000) + "s</strong></div>";
-  }
-  if (r.state === "dirty") {
-    html += '<div class="detailLine"><strong>Needs cleaning</strong> 🧽</div>';
+
+  function setMsg(text) {
+    if (!msgEl) return;
+    msgEl.textContent = text || "";
   }
 
-  elRoomCard.innerHTML = html;
-}
-
-function setButtonStates() {
-  const hasSel = selectedRoomIndex !== null;
-
-  const disableAll = () => {
-    [btnCheckIn, btnServeQueue, btnEmergencyClean, btnDeliverSnack, btnCheckout, btnClean].forEach((b) => {
-      if (b) b.disabled = true;
-    });
-  };
-
-  if (!hasSel) return disableAll();
-
-  const r = rooms[selectedRoomIndex];
-
-  if (btnCheckIn) btnCheckIn.disabled = !(r.state === "empty" && queue > 0);
-  if (btnServeQueue) btnServeQueue.disabled = !(r.state === "empty" && queue > 0);
-
-  if (btnDeliverSnack) btnDeliverSnack.disabled = !(r.state === "occupied" && r.wantsSnack);
-  if (btnCheckout) btnCheckout.disabled = !(r.state === "occupied" && Date.now() >= r.stayEndsAt);
-
-  if (btnClean) btnClean.disabled = !(r.state === "dirty");
-  if (btnEmergencyClean) btnEmergencyClean.disabled = !(r.state === "dirty");
-}
-
-function renderAll() {
-  renderHUD();
-  renderRooms();
-  renderRoomDetails();
-  setButtonStates();
-}
-
-// ---------- gameplay ----------
-function rand(min, max) {
-  return Math.floor(min + Math.random() * (max - min + 1));
-}
-
-function randomSnack() {
-  const snacks = ["Soda", "Chips", "Juice", "Water", "Cookies", "Burger"];
-  return snacks[Math.floor(Math.random() * snacks.length)];
-}
-
-function activeOrdersCount() {
-  return rooms.reduce((n, r) => n + (r.state === "occupied" && r.wantsSnack ? 1 : 0), 0);
-}
-
-function scheduleSnackOrder(roomIndex) {
-  const stayStamp = rooms[roomIndex].stayEndsAt;
-  const delay = rand(ORDER_DELAY_MIN_MS, ORDER_DELAY_MAX_MS);
-  const snack = randomSnack();
-
-  setTimeout(() => {
-    const rr = rooms[roomIndex];
-    if (rr.state !== "occupied") return;
-    if (rr.stayEndsAt !== stayStamp) return;
-
-    const maxActive = upgrades.bellboy ? ACTIVE_ORDERS_MAX : ACTIVE_ORDERS_MIN;
-    if (activeOrdersCount() >= maxActive) return;
-
-    rr.wantsSnack = true;
-    rr.snack = snack;
-    rr.orderCreatedAt = Date.now();
-
-    hint(roomTitle(roomIndex) + " ordered snacks 🛎️");
-    bubble("Order: " + snack + " 🛎️");
-    save();
-    renderAll();
-  }, delay);
-}
-
-function checkInSelected() {
-  if (selectedRoomIndex === null) return bubble("Select a room first.");
-
-  const r = rooms[selectedRoomIndex];
-  if (!(r.state === "empty" && queue > 0)) return bubble("Need empty room + queue > 0.");
-
-  queue -= 1;
-
-  r.state = "occupied";
-  r.stayEndsAt = Date.now() + GUEST_STAY_MS;
-  r.wantsSnack = false;
-  r.snack = null;
-  r.orderCreatedAt = 0;
-  r.loveUntil = 0;
-
-  if (Math.random() < ORDER_PROB) scheduleSnackOrder(selectedRoomIndex);
-
-  hint("Checked in to " + roomTitle(selectedRoomIndex) + " ✅");
-  bubble("Checked in ✅");
-  save();
-  renderAll();
-}
-
-function deliverSnackSelected() {
-  if (selectedRoomIndex === null) return bubble("Select a room first.");
-
-  const r = rooms[selectedRoomIndex];
-  if (!(r.state === "occupied" && r.wantsSnack)) return bubble("No active snack order.");
-
-  r.wantsSnack = false;
-  r.orderCreatedAt = 0;
-  r.snack = null;
-
-  coins += upgrades.bellboy ? 30 : 20;
-  r.loveUntil = Date.now() + 1200;
-
-  hint("Snack delivered ✅");
-  bubble("Delivered ✅");
-  save();
-  renderAll();
-}
-
-function checkoutSelected() {
-  if (selectedRoomIndex === null) return bubble("Select a room first.");
-
-  const r = rooms[selectedRoomIndex];
-  if (r.state !== "occupied") return bubble("Room is not occupied.");
-  if (Date.now() < r.stayEndsAt) return bubble("Not ready to checkout.");
-
-  r.state = "dirty";
-  r.stayEndsAt = 0;
-  r.wantsSnack = false;
-  r.snack = null;
-  r.orderCreatedAt = 0;
-  r.loveUntil = 0;
-
-  served += 1;
-  coins += 10;
-
-  hint("Checked out 🚪 (now dirty)");
-  bubble("Checkout 🚪");
-  save();
-  renderAll();
-}
-
-function startCleaningSelected() {
-  if (selectedRoomIndex === null) return bubble("Select a room first.");
-
-  const r = rooms[selectedRoomIndex];
-  if (r.state !== "dirty") return bubble("Room is not dirty.");
-
-  r.state = "cleaning";
-  r.cleaningEndsAt = Date.now() + CLEAN_TIME_MS;
-
-  hint("Cleaning… 🧽");
-  bubble("Cleaning… 🧽");
-  save();
-  renderAll();
-}
-
-// ---------- queue spawn ----------
-function scheduleSpawn() {
-  const delay = rand(SPAWN_MIN_MS, SPAWN_MAX_MS);
-  clearTimeout(spawnTimer);
-  spawnTimer = setTimeout(() => {
-    queue += 1;
-    save();
-    renderAll();
-    scheduleSpawn();
-  }, delay);
-}
-
-// ---------- tick loop ----------
-function tick() {
-  const now = Date.now();
-
-  rooms.forEach((r, idx) => {
-    if (r.state === "cleaning" && now >= r.cleaningEndsAt) {
-      r.state = "empty";
-      r.cleaningEndsAt = 0;
-      r.stayEndsAt = 0;
-      r.wantsSnack = false;
-      r.snack = null;
-      r.orderCreatedAt = 0;
-      r.loveUntil = 0;
-      hint(roomTitle(idx) + " is clean ✨");
-      save();
+  function addCoins(tileCount) {
+    coins += tileCount * COINS_PER_TILE;
+    coinsEl.textContent = String(coins);
+    if (coins >= TARGET_COINS) {
+      showWin();
     }
-  });
+  }
 
-  rooms.forEach((r, idx) => {
-    if (r.state === "occupied" && r.wantsSnack && r.orderCreatedAt) {
-      if (now - r.orderCreatedAt >= ORDER_EXPIRE_MS) {
-        r.wantsSnack = false;
-        r.snack = null;
-        r.orderCreatedAt = 0;
-        hint("Order expired in " + roomTitle(idx) + " 😬");
-        save();
+  function showWin() {
+    // simple win overlay
+    const overlay = document.createElement("div");
+    overlay.className = "winOverlay";
+    overlay.innerHTML = `
+      <div class="winCard">
+        <div class="winTitle">Level Complete! 🎉</div>
+        <div class="winText">You reached <b>${coins}</b> coins.</div>
+        <button class="btn" id="winClose">Continue</button>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    document.getElementById("winClose").onclick = () => overlay.remove();
+  }
+
+  function randomType() {
+    return Math.floor(Math.random() * TYPES);
+  }
+
+  // Create a type that does not immediately create a match at (r,c)
+  function safeRandomType(r, c) {
+    // Try a few times; TYPES=6 is enough to avoid infinite loops
+    for (let tries = 0; tries < 20; tries++) {
+      const t = randomType();
+
+      // Check horizontal potential match
+      const left1 = c - 1 >= 0 ? grid[r][c - 1] : null;
+      const left2 = c - 2 >= 0 ? grid[r][c - 2] : null;
+      if (left1 === t && left2 === t) continue;
+
+      // Check vertical potential match
+      const up1 = r - 1 >= 0 ? grid[r - 1][c] : null;
+      const up2 = r - 2 >= 0 ? grid[r - 2][c] : null;
+      if (up1 === t && up2 === t) continue;
+
+      return t;
+    }
+    return randomType();
+  }
+
+  // ====== RENDER ======
+  function buildBoardDOM() {
+    boardEl.style.setProperty("--size", SIZE);
+    boardEl.innerHTML = "";
+
+    for (let r = 0; r < SIZE; r++) {
+      for (let c = 0; c < SIZE; c++) {
+        const cell = document.createElement("button");
+        cell.className = "tile";
+        cell.type = "button";
+        cell.dataset.r = String(r);
+        cell.dataset.c = String(c);
+        cell.setAttribute("aria-label", `tile ${r},${c}`);
+        boardEl.appendChild(cell);
       }
     }
-  });
 
-  renderAll();
-  requestAnimationFrame(tick);
-}
-
-// ---------- upgrades ----------
-function applyUpgradesToTuning() {
-  CLEAN_TIME_MS = upgrades.cleaner ? 2200 : 3000;
-}
-applyUpgradesToTuning();
-
-function buyUpgrade(name) {
-  if (name === "cleaner") {
-    if (upgrades.cleaner) return bubble("Cleaner already purchased.");
-    if (coins < 120) return bubble("Not enough coins.");
-    coins -= 120;
-    upgrades.cleaner = true;
-    applyUpgradesToTuning();
-    bubble("Cleaner purchased ✅");
+    boardEl.addEventListener("click", onBoardClick);
   }
 
-  if (name === "bellboy") {
-    if (upgrades.bellboy) return bubble("Bellboy already purchased.");
-    if (coins < 160) return bubble("Not enough coins.");
-    coins -= 160;
-    upgrades.bellboy = true;
-    bubble("Bellboy purchased ✅");
-  }
+  function paint() {
+    const tiles = boardEl.querySelectorAll(".tile");
+    tiles.forEach((el) => {
+      const r = Number(el.dataset.r);
+      const c = Number(el.dataset.c);
+      const t = grid[r][c];
 
-  save();
-  renderAll();
-}
+      el.classList.toggle("selected", selected && selected.r === r && selected.c === c);
 
-// ---------- reset ----------
-function resetMombasa() {
-  if (!confirm("Reset Mombasa progress?")) return;
+      // Empty slot
+      if (t === -1) {
+        el.classList.add("empty");
+        el.style.backgroundImage = "";
+        el.textContent = "";
+        return;
+      }
 
-  coins = 0;
-  queue = 0;
-  served = 0;
-  rooms = defaultRooms();
-  upgrades = { cleaner: false, bellboy: false };
-  selectedRoomIndex = null;
+      el.classList.remove("empty");
 
-  // also reset puzzle
-  puzzle = { deck: buildPuzzleDeck(), matched: Array(16).fill(false) };
-  picks = [];
-  pLock = false;
+      // Use image if available
+      const imgPath = TILE_ASSETS[t];
+      el.style.backgroundImage = `url("${imgPath}")`;
 
-  applyUpgradesToTuning();
-  save();
-  renderAll();
-  renderPuzzle();
-  hint("Welcome to Mombasa 🌴");
-  bubble("Reset done ✅");
-}
-
-// ---------- tabs ----------
-function hookTabs() {
-  tabButtons.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      tabButtons.forEach((b) => b.classList.remove("active"));
-      btn.classList.add("active");
-
-      const tab = btn.dataset.tab; // hotel | puzzle | shop
-      panels.forEach((p) => p.classList.remove("active"));
-      const panel = $id("tab-" + tab);
-      if (panel) panel.classList.add("active");
-
-      if (tab === "puzzle") renderPuzzle();
+      // Also keep an emoji text fallback (in case image fails)
+      el.textContent = TILE_EMOJI[t];
+      el.classList.add("hasEmoji");
     });
-  });
-}
-
-// ---------- puzzle (MATCH 3 • 16 tiles • crush + shake + vibration) ----------
-const PUZZLE_TILES = ["palm", "shell", "fish", "coconut", "wave"];
-const WILD_TILE = "sun"; // wildcard to make 16 tiles work nicely
-const PUZZLE_IMG_BASE = "images/tiles/";
-
-function shuffle(arr) {
-  const a = arr.slice();
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
   }
-  return a;
-}
 
-function buildPuzzleDeck() {
-  const deck = [];
-  PUZZLE_TILES.forEach((t) => deck.push(t, t, t)); // 5*3=15
-  deck.push(WILD_TILE); // +1 = 16
-  return shuffle(deck);
-}
+  // ====== MATCH DETECTION ======
+  function findMatches() {
+    const toCrush = new Set();
 
-let puzzle = getJSON(KEY.puzzle, null);
-if (!puzzle || !Array.isArray(puzzle.deck) || puzzle.deck.length !== 16) {
-  puzzle = { deck: buildPuzzleDeck(), matched: Array(16).fill(false) };
-}
+    // Horizontal matches
+    for (let r = 0; r < SIZE; r++) {
+      let runStart = 0;
+      while (runStart < SIZE) {
+        const t = grid[r][runStart];
+        if (t === -1) { runStart++; continue; }
+        let runEnd = runStart + 1;
+        while (runEnd < SIZE && grid[r][runEnd] === t) runEnd++;
+        const runLen = runEnd - runStart;
+        if (runLen >= 3) {
+          for (let c = runStart; c < runEnd; c++) {
+            toCrush.add(`${r},${c}`);
+          }
+        }
+        runStart = runEnd;
+      }
+    }
 
-let picks = [];
-let pLock = false;
+    // Vertical matches
+    for (let c = 0; c < SIZE; c++) {
+      let runStart = 0;
+      while (runStart < SIZE) {
+        const t = grid[runStart][c];
+        if (t === -1) { runStart++; continue; }
+        let runEnd = runStart + 1;
+        while (runEnd < SIZE && grid[runEnd][c] === t) runEnd++;
+        const runLen = runEnd - runStart;
+        if (runLen >= 3) {
+          for (let r = runStart; r < runEnd; r++) {
+            toCrush.add(`${r},${c}`);
+          }
+        }
+        runStart = runEnd;
+      }
+    }
 
-function vibrate(pattern) {
-  try {
-    if ("vibrate" in navigator) navigator.vibrate(pattern);
-  } catch {}
-}
+    return [...toCrush].map(s => {
+      const [r, c] = s.split(",").map(Number);
+      return { r, c };
+    });
+  }
 
-function coinPopOnCard(card, text) {
-  const pop = document.createElement("div");
-  pop.className = "coinPop";
-  pop.textContent = text;
-  card.appendChild(pop);
-  setTimeout(() => pop.remove(), 650);
-}
+  function anyMatchExists() {
+    return findMatches().length > 0;
+  }
 
-// preload images
-(function preloadPuzzle() {
-  [...PUZZLE_TILES, WILD_TILE].forEach((t) => {
-    const img = new Image();
-    img.src = `${PUZZLE_IMG_BASE}${t}.png`;
-  });
+  // ====== SWAP ======
+  function swap(a, b) {
+    const tmp = grid[a.r][a.c];
+    grid[a.r][a.c] = grid[b.r][b.c];
+    grid[b.r][b.c] = tmp;
+  }
+
+  function getTileEl(r, c) {
+    return boardEl.querySelector(`.tile[data-r="${r}"][data-c="${c}"]`);
+  }
+
+  async function animateSwap(a, b) {
+    const elA = getTileEl(a.r, a.c);
+    const elB = getTileEl(b.r, b.c);
+    if (!elA || !elB) return;
+
+    elA.classList.add("swap");
+    elB.classList.add("swap");
+    await sleep(ANIM_MS);
+    elA.classList.remove("swap");
+    elB.classList.remove("swap");
+  }
+
+  async function invalidSwapFeedback(a, b) {
+    const elA = getTileEl(a.r, a.c);
+    const elB = getTileEl(b.r, b.c);
+    [elA, elB].forEach(el => el && el.classList.add("shake"));
+    vibrate(70);
+    await sleep(ANIM_MS);
+    [elA, elB].forEach(el => el && el.classList.remove("shake"));
+  }
+
+  // ====== CRUSH + GRAVITY + REFILL ======
+  async function crush(matches) {
+    // animate crush
+    matches.forEach(({ r, c }) => {
+      const el = getTileEl(r, c);
+      if (el) el.classList.add("crush");
+    });
+
+    vibrate(35);
+    await sleep(ANIM_MS);
+
+    // remove
+    matches.forEach(({ r, c }) => {
+      grid[r][c] = -1;
+      const el = getTileEl(r, c);
+      if (el) el.classList.remove("crush");
+    });
+
+    addCoins(matches.length);
+  }
+
+  function applyGravity() {
+    for (let c = 0; c < SIZE; c++) {
+      let writeRow = SIZE - 1;
+      for (let r = SIZE - 1; r >= 0; r--) {
+        if (grid[r][c] !== -1) {
+          grid[writeRow][c] = grid[r][c];
+          if (writeRow !== r) grid[r][c] = -1;
+          writeRow--;
+        }
+      }
+      // above writeRow becomes empty already
+      for (let r = writeRow; r >= 0; r--) grid[r][c] = -1;
+    }
+  }
+
+  function refill() {
+    for (let r = 0; r < SIZE; r++) {
+      for (let c = 0; c < SIZE; c++) {
+        if (grid[r][c] === -1) {
+          // avoid immediate matches when refilling
+          grid[r][c] = safeRandomType(r, c);
+        }
+      }
+    }
+  }
+
+  async function resolveBoard() {
+    // handle cascades until no matches exist
+    while (true) {
+      const matches = findMatches();
+      if (matches.length === 0) break;
+
+      await crush(matches);
+      applyGravity();
+      refill();
+      paint();
+
+      await sleep(CASCADE_DELAY);
+    }
+  }
+
+  // ====== INPUT ======
+  async function onBoardClick(e) {
+    if (locked) return;
+
+    const tileBtn = e.target.closest(".tile");
+    if (!tileBtn) return;
+
+    const r = Number(tileBtn.dataset.r);
+    const c = Number(tileBtn.dataset.c);
+
+    // select first
+    if (!selected) {
+      selected = { r, c };
+      paint();
+      return;
+    }
+
+    const prev = selected;
+    selected = null; // clear selection by default
+
+    // same tile = just deselect
+    if (prev.r === r && prev.c === c) {
+      paint();
+      return;
+    }
+
+    // not neighbors -> select new
+    if (!neighbors(prev, { r, c })) {
+      selected = { r, c };
+      paint();
+      return;
+    }
+
+    // attempt swap
+    locked = true;
+    setMsg("");
+
+    await animateSwap(prev, { r, c });
+    swap(prev, { r, c });
+    paint();
+
+    // if swap creates match, resolve
+    if (anyMatchExists()) {
+      await resolveBoard();
+      locked = false;
+      paint();
+      return;
+    }
+
+    // invalid: swap back + shake/vibrate
+    await invalidSwapFeedback(prev, { r, c });
+    await animateSwap(prev, { r, c });
+    swap(prev, { r, c });
+    paint();
+
+    locked = false;
+  }
+
+  // ====== INIT / RESET ======
+  function initGrid() {
+    grid = Array.from({ length: SIZE }, () => Array(SIZE).fill(-1));
+    coins = 0;
+    coinsEl.textContent = "0";
+    setMsg("");
+
+    // Fill without initial matches
+    for (let r = 0; r < SIZE; r++) {
+      for (let c = 0; c < SIZE; c++) {
+        grid[r][c] = safeRandomType(r, c);
+      }
+    }
+  }
+
+  async function reset() {
+    locked = true;
+    selected = null;
+    initGrid();
+    paint();
+    // Just in case: remove any accidental match
+    await resolveBoard();
+    locked = false;
+  }
+
+  // ====== START ======
+  buildBoardDOM();
+  resetBtn && (resetBtn.onclick = reset);
+  reset();
+
 })();
-
-function renderPuzzle() {
-  if (!elPuzzleGrid) return;
-  elPuzzleGrid.innerHTML = "";
-
-  puzzle.deck.forEach((tile, idx) => {
-    const card = document.createElement("button");
-    card.className = "pCard";
-    card.type = "button";
-    card.dataset.idx = String(idx);
-
-    // disable matched + during lock
-    card.disabled = pLock || puzzle.matched[idx];
-
-    // classes for CSS effects
-    if (puzzle.matched[idx]) card.classList.add("matched");
-    if (picks.includes(idx)) card.classList.add("selected");
-
-    const img = document.createElement("img");
-    img.src = `${PUZZLE_IMG_BASE}${tile}.png`;
-    img.alt = tile;
-    img.onerror = () => {
-      img.remove();
-      card.textContent = tile.toUpperCase();
-    };
-
-    card.appendChild(img);
-    card.addEventListener("click", () => onPuzzlePick(idx));
-    elPuzzleGrid.appendChild(card);
-  });
-}
-
-function onPuzzlePick(idx) {
-  if (pLock) return;
-  if (puzzle.matched[idx]) return;
-  if (picks.includes(idx)) return;
-
-  picks.push(idx);
-  renderPuzzle();
-
-  if (picks.length < 3) return;
-
-  const pickedTiles = picks.map((i) => puzzle.deck[i]);
-  const nonWild = pickedTiles.filter((t) => t !== WILD_TILE);
-
-  const isMatch = nonWild.length === 0 || nonWild.every((t) => t === nonWild[0]);
-
-  const pickedCards = picks
-    .map((i) => elPuzzleGrid.querySelector(`.pCard[data-idx="${i}"]`))
-    .filter(Boolean);
-
-  if (isMatch) {
-    pLock = true;
-
-    // mark matched
-    picks.forEach((i) => (puzzle.matched[i] = true));
-
-    const gain = 30;
-    coins += gain;
-    renderHUD();
-    save();
-
-    pickedCards.forEach((card) => {
-      coinPopOnCard(card, `+${gain}`);
-      card.classList.add("crush");
-    });
-
-    // light happy vibration
-    vibrate(40);
-
-    setTimeout(() => {
-      picks = [];
-      pLock = false;
-      renderPuzzle();
-
-      if (puzzle.matched.every(Boolean)) {
-        coins += 20;
-        bubble("Puzzle Cleared! +20 bonus 🏆");
-        renderHUD();
-        save();
-      } else {
-        bubble("Crush! +30 coins 🍬💥");
-      }
-    }, 340);
-  } else {
-    pLock = true;
-
-    pickedCards.forEach((card) => {
-      card.classList.remove("shake");
-      void card.offsetWidth; // reflow to replay animation
-      card.classList.add("shake");
-    });
-
-    // stronger buzz-buzz
-    vibrate([60, 40, 60]);
-
-    setTimeout(() => {
-      picks = [];
-      pLock = false;
-      renderPuzzle();
-    }, 520);
-  }
-}
-
-function shufflePuzzle() {
-  puzzle = { deck: buildPuzzleDeck(), matched: Array(16).fill(false) };
-  picks = [];
-  pLock = false;
-  save();
-  renderPuzzle();
-  bubble("Shuffled 🔀");
-}
-
-// ---------- buttons ----------
-function hookButtons() {
-  if (btnCheckIn) btnCheckIn.addEventListener("click", checkInSelected);
-  if (btnServeQueue) btnServeQueue.addEventListener("click", checkInSelected);
-
-  if (btnDeliverSnack) btnDeliverSnack.addEventListener("click", deliverSnackSelected);
-  if (btnCheckout) btnCheckout.addEventListener("click", checkoutSelected);
-
-  if (btnClean) btnClean.addEventListener("click", startCleaningSelected);
-  if (btnEmergencyClean) btnEmergencyClean.addEventListener("click", startCleaningSelected);
-
-  if (btnReset) btnReset.addEventListener("click", resetMombasa);
-
-  if (buyCleaner) buyCleaner.addEventListener("click", () => buyUpgrade("cleaner"));
-  if (buyBellboy) buyBellboy.addEventListener("click", () => buyUpgrade("bellboy"));
-
-  if (btnShuffle) btnShuffle.addEventListener("click", shufflePuzzle);
-}
-
-// ---------- init ----------
-function init() {
-  hookTabs();
-  createRoomButtons();
-  hookButtons();
-
-  renderAll();
-  renderPuzzle();
-
-  scheduleSpawn();
-  requestAnimationFrame(tick);
-
-  hint("Tap a room to select it. Then use the buttons below.");
-  bubble("Mombasa loaded 🏝️");
-}
-
-document.addEventListener("DOMContentLoaded", init);
