@@ -87,26 +87,42 @@ Safari Stay – Mombasa Hotel
       </div>
     </section>
 
-    <!-- PUZZLE TAB -->
-    <section class="panel" id="tab-puzzle">
-      <section class="card">
-        <div class="rowBetween">
-          <div>
-            <h2>Mombasa Puzzle</h2>
-            <p class="muted">Match 2 of the same tile to earn coins.</p>
-          </div>
-          <button class="btn" id="btnShuffle">🔀 Shuffle</button>
-        </div>
+   <!-- PUZZLE TAB -->
+<section class="panel" id="tab-puzzle">
+  <section class="card puzzlePanel">
 
-        <div class="puzzleGrid" id="puzzleGrid"></div>
+    <div class="puzzleTop">
+      <div>
+        <h2>Mombasa Match-3</h2>
+        <p class="muted">Match 3 or more tiles to earn coins.</p>
+      </div>
 
-        <div class="tip">
-          <strong>Images:</strong> Put them in <code>assets/puzzle/</code>:
-          <code>palm.png</code>, <code>shell.png</code>, <code>fish.png</code>,
-          <code>coconut.png</code>, <code>wave.png</code>, <code>sun.png</code>
-        </div>
-      </section>
-    </section>
+      <div class="puzzleStats">
+        <div class="stat">🪙 Coins: <span id="coins">0</span></div>
+        <div class="stat">🎯 Target: <span id="target">300</span></div>
+      </div>
+    </div>
+
+    <!-- 🔥 THIS is the game board -->
+    <div id="board" class="board"></div>
+
+    <div class="puzzleBottom">
+      <button class="btn" id="resetPuzzle">🔄 Reset</button>
+      <div id="msg" class="msg"></div>
+    </div>
+
+    <div class="tip">
+      <strong>Images folder:</strong>
+      <code>assets/tiles/</code>
+      <br>
+      palm.png, shell.png, fish.png, coconut.png, wave.png, sun.png
+    </div>
+
+  </section>
+</section>
+
+<!-- ✅ Load the puzzle logic -->
+<script src="mombasa.js"></script>
 
     <!-- SHOP TAB -->
     <section class="panel" id="tab-shop">
