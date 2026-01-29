@@ -23,13 +23,14 @@ Works with image tiles (paths below) or emoji fallback
   // Example names (change to match YOUR files):
   // palm.png, shell.png, fish.png, coconut.png, wave.png, sun.png
   const TILE_ASSETS = [
-    "assets/tiles/palm.png",
-    "assets/tiles/shell.png",
-    "assets/tiles/fish.png",
-    "assets/tiles/coconut.png",
-    "assets/tiles/wave.png",
-    "assets/tiles/sun.png",
-  ];
+  "images/tiles/palm.png",
+  "images/tiles/shell.png",
+  "images/tiles/fish.png",
+  "images/tiles/coconut.png",
+  "images/tiles/wave.png",
+  "images/tiles/sun.png",
+];
+
 
   // Emoji fallback (if images missing)
   const TILE_EMOJI = ["🌴","🐚","🐟","🥥","🌊","☀️"];
