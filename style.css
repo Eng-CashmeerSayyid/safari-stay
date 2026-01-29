@@ -1,9 +1,10 @@
 /* =========================
-Safari Stay – style.css (IMPROVED)
-- Keeps your look
-- Fixes puzzle tile visuals for image <img> approach (your JS)
-- Adds nicer flip feel + matched glow
-- Removes old assets/puzzle background-image rules (since you use images/tiles/)
+Safari Stay – style.css (UPDATED - FINAL)
+- Keeps your UI look
+- Tabs/panels work
+- Hotel UI remains
+- MATCH-3 Puzzle (5x5 / #board / .tile) supported
+- Removes old Match-2 puzzleGrid/pCard duplicates
 Works for: index.html + Mombasa.html
 ========================= */
 
@@ -14,9 +15,10 @@ body{
   margin:0;
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
   color:#eef2ff;
-  background: radial-gradient(1200px 700px at 30% -20%, rgba(99,102,241,.22), transparent 55%),
-              radial-gradient(900px 600px at 85% 10%, rgba(16,185,129,.18), transparent 55%),
-              linear-gradient(180deg, #0b1220 0%, #070b14 100%);
+  background:
+    radial-gradient(1200px 700px at 30% -20%, rgba(99,102,241,.22), transparent 55%),
+    radial-gradient(900px 600px at 85% 10%, rgba(16,185,129,.18), transparent 55%),
+    linear-gradient(180deg, #0b1220 0%, #070b14 100%);
 }
 
 /* links */
@@ -90,7 +92,7 @@ a{ color:inherit; text-decoration:none; }
   border-radius:14px;
   font-weight:800;
   cursor:pointer;
-  transition: transform .08s ease, background .2s ease, border-color .2s ease, opacity .2s ease;
+  transition: transform .08s ease, background .2s ease, border-color .2s ease, opacity .2s ease, filter .2s ease;
   display:inline-flex;
   align-items:center;
   justify-content:center;
@@ -135,7 +137,7 @@ a{ color:inherit; text-decoration:none; }
   border-radius:999px;
   cursor:pointer;
   font-weight:900;
-  transition: background .2s ease, transform .08s ease;
+  transition: background .2s ease, transform .08s ease, border-color .2s ease;
 }
 .tab:hover{ background: rgba(255,255,255,.10); }
 .tab:active{ transform: translateY(1px); }
@@ -212,7 +214,6 @@ a{ color:inherit; text-decoration:none; }
   border-radius:999px;
   opacity:.25;
 }
-
 .roomBtn.state-empty::after{ background: rgba(16,185,129,.55); }
 .roomBtn.state-occupied::after{ background: rgba(99,102,241,.60); }
 .roomBtn.state-dirty::after{ background: rgba(245,158,11,.65); }
@@ -258,12 +259,13 @@ code{
   border:1px solid rgba(255,255,255,.10);
 }
 
+/* ---------- generic stats blocks (if you have them elsewhere) ---------- */
 .stats{
   display:grid;
   grid-template-columns: 1fr 1fr;
   gap:12px;
 }
-.stat{
+.statBox{
   padding:12px;
   border-radius:16px;
   background: rgba(255,255,255,.05);
@@ -296,202 +298,178 @@ code{
 .shopTitle{ font-weight:950; }
 .price{ color: rgba(238,242,255,.78); }
 
-/* =========================
-PUZZLE — IMPROVED
-Works with your JS that appends:
-- <button class="pCard"><div class="pBack">?</div></button>  (hidden)
-- <button class="pCard"><img ...></button>                  (revealed)
-========================= */
+/* ---------- landing page tweak ---------- */
+body.landing .tabs{ display:none; }
 
-.puzzleGrid{
-  display:grid;
-  grid-template-columns: repeat(4, minmax(78px, 1fr));
-  gap:12px;
-  padding:14px 0 6px;
-  min-height:260px;
-}
-@media (max-width:520px){
-  .puzzleGrid{ grid-template-columns: repeat(3, minmax(76px, 1fr)); }
+/* =========================================================
+MATCH-3 PUZZLE (FINAL)
+Uses:
+- <div id="board" class="board"></div>
+- Tiles are <button class="tile" data-r data-c>
+========================================================= */
+
+.puzzlePanel{
+  margin: 6px auto 0;
+  max-width: 560px;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(0,0,0,.18);
+  border: 1px solid rgba(255,255,255,.10);
+  backdrop-filter: blur(8px);
 }
 
-/* Tile button */
-.pCard{
-  min-height:84px;
-  border-radius:18px;
-  border:1px solid rgba(255,255,255,.12);
-  background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.05));
-  color:#eef2ff;
-  font-weight:950;
-  font-size:18px;
-  cursor:pointer;
+.puzzleTop{
   display:flex;
-  align-items:center;
-  justify-content:center;
-  position:relative;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom: 12px;
+}
+
+.puzzleTop h2{
+  margin:0;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.puzzleStats{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+
+.puzzleStats .stat{
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.10);
+  border: 1px solid rgba(255,255,255,.08);
+}
+
+.board{
+  --size: 5;
+  display:grid;
+  grid-template-columns: repeat(var(--size), 1fr);
+  gap: 8px;
+  padding: 10px;
+  border-radius: 16px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.08);
+}
+
+/* Tile */
+.tile{
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.12);
+  background-color: rgba(0,0,0,.18);
+
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 78% 78%;
+
+  cursor: pointer;
+  position: relative;
   overflow:hidden;
   transform: translateZ(0);
-  transition: transform .10s ease, background .2s ease, border-color .2s ease, box-shadow .2s ease, opacity .2s ease;
-  box-shadow: 0 14px 28px rgba(0,0,0,.28);
+  transition: transform .15s ease, filter .15s ease, box-shadow .15s ease, border-color .2s ease, opacity .2s ease;
 }
 
 /* subtle shine */
-.pCard::after{
+.tile::after{
   content:"";
   position:absolute;
   inset:0;
-  background: radial-gradient(120px 80px at 20% 25%, rgba(255,255,255,.14), transparent 60%);
+  background: radial-gradient(120px 80px at 20% 25%, rgba(255,255,255,.12), transparent 60%);
   pointer-events:none;
 }
 
-.pCard:hover{
-  transform: translateY(-2px);
-  background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.06));
-  border-color: rgba(255,255,255,.18);
-  box-shadow: 0 18px 34px rgba(0,0,0,.34);
+.tile:hover{
+  transform: scale(1.03);
+  box-shadow: 0 10px 25px rgba(0,0,0,.28);
+  filter: brightness(1.04);
 }
 
-.pCard:active{ transform: translateY(0px) scale(.99); }
+.tile:active{ transform: scale(1.01); }
 
-.pCard:disabled{
-  opacity:.62;
-  cursor:not-allowed;
-  transform:none;
+/* selection */
+.tile.selected{
+  outline: 3px solid rgba(255,255,255,.55);
+  box-shadow: 0 0 0 6px rgba(255,255,255,.12), 0 12px 26px rgba(0,0,0,.30);
 }
 
-/* The question mark back */
-.pBack{
-  width:100%;
-  height:100%;
-  display:grid;
-  place-items:center;
-  font-size:22px;
-  font-weight:950;
-  color: rgba(238,242,255,.80);
-  background: linear-gradient(135deg, rgba(99,102,241,.22), rgba(16,185,129,.14));
+/* empty after crush */
+.tile.empty{
+  background-image: none !important;
+  background-color: rgba(0,0,0,.08);
+  border-style: dashed;
+  opacity: .75;
 }
 
-/* Revealed image */
-.pCard img{
-  width:64px;
-  height:64px;
-  object-fit: contain;
-  image-rendering: auto;
-  filter: drop-shadow(0 8px 12px rgba(0,0,0,.35));
+/* crush */
+.tile.crush{
+  animation: crush .22s ease-in forwards;
+}
+@keyframes crush{
+  to{ transform: scale(.12); opacity: 0; }
 }
 
-/* Optional: when JS falls back to text (PALM, etc.) */
-.pCard{
-  letter-spacing:.6px;
+/* shake (invalid move) */
+.tile.shake{
+  animation: shake .22s ease-in-out;
+}
+@keyframes shake{
+  0%,100%{ transform: translateX(0); }
+  20%{ transform: translateX(-6px); }
+  40%{ transform: translateX(6px); }
+  60%{ transform: translateX(-4px); }
+  80%{ transform: translateX(4px); }
 }
 
-/* Matched look (JS disables matched cards already) */
-.pCard:disabled img{
-  filter: drop-shadow(0 10px 14px rgba(46,204,113,.12));
-}
-
-/* If you ever add .matched class later, this will glow */
-.pCard.matched{
-  border-color: rgba(46,204,113,.55);
-  box-shadow: 0 0 0 3px rgba(46,204,113,.12), 0 18px 34px rgba(0,0,0,.34);
-}
-
-/* ---------- landing page tweak ---------- */
-body.landing .tabs{ display:none; }
-/* ===== PUZZLE (Always show images) ===== */
-
-.puzzleGrid{
-  display:grid;
-  grid-template-columns: repeat(4, minmax(78px, 1fr));
-  gap:12px;
-  padding:14px 0 6px;
-}
-
-@media (max-width:520px){
-  .puzzleGrid{ grid-template-columns: repeat(3, minmax(76px, 1fr)); }
-}
-
-.pCard{
-  min-height:84px;
-  border-radius:18px;
-  border:1px solid rgba(255,255,255,.12);
-  background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.05));
-  box-shadow: 0 14px 28px rgba(0,0,0,.28);
-  cursor:pointer;
+/* bottom */
+.puzzleBottom{
   display:flex;
   align-items:center;
-  justify-content:center;
-  position:relative;
-  overflow:hidden;
-  transition: transform .10s ease, border-color .2s ease, box-shadow .2s ease, opacity .2s ease;
+  justify-content:space-between;
+  gap:10px;
+  margin-top: 12px;
 }
 
-.pCard:hover{
-  transform: translateY(-2px);
-  border-color: rgba(255,255,255,.18);
-  box-shadow: 0 18px 34px rgba(0,0,0,.34);
+.msg{
+  font-size: 13px;
+  opacity: .9;
 }
 
-.pCard:active{ transform: translateY(0px) scale(.99); }
-
-.pCard img{
-  width:64px;
-  height:64px;
-  object-fit:contain;
-  filter: drop-shadow(0 8px 12px rgba(0,0,0,.35));
+/* win overlay */
+.winOverlay{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.55);
+  display:grid;
+  place-items:center;
+  z-index: 9999;
+  padding: 18px;
 }
 
-/* click selection glow */
-.pCard.selected{
-  border-color: rgba(99,102,241,.75);
-  box-shadow: 0 0 0 3px rgba(99,102,241,.18), 0 18px 34px rgba(0,0,0,.34);
+.winCard{
+  width: min(460px, 92vw);
+  border-radius: 18px;
+  padding: 18px;
+  background: rgba(15,15,25,.92);
+  border: 1px solid rgba(255,255,255,.14);
+  text-align:center;
 }
 
-/* matched tiles (locked) */
-.pCard.matched{
-  border-color: rgba(46,204,113,.55);
-  box-shadow: 0 0 0 3px rgba(46,204,113,.12), 0 18px 34px rgba(0,0,0,.34);
-  opacity: .75;
-  cursor: default;
-}
-/* ===== Puzzle effects: crush + shake + coin pop ===== */
-
-@keyframes pShake {
-  0%   { transform: translateX(0); }
-  20%  { transform: translateX(-6px); }
-  40%  { transform: translateX(6px); }
-  60%  { transform: translateX(-4px); }
-  80%  { transform: translateX(4px); }
-  100% { transform: translateX(0); }
-}
-
-@keyframes pCrush {
-  0%   { transform: scale(1); filter: brightness(1); opacity: 1; }
-  40%  { transform: scale(1.08); filter: brightness(1.15); opacity: 1; }
-  100% { transform: scale(0.0); filter: brightness(1.3); opacity: 0; }
-}
-
-@keyframes pCoinPop {
-  0%   { transform: translateY(6px) scale(.85); opacity: 0; }
-  20%  { opacity: 1; }
-  100% { transform: translateY(-18px) scale(1.0); opacity: 0; }
-}
-
-/* classes JS will add */
-.pCard.shake { animation: pShake 280ms ease; }
-.pCard.crush { animation: pCrush 320ms ease forwards; }
-
-.coinPop{
-  position:absolute;
-  left:50%;
-  top:50%;
-  transform: translate(-50%, -50%);
+.winTitle{
+  font-size: 22px;
   font-weight: 950;
-  font-size: 14px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: rgba(0,0,0,.65);
-  border: 1px solid rgba(255,255,255,.18);
-  color: #fff;
-  pointer-events:none;
-  animation: pCoinPop 520ms ease forwards;
+  margin-bottom: 6px;
 }
+
+.winText{
+  opacity: .95;
+  margin-bottom: 12px;
+}
+
