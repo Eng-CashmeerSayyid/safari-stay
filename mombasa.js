@@ -596,6 +596,18 @@ Safari Stay – mombasa.js (FULL GAME CONTROLLER)
     // If your HTML includes these IDs, they will update:
     // queueCount, servedCount, roomDetails, hotelMsg
   }
+   const btnSpawnGuest = document.getElementById("btnSpawnGuest");
+
+if (btnSpawnGuest) {
+  btnSpawnGuest.addEventListener("click", () => {
+    // Push a guest into the lobby queue (doesn't occupy a room yet)
+    const guest = randomGuestName();
+    HOTEL.queue.push({ type: "checkin", guest });
+
+    hotelMsg(`Guest spawned: ${guest} is waiting in the lobby 👤`);
+    renderHotel();
+  });
+}
 
   // Run on DOM ready
   if (document.readyState === "loading") {
