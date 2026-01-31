@@ -1,5 +1,5 @@
 <!-- =========================
-File: Mombasa.html
+File: mombasa.html
 Safari Stay – Mombasa Hotel
 ========================= -->
 <!DOCTYPE html>
@@ -10,7 +10,7 @@ Safari Stay – Mombasa Hotel
   <title>Safari Stay – Mombasa Hotel</title>
   <link rel="stylesheet" href="style.css" />
 
-  <!-- ✅ Puzzle logic -->
+  <!-- ✅ Load ONCE (lowercase) -->
   <script src="mombasa.js" defer></script>
 </head>
 
@@ -29,7 +29,7 @@ Safari Stay – Mombasa Hotel
 
     <div class="hud">
       <div class="pill">🪙 Coins: <span id="coins">0</span></div>
-      <div class="pill">👥 Queue: <span id="queue">0</span></div>
+      <div class="pill">👥 Queue: <span id="queueCount">0</span></div>
       <div class="pill">✅ Served: <span id="served">0</span></div>
     </div>
   </header>
@@ -38,12 +38,15 @@ Safari Stay – Mombasa Hotel
     <button class="tab active" data-tab="hotel">Hotel</button>
     <button class="tab" data-tab="puzzle">Puzzle</button>
     <button class="tab" data-tab="shop">Shop</button>
-    <button class="btn primary" id="btnSpawnGuest">👤 Spawn Guest</button>
 
+    <button class="btn primary" id="btnSpawnGuest">👤 Spawn Guest</button>
   </nav>
 
   <main class="wrap">
-    <!-- HOTEL TAB -->
+
+    <!-- =========================
+    HOTEL TAB
+    ========================= -->
     <section class="panel active" id="tab-hotel">
       <div class="layout">
 
@@ -83,54 +86,56 @@ Safari Stay – Mombasa Hotel
 
           <h3>How it works</h3>
           <ul class="list">
-            <li>Guests stay ~10s then become ready to checkout.</li>
-            <li>Some guests order snacks. Only 1–2 can be “active orders” at a time.</li>
+            <li>Guests spawn into a queue.</li>
+            <li>Check-in assigns a queued guest to the selected room (or first available).</li>
+            <li>Guests become ready to checkout after ~10s.</li>
+            <li>Checkout makes the room dirty.</li>
             <li>Cleaning takes ~3s (manual).</li>
-            <li>Delivering snacks gives bonus coins + 😍 moment.</li>
+            <li>Some guests order snacks 🛎️. Deliver snack for bonus coins.</li>
           </ul>
         </aside>
 
       </div>
     </section>
 
-   <!-- PUZZLE TAB -->
-<section class="panel" id="tab-puzzle">
-  <section class="card puzzlePanel">
+    <!-- =========================
+    PUZZLE TAB
+    ========================= -->
+    <section class="panel" id="tab-puzzle">
+      <section class="card puzzlePanel">
 
-    <div class="puzzleTop">
-      <div>
-        <h2>Mombasa Match-3</h2>
-        <p class="muted">Match 3 or more tiles to earn coins.</p>
-      </div>
+        <div class="puzzleTop">
+          <div>
+            <h2>Mombasa Match-3</h2>
+            <p class="muted">Match 3 or more tiles to earn coins.</p>
+          </div>
 
-      <div class="puzzleStats">
-        <div class="stat">🪙 Coins: <span id="coins">0</span></div>
-        <div class="stat">🎯 Target: <span id="target">300</span></div>
-      </div>
-    </div>
+          <div class="puzzleStats">
+            <div class="stat">🪙 Coins: <span id="coinsPuzzle">0</span></div>
+            <div class="stat">🎯 Target: <span id="target">300</span></div>
+          </div>
+        </div>
 
-    <div id="board" class="board"></div>
+        <div id="board" class="board"></div>
 
-    <div class="puzzleBottom">
-      <button class="btn" id="resetPuzzle">🔄 Reset</button>
-      <div id="msg" class="msg"></div>
-    </div>
+        <div class="puzzleBottom">
+          <button class="btn" id="resetPuzzle">🔄 Reset</button>
+          <div id="msg" class="msg"></div>
+        </div>
 
-    <div class="tip">
-      <strong>Images folder:</strong>
-      <code>images/tiles/</code>
-      <br>
-      palm.png, shell.png, fish.png, coconut.png, wave.png, sun.png
-    </div>
+        <div class="tip">
+          <strong>Images folder:</strong>
+          <code>images/tiles/</code>
+          <br>
+          palm.png, shell.png, fish.png, coconut.png, wave.png, sun.png
+        </div>
 
-  </section>
-</section>
+      </section>
+    </section>
 
-
-<!-- ✅ Load the puzzle logic -->
-<script src="mombasa.js"></script>
-
-    <!-- SHOP TAB -->
+    <!-- =========================
+    SHOP TAB
+    ========================= -->
     <section class="panel" id="tab-shop">
       <section class="card">
         <h2>Shop</h2>
@@ -171,8 +176,7 @@ Safari Stay – Mombasa Hotel
         <button class="btn danger" id="btnResetMombasa">♻️ Reset Mombasa Progress</button>
       </section>
     </section>
-  </main>
 
-  <script src="Mombasa.js"></script>
+  </main>
 </body>
 </html>
