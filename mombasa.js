@@ -1,11 +1,11 @@
 /* =========================
-mombasa.js (FINAL - Manual Hotel Mania)
-- Queue visible with patience bar + mood emoji
+mombasa.js (FINAL UPDATED)
+Manual Hotel Mania:
+- Queue visible with patience bar + mood 🙂
 - Click guest -> click empty room to check-in
-- Room click is manual
-- Manual checkout + manual cleaning
+- Manual checkout + manual cleaning (NOT automatic)
 - Rooms = 4
-- Auto spawn optional
+- Auto spawn optional (slower)
 ========================= */
 
 /* ---------- helpers ---------- */
@@ -39,14 +39,14 @@ function initTabs() {
 }
 
 /* =========================
-HOTEL CONFIG
+HOTEL CONFIG (SLOWED DOWN)
 ========================= */
 const HOTEL = {
   roomCount: 4,
   maxQueue: 6,
-  spawnEveryMs: 3800,
-  patienceMs: 14000,    // total patience
-  stayMs: 9000,         // time until ready
+  spawnEveryMs: 6000,   // ✅ slower spawn
+  patienceMs: 45000,    // ✅ slower mood change (45s)
+  stayMs: 9000,
   cleanMsBase: 2600,
   snackChance: 0.35,
   snackTip: 3,
@@ -64,12 +64,13 @@ let state = {
   queue: [], // {id, face, createdAt, expiresAt}
   rooms: [], // {id, status, guestId, guestFace, snackOrdered, readyAt}
   selectedRoomId: 1,
-  selectedGuestId: null, // guest id picked from queue
+  selectedGuestId: null,
   upgrades: { cleaner: 0, bellboy: 0 },
 };
 
 function hint(t) { if ($("hint")) $("hint").textContent = t; }
 
+/* ---------- save/load ---------- */
 function save() {
   localStorage.setItem("mombasaHotel", JSON.stringify({
     served: state.served,
@@ -106,7 +107,7 @@ function initRooms() {
   for (let i = 1; i <= HOTEL.roomCount; i++) {
     state.rooms.push({
       id: i,
-      status: "empty", // empty | occupied | ready | dirty | cleaning
+      status: "empty",
       guestId: null,
       guestFace: null,
       snackOrdered: false,
@@ -124,15 +125,15 @@ function updateHud() {
   setCoins(getCoins());
 }
 
-/* ---------- Mood logic (🙂 -> 😤 -> 😡) ---------- */
+/* ---------- mood: slower thresholds ---------- */
 function guestMood(remainingMs) {
   const t = remainingMs / HOTEL.patienceMs;
-  if (t > 0.66) return "🙂";
-  if (t > 0.33) return "😤";
+  if (t > 0.75) return "🙂";
+  if (t > 0.35) return "😤";
   return "😡";
 }
 
-/* ---------- Queue render (click to select guest) ---------- */
+/* ---------- queue render ---------- */
 function renderQueue() {
   const wrap = $("queueList");
   if (!wrap) return;
@@ -155,12 +156,12 @@ function renderQueue() {
     row.style.display = "flex";
     row.style.alignItems = "center";
     row.style.gap = "10px";
-    row.style.padding = "10px 10px";
+    row.style.padding = "10px";
     row.style.borderRadius = "12px";
     row.style.border = "1px solid rgba(255,255,255,.12)";
     row.style.background = "rgba(255,255,255,.05)";
-    if (selected) row.style.outline = "2px solid rgba(34,197,94,.45)";
     row.style.cursor = "pointer";
+    if (selected) row.style.outline = "2px solid rgba(34,197,94,.55)";
 
     row.innerHTML = `
       <div style="font-size:18px">${g.face}</div>
@@ -177,7 +178,7 @@ function renderQueue() {
       state.selectedGuestId = g.id;
       renderSelectedGuest();
       renderQueue();
-      hint("Now click an EMPTY room to check-in 🏨");
+      hint("Guest selected ✅ Now click an EMPTY room to check in.");
       save();
     });
 
@@ -205,11 +206,11 @@ function renderSelectedGuest() {
   card.innerHTML = `
     <div><strong>${g.face} Guest ${g.id}</strong></div>
     <div class="muted">Mood: ${guestMood(remaining)} • Patience: ${Math.ceil(remaining/1000)}s</div>
-    <div style="margin-top:8px;opacity:.85">Click an empty room to check in.</div>
+    <div style="margin-top:8px;opacity:.85">Click an empty room to assign.</div>
   `;
 }
 
-/* ---------- Rooms render (click room to select / and check in if guest selected) ---------- */
+/* ---------- rooms render ---------- */
 function roomLabel(r) {
   if (r.status === "empty") return "✅ Empty";
   if (r.status === "occupied") return "🟦 Occupied";
@@ -222,7 +223,6 @@ function roomLabel(r) {
 function getRoomById(id) {
   return state.rooms.find(r => r.id === id) || null;
 }
-
 function getSelectedRoom() {
   return getRoomById(state.selectedRoomId);
 }
@@ -230,8 +230,8 @@ function getSelectedRoom() {
 function renderRooms() {
   const grid = $("hotelGrid");
   if (!grid) return;
-
   grid.innerHTML = "";
+
   state.rooms.forEach((r) => {
     const selected = r.id === state.selectedRoomId;
 
@@ -257,16 +257,18 @@ function renderRooms() {
     `;
 
     div.addEventListener("click", () => {
+      // ✅ always select the room first
       state.selectedRoomId = r.id;
+      renderRooms();
+      renderRoomCard();
 
-      // If a guest is selected AND room is empty -> check in
+      // ✅ if guest selected and room empty -> check in
       if (state.selectedGuestId && r.status === "empty") {
         checkInSelectedGuestToRoom(r.id);
-      } else {
-        renderRooms();
-        renderRoomCard();
-        save();
+        return;
       }
+
+      save();
     });
 
     grid.appendChild(div);
@@ -290,8 +292,9 @@ function renderRoomCard() {
   `;
 }
 
-/* ---------- Game actions ---------- */
+/* ---------- actions ---------- */
 function checkInSelectedGuestToRoom(roomId) {
+  state.selectedRoomId = roomId; // ✅ important
   const r = getRoomById(roomId);
   if (!r || r.status !== "empty") return;
 
@@ -312,7 +315,6 @@ function checkInSelectedGuestToRoom(roomId) {
   r.snackOrdered = Math.random() < HOTEL.snackChance;
   r.readyAt = Date.now() + HOTEL.stayMs;
 
-  // clear guest selection
   state.selectedGuestId = null;
 
   setCoins(getCoins() + HOTEL.checkinCoin);
@@ -339,7 +341,6 @@ function tickQueue() {
   if (left > 0) {
     state.angry += left;
 
-    // if selected guest left, clear it
     if (state.selectedGuestId && !kept.some(x => x.id === state.selectedGuestId)) {
       state.selectedGuestId = null;
       renderSelectedGuest();
@@ -365,6 +366,7 @@ function tickRooms() {
       changed = true;
     }
   }
+
   if (changed) {
     renderRooms();
     renderRoomCard();
@@ -441,7 +443,7 @@ function cleanSelected() {
   }, ms);
 }
 
-/* ---------- spawn controls ---------- */
+/* ---------- spawning ---------- */
 function spawnGuest(manual=false) {
   if (state.queue.length >= HOTEL.maxQueue) return;
 
@@ -666,7 +668,7 @@ function onTileClick(i) {
   crushMatches(matches);
 }
 
-/* ---------- bind buttons ---------- */
+/* ---------- buttons ---------- */
 function bindButtons() {
   $("btnSpawnGuest")?.addEventListener("click", () => spawnGuest(true));
 
@@ -703,11 +705,10 @@ window.addEventListener("load", () => {
 
   bindButtons();
 
-  // ticks
-  setInterval(tickQueue, 250);
+  // slower updates (less “fast mood” feeling)
+  setInterval(tickQueue, 500);
   setInterval(tickRooms, 300);
 
-  // auto spawn loop only
   setInterval(() => {
     if (AUTO.spawn) spawnGuest(false);
   }, HOTEL.spawnEveryMs);
