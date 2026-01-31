@@ -1,8 +1,9 @@
 <!-- =========================
 File: mombasa.html
-Safari Stay – Mombasa Hotel (Mode 3)
-Auto: spawn + queue
-Manual: check-in, snack, checkout, clean
+Safari Stay – Mombasa Hotel (Manual Hotel Mania)
+Queue visible + patience moods
+Click guest -> click room to check-in
+Manual checkout + manual cleaning
 ========================= -->
 <!DOCTYPE html>
 <html lang="en">
@@ -11,8 +12,6 @@ Manual: check-in, snack, checkout, clean
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Safari Stay – Mombasa Hotel</title>
   <link rel="stylesheet" href="style.css" />
-
-  <!-- ✅ Load ONCE -->
   <script src="mombasa.js" defer></script>
 </head>
 
@@ -42,8 +41,8 @@ Manual: check-in, snack, checkout, clean
     <button class="tab" data-tab="puzzle">Puzzle</button>
     <button class="tab" data-tab="shop">Shop</button>
 
-    <button class="btn" id="btnAutoSpawn">🤖 Auto Spawn: ON</button>
-    <button class="btn primary" id="btnSpawnGuest">👤 Spawn Guest</button>
+    <button class="btn" id="btnAutoSpawn">👤 Auto Spawn: ON</button>
+    <button class="btn primary" id="btnSpawnGuest">+ Spawn Guest</button>
   </nav>
 
   <main class="wrap">
@@ -53,24 +52,29 @@ Manual: check-in, snack, checkout, clean
 
         <section class="card scene">
           <div class="sceneHeader">
-            <div class="hint" id="hint">Welcome to Mombasa 🌴</div>
-            <div class="smallMuted">Mode 3: Guests spawn + wait automatically. You manage rooms.</div>
+            <div class="hint" id="hint">Click a guest in the queue, then click an empty room 🏨</div>
+            <div class="smallMuted">Manual check-in, checkout & cleaning. Mood changes with patience.</div>
           </div>
 
-          <div class="hotelGrid" id="hotelGrid">
-            <!-- Rooms injected by JS -->
-          </div>
+          <div class="hotelGrid" id="hotelGrid"></div>
 
           <div class="bottomBar">
-            <button class="btn primary" id="btnCheckIn">➕ Check-in (Selected / First Empty)</button>
-            <button class="btn" id="btnServeQueue">⚡ Quick Check-in (First Empty)</button>
-            <button class="btn danger" id="btnEmergencyClean">🧼 Clean Selected</button>
+            <button class="btn" id="btnDeliverSnack">🍟 Deliver Snack</button>
+            <button class="btn" id="btnCheckout">🚪 Checkout Selected Room</button>
+            <button class="btn danger" id="btnClean">🧽 Clean Selected Room</button>
           </div>
         </section>
 
         <aside class="card side">
           <h3>Entrance Queue</h3>
           <div id="queueList" class="queueList"></div>
+
+          <div class="divider"></div>
+
+          <h3>Selected Guest</h3>
+          <div class="roomCard" id="guestCard">
+            <div class="muted">No guest selected. Click one in the queue.</div>
+          </div>
 
           <div class="divider"></div>
 
@@ -81,21 +85,13 @@ Manual: check-in, snack, checkout, clean
 
           <div class="divider"></div>
 
-          <h3>Actions</h3>
-          <div class="stack">
-            <button class="btn" id="btnDeliverSnack">🍟 Deliver Snack</button>
-            <button class="btn" id="btnCheckout">🚪 Checkout Guest</button>
-            <button class="btn" id="btnClean">🧽 Start Cleaning</button>
-          </div>
-
-          <div class="divider"></div>
-
           <h3>How it works</h3>
           <ul class="list">
-            <li>Guests auto-spawn + wait with patience bars.</li>
-            <li>Check-in puts the next guest into an empty room.</li>
-            <li>Some guests request snacks 🛎️ → deliver for bonus coins.</li>
-            <li>Checkout → room becomes dirty → clean it to reuse.</li>
+            <li>Guests auto-spawn and wait with patience.</li>
+            <li>Mood goes 🙂 → 😤 → 😡 → leaves.</li>
+            <li>Click guest → click empty room to check in.</li>
+            <li>After a short stay the room becomes ⭐ Ready.</li>
+            <li>Checkout makes room 🟥 Dirty → clean manually.</li>
           </ul>
         </aside>
 
@@ -121,11 +117,6 @@ Manual: check-in, snack, checkout, clean
         <div class="puzzleBottom">
           <button class="btn" id="resetPuzzle">🔄 Reset</button>
           <div id="msg" class="msg"></div>
-        </div>
-
-        <div class="tip">
-          <strong>Images folder:</strong> <code>images/tiles/</code>
-          <br>palm.png, shell.png, fish.png, coconut.png, wave.png, sun.png
         </div>
       </section>
     </section>
@@ -167,10 +158,10 @@ Manual: check-in, snack, checkout, clean
         </div>
 
         <div class="divider"></div>
-
         <button class="btn danger" id="btnResetMombasa">♻️ Reset Mombasa Progress</button>
       </section>
     </section>
+
   </main>
 </body>
 </html>
