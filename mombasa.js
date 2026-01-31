@@ -1,618 +1,687 @@
 /* =========================
-Safari Stay – mombasa.js (FULL GAME CONTROLLER)
-- Tabs (Hotel/Puzzle/Shop)
-- Hotel mini-tycoon (rooms, queue, cleaning, snacks)
-- Puzzle Match-3 (5x5) with images: images/tiles/*.png
-- Shared coins in localStorage
+mombasa.js (FULL)
+- Tabs switching
+- Shared coins (hotel + puzzle)
+- HOTEL MANIA A: spawn guest -> queue -> check-in -> checkout -> dirty -> clean
+- Simple match-3 puzzle using tile images
 ========================= */
 
-(() => {
-  "use strict";
+/* -------------------------
+Helpers
+------------------------- */
+const $ = (id) => document.getElementById(id);
+const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 
-  // ===============================
-  // Shared Coins
-  // ===============================
-  const COINS_KEY = "coins";
-  function getCoins() {
-    const v = Number(localStorage.getItem(COINS_KEY) || "0");
-    return Number.isFinite(v) ? v : 0;
-  }
-  function setCoins(n) {
-    localStorage.setItem(COINS_KEY, String(n));
-    const coinsEl = document.getElementById("coins");
-    if (coinsEl) coinsEl.textContent = String(n);
-  }
-  function addCoins(n) {
-    setCoins(getCoins() + n);
-  }
+/* -------------------------
+Shared Coins (localStorage)
+------------------------- */
+function getCoins() {
+  return Number(localStorage.getItem("coins")) || 0;
+}
+function setCoins(n) {
+  const val = Math.max(0, Number(n) || 0);
+  localStorage.setItem("coins", String(val));
+  if ($("coins")) $("coins").textContent = String(val);
+  if ($("coinsPuzzle")) $("coinsPuzzle").textContent = String(val);
+}
 
-  // ===============================
-  // Tabs
-  // ===============================
-  function initTabs() {
-    const tabs = Array.from(document.querySelectorAll(".tab"));
-    const panels = {
-      hotel: document.getElementById("tab-hotel"),
-      puzzle: document.getElementById("tab-puzzle"),
-      shop: document.getElementById("tab-shop"),
-    };
-
-    if (tabs.length === 0) return; // if your page uses a different tabs UI, this won’t break
-
-    function activate(name) {
-      Object.values(panels).forEach(p => p && p.classList.remove("active"));
-      tabs.forEach(t => t.classList.remove("active"));
-
-      const panel = panels[name];
-      if (panel) panel.classList.add("active");
-
-      const tabBtn = tabs.find(t => (t.dataset.tab || "").toLowerCase() === name);
-      if (tabBtn) tabBtn.classList.add("active");
-    }
-
-    tabs.forEach(btn => {
-      btn.addEventListener("click", () => {
-        const name = (btn.dataset.tab || "").toLowerCase();
-        if (!name) return;
-        activate(name);
-      });
-    });
-
-    // Ensure one active panel
-    const anyActive = Object.values(panels).some(p => p && p.classList.contains("active"));
-    if (!anyActive) activate("hotel");
-  }
-
-  // ===============================
-  // HOTEL (simple but working)
-  // ===============================
-  const HOTEL = {
-    rooms: [
-      { id: 1, state: "empty", guest: null, snack: false },
-      { id: 2, state: "empty", guest: null, snack: false },
-      { id: 3, state: "empty", guest: null, snack: false },
-      { id: 4, state: "empty", guest: null, snack: false },
-    ],
-    queue: [],
-    served: 0,
-    selectedRoomId: null,
-    snackLimit: 2
+/* -------------------------
+Tabs
+------------------------- */
+function initTabs() {
+  const tabs = document.querySelectorAll(".tab[data-tab]");
+  const panels = {
+    hotel: $("tab-hotel"),
+    puzzle: $("tab-puzzle"),
+    shop: $("tab-shop"),
   };
 
-  function el(id) { return document.getElementById(id); }
-
-  function roomEmoji(state) {
-    if (state === "empty") return "🟢";
-    if (state === "occupied") return "🛏️";
-    if (state === "dirty") return "🟠";
-    if (state === "cleaning") return "🧼";
-    return "❔";
-  }
-
-  function roomStateLabel(state) {
-    if (state === "empty") return "Empty";
-    if (state === "occupied") return "Occupied";
-    if (state === "dirty") return "Dirty";
-    if (state === "cleaning") return "Cleaning";
-    return state;
-  }
-
-  function renderHotel() {
-    const grid = el("hotelGrid");
-    const queueEl = document.getElementById("queueCount");
-    const servedEl = document.getElementById("servedCount");
-
-    // Your HUD might already have spans for Queue/Served. If not, we won't crash.
-    // We'll also attempt to update the "Queue: 0" pill by searching for text? No — keep it simple.
-
-    if (grid) {
-      grid.innerHTML = "";
-      HOTEL.rooms.forEach(room => {
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "roomBtn " + (HOTEL.selectedRoomId === room.id ? "selected " : "") + `state-${room.state}`;
-        btn.innerHTML = `
-          <div class="rRow">
-            <div class="rTitle">Room ${room.id}</div>
-            <div class="rBadge">${roomEmoji(room.state)}${room.snack ? "🛎️" : ""}</div>
-          </div>
-          <div class="rState">${roomStateLabel(room.state)}</div>
-        `;
-        btn.addEventListener("click", () => {
-          HOTEL.selectedRoomId = room.id;
-          renderHotel();
-          renderRoomDetails();
-        });
-        grid.appendChild(btn);
-      });
-    }
-
-    // Optional HUD spans (only update if you have these IDs)
-    if (queueEl) queueEl.textContent = String(HOTEL.queue.length);
-    if (servedEl) servedEl.textContent = String(HOTEL.served);
-
-    // Always update coins pill
-    setCoins(getCoins());
-  }
-
-  function getSelectedRoom() {
-    if (!HOTEL.selectedRoomId) return null;
-    return HOTEL.rooms.find(r => r.id === HOTEL.selectedRoomId) || null;
-  }
-
-  function renderRoomDetails() {
-    const details = el("roomDetails");
-    const hint = el("hint");
-    const room = getSelectedRoom();
-
-    if (hint && !room) hint.textContent = "Welcome to Mombasa 🌴";
-    if (!details) return;
-
-    if (!room) {
-      details.textContent = "Select a room.";
-      return;
-    }
-
-    details.innerHTML = `
-      <div><b>Room ${room.id}</b> — ${roomStateLabel(room.state)}</div>
-      <div class="smallMuted">Guest: ${room.guest ? room.guest : "None"}</div>
-      <div class="smallMuted">Snack Order: ${room.snack ? "Yes 🛎️" : "No"}</div>
-    `;
-  }
-
-  function hotelMsg(t) {
-    const msg = el("hotelMsg");
-    if (msg) msg.textContent = t;
-  }
-
-  function randomGuestName() {
-    const names = ["Amina","Brian","Chao","Daisy","Eli","Fatuma","Gideon","Hawa","Imani","Jamal"];
-    return names[Math.floor(Math.random() * names.length)];
-  }
-
-  function maybeAddSnack(room) {
-    const activeSnackRooms = HOTEL.rooms.filter(r => r.snack).length;
-    if (activeSnackRooms >= HOTEL.snackLimit) return;
-
-    // 35% chance occupied guest orders snack
-    if (room.state === "occupied" && !room.snack && Math.random() < 0.35) {
-      room.snack = true;
-    }
-  }
-
-  function initHotelButtons() {
-    const btnCheckIn = el("btnCheckIn");
-    const btnServeQueue = el("btnServeQueue");
-    const btnEmergencyClean = el("btnEmergencyClean");
-
-    const btnDeliverSnack = el("btnDeliverSnack");
-    const btnCheckoutGuest = el("btnCheckoutGuest");
-    const btnStartCleaning = el("btnStartCleaning");
-
-    if (btnCheckIn) {
-      btnCheckIn.addEventListener("click", () => {
-        const empty = HOTEL.rooms.find(r => r.state === "empty");
-        if (!empty) { hotelMsg("No empty rooms right now."); return; }
-
-        empty.state = "occupied";
-        empty.guest = randomGuestName();
-        empty.snack = false;
-
-        // guest will be ready to checkout later
-        setTimeout(() => {
-          // if still occupied with same guest, mark dirty-ready (simulate checkout readiness)
-          if (empty.state === "occupied") {
-            // add to queue as "ready to checkout"
-            HOTEL.queue.push({ type: "checkout", roomId: empty.id });
-            renderHotel();
-          }
-        }, 9000);
-
-        // snack chance
-        setTimeout(() => { maybeAddSnack(empty); renderHotel(); renderRoomDetails(); }, 2500);
-
-        addCoins(2); // small bonus for check-in
-        hotelMsg(`Checked in ${empty.guest} to Room ${empty.id} ✅ (+2 coins)`);
-        renderHotel();
-        renderRoomDetails();
-      });
-    }
-
-    if (btnServeQueue) {
-      btnServeQueue.addEventListener("click", () => {
-        if (HOTEL.queue.length === 0) { hotelMsg("Queue is empty."); return; }
-        const item = HOTEL.queue.shift();
-        HOTEL.served += 1;
-        addCoins(3);
-        hotelMsg(`Served: ${item.type} for Room ${item.roomId} ✅ (+3 coins)`);
-        renderHotel();
-      });
-    }
-
-    if (btnEmergencyClean) {
-      btnEmergencyClean.addEventListener("click", () => {
-        const room = getSelectedRoom();
-        if (!room) { hotelMsg("Select a room first."); return; }
-
-        room.state = "cleaning";
-        room.snack = false;
-        hotelMsg(`Cleaning Room ${room.id}...`);
-        renderHotel();
-        renderRoomDetails();
-
-        setTimeout(() => {
-          room.state = "empty";
-          room.guest = null;
-          room.snack = false;
-          addCoins(4);
-          hotelMsg(`Room ${room.id} cleaned ✅ (+4 coins)`);
-          renderHotel();
-          renderRoomDetails();
-        }, 2800);
-      });
-    }
-
-    if (btnDeliverSnack) {
-      btnDeliverSnack.addEventListener("click", () => {
-        const room = getSelectedRoom();
-        if (!room) { hotelMsg("Select a room first."); return; }
-        if (!room.snack) { hotelMsg("No snack order for this room."); return; }
-        room.snack = false;
-        addCoins(5);
-        hotelMsg(`Snack delivered to Room ${room.id} 🛎️✅ (+5 coins)`);
-        renderHotel();
-        renderRoomDetails();
-      });
-    }
-
-    if (btnCheckoutGuest) {
-      btnCheckoutGuest.addEventListener("click", () => {
-        const room = getSelectedRoom();
-        if (!room) { hotelMsg("Select a room first."); return; }
-        if (room.state !== "occupied") { hotelMsg("This room is not occupied."); return; }
-
-        room.state = "dirty";
-        room.guest = null;
-        room.snack = false;
-        addCoins(6);
-        hotelMsg(`Checked out Room ${room.id}. Now dirty 🧽 (+6 coins)`);
-        renderHotel();
-        renderRoomDetails();
-      });
-    }
-
-    if (btnStartCleaning) {
-      btnStartCleaning.addEventListener("click", () => {
-        const room = getSelectedRoom();
-        if (!room) { hotelMsg("Select a room first."); return; }
-        if (room.state !== "dirty") { hotelMsg("Room must be dirty to start cleaning."); return; }
-
-        room.state = "cleaning";
-        hotelMsg(`Cleaning started for Room ${room.id}...`);
-        renderHotel();
-        renderRoomDetails();
-
-        setTimeout(() => {
-          room.state = "empty";
-          room.guest = null;
-          room.snack = false;
-          addCoins(4);
-          hotelMsg(`Room ${room.id} cleaned ✅ (+4 coins)`);
-          renderHotel();
-          renderRoomDetails();
-        }, 2800);
-      });
-    }
-  }
-
-  // ===============================
-  // PUZZLE (Match-3 5×5)
-  // ===============================
-  function initPuzzle() {
-    const boardEl  = document.getElementById("board");
-    const targetEl = document.getElementById("target");
-    const msgEl    = document.getElementById("msg");
-    const resetBtn = document.getElementById("resetPuzzle");
-
-    if (!boardEl) return; // puzzle panel may not be on some pages
-    if (targetEl) targetEl.textContent = "300";
-
-    const SIZE = 5;
-    const TYPES = 6;
-    const COINS_PER_TILE = 5;
-    const ANIM_MS = 220;
-    const CASCADE_DELAY = 80;
-
-    const TILE_ASSETS = [
-      "images/tiles/palm.png",
-      "images/tiles/shell.png",
-      "images/tiles/fish.png",
-      "images/tiles/coconut.png",
-      "images/tiles/wave.png",
-      "images/tiles/sun.png",
-    ];
-    const TILE_EMOJI = ["🌴","🐚","🐟","🥥","🌊","☀️"];
-
-    let grid = Array.from({ length: SIZE }, () => Array(SIZE).fill(-1));
-    let selected = null;
-    let locked = false;
-
-    const sleep = (ms) => new Promise(res => setTimeout(res, ms));
-    const vibrate = (ms=60) => navigator.vibrate && navigator.vibrate(ms);
-    const neighbors = (a,b) => (Math.abs(a.r-b.r)+Math.abs(a.c-b.c))===1;
-
-    const setMsg = (t) => { if (msgEl) msgEl.textContent = t || ""; };
-
-    function randomType(){ return Math.floor(Math.random()*TYPES); }
-
-    function safeRandomType(r,c){
-      for(let tries=0; tries<30; tries++){
-        const t = randomType();
-        const l1 = c-1>=0 ? grid[r][c-1] : null;
-        const l2 = c-2>=0 ? grid[r][c-2] : null;
-        if(l1===t && l2===t) continue;
-        const u1 = r-1>=0 ? grid[r-1][c] : null;
-        const u2 = r-2>=0 ? grid[r-2][c] : null;
-        if(u1===t && u2===t) continue;
-        return t;
-      }
-      return randomType();
-    }
-
-    function buildBoard(){
-      boardEl.style.setProperty("--size", SIZE);
-      boardEl.innerHTML = "";
-      for(let r=0;r<SIZE;r++){
-        for(let c=0;c<SIZE;c++){
-          const btn = document.createElement("button");
-          btn.type = "button";
-          btn.className = "tile";
-          btn.dataset.r = String(r);
-          btn.dataset.c = String(c);
-          boardEl.appendChild(btn);
-        }
-      }
-      boardEl.addEventListener("click", onClick);
-    }
-
-    function getTileEl(r,c){
-      return boardEl.querySelector(`.tile[data-r="${r}"][data-c="${c}"]`);
-    }
-
-    function paint(){
-      boardEl.querySelectorAll(".tile").forEach(el=>{
-        const r = Number(el.dataset.r);
-        const c = Number(el.dataset.c);
-        const t = grid[r][c];
-
-        el.classList.toggle("selected", !!selected && selected.r===r && selected.c===c);
-
-        if(t===-1){
-          el.classList.add("empty");
-          el.style.backgroundImage = "";
-          el.textContent = "";
-          return;
-        }
-
-        el.classList.remove("empty");
-        el.style.backgroundImage = `url("${TILE_ASSETS[t]}")`;
-        el.textContent = TILE_EMOJI[t];
-        el.classList.add("hasEmoji");
-      });
-    }
-
-    function findMatches(){
-      const set = new Set();
-
-      // horizontal
-      for(let r=0;r<SIZE;r++){
-        let start=0;
-        while(start<SIZE){
-          const t = grid[r][start];
-          if(t===-1){ start++; continue; }
-          let end=start+1;
-          while(end<SIZE && grid[r][end]===t) end++;
-          if(end-start>=3){
-            for(let c=start;c<end;c++) set.add(`${r},${c}`);
-          }
-          start=end;
-        }
-      }
-
-      // vertical
-      for(let c=0;c<SIZE;c++){
-        let start=0;
-        while(start<SIZE){
-          const t = grid[start][c];
-          if(t===-1){ start++; continue; }
-          let end=start+1;
-          while(end<SIZE && grid[end][c]===t) end++;
-          if(end-start>=3){
-            for(let r=start;r<end;r++) set.add(`${r},${c}`);
-          }
-          start=end;
-        }
-      }
-
-      return [...set].map(s=>{
-        const [r,c] = s.split(",").map(Number);
-        return {r,c};
-      });
-    }
-
-    function anyMatch(){ return findMatches().length>0; }
-
-    function swap(a,b){
-      const tmp = grid[a.r][a.c];
-      grid[a.r][a.c] = grid[b.r][b.c];
-      grid[b.r][b.c] = tmp;
-    }
-
-    async function shake(a,b){
-      const A=getTileEl(a.r,a.c), B=getTileEl(b.r,b.c);
-      if(A) A.classList.add("shake");
-      if(B) B.classList.add("shake");
-      vibrate(70);
-      await sleep(ANIM_MS);
-      if(A) A.classList.remove("shake");
-      if(B) B.classList.remove("shake");
-    }
-
-    async function crush(matches){
-      matches.forEach(({r,c})=>{
-        const el = getTileEl(r,c);
-        if(el) el.classList.add("crush");
-      });
-      vibrate(35);
-      await sleep(ANIM_MS);
-
-      matches.forEach(({r,c})=>{
-        grid[r][c] = -1;
-        const el = getTileEl(r,c);
-        if(el) el.classList.remove("crush");
-      });
-
-      // Coins per tile cleared
-      addCoins(matches.length * COINS_PER_TILE);
-    }
-
-    function gravity(){
-      for(let c=0;c<SIZE;c++){
-        let write=SIZE-1;
-        for(let r=SIZE-1;r>=0;r--){
-          if(grid[r][c]!==-1){
-            grid[write][c]=grid[r][c];
-            if(write!==r) grid[r][c]=-1;
-            write--;
-          }
-        }
-        for(let r=write;r>=0;r--) grid[r][c]=-1;
-      }
-    }
-
-    function refill(){
-      for(let r=0;r<SIZE;r++){
-        for(let c=0;c<SIZE;c++){
-          if(grid[r][c]===-1) grid[r][c]=safeRandomType(r,c);
-        }
-      }
-    }
-
-    async function resolve(){
-      while(true){
-        const m = findMatches();
-        if(m.length===0) break;
-        await crush(m);
-        gravity();
-        refill();
-        paint();
-        await sleep(CASCADE_DELAY);
-      }
-    }
-
-    async function onClick(e){
-      if(locked) return;
-      const tile = e.target.closest(".tile");
-      if(!tile) return;
-
-      const r = Number(tile.dataset.r);
-      const c = Number(tile.dataset.c);
-
-      if(!selected){
-        selected = {r,c};
-        paint();
-        return;
-      }
-
-      const prev = selected;
-      selected = null;
-
-      if(prev.r===r && prev.c===c){
-        paint();
-        return;
-      }
-
-      if(!neighbors(prev,{r,c})){
-        selected = {r,c};
-        paint();
-        return;
-      }
-
-      locked = true;
-      setMsg("");
-
-      swap(prev,{r,c});
-      paint();
-
-      if(anyMatch()){
-        await resolve();
-        locked = false;
-        paint();
-        return;
-      }
-
-      await shake(prev,{r,c});
-      swap(prev,{r,c});
-      paint();
-      locked = false;
-      setMsg("No match ❌ Try a different swap.");
-    }
-
-    async function reset(){
-      locked = true;
-      selected = null;
-      setMsg("New board ready ✅");
-      grid = Array.from({ length: SIZE }, () => Array(SIZE).fill(-1));
-      for(let r=0;r<SIZE;r++){
-        for(let c=0;c<SIZE;c++){
-          grid[r][c] = safeRandomType(r,c);
-        }
-      }
-      paint();
-      await resolve();
-      locked = false;
-    }
-
-    if(resetBtn) resetBtn.addEventListener("click", reset);
-
-    buildBoard();
-    reset();
-  }
-
-  // ===============================
-  // INIT (run once)
-  // ===============================
-  function init() {
-    // Make sure coins show immediately
-    setCoins(getCoins());
-
-    initTabs();
-    initHotelButtons();
-    renderHotel();
-    renderRoomDetails();
-
-    initPuzzle();
-
-    // If your HTML includes these IDs, they will update:
-    // queueCount, servedCount, roomDetails, hotelMsg
-  }
-   const btnSpawnGuest = document.getElementById("btnSpawnGuest");
-
-if (btnSpawnGuest) {
-  btnSpawnGuest.addEventListener("click", () => {
-    // Push a guest into the lobby queue (doesn't occupy a room yet)
-    const guest = randomGuestName();
-    HOTEL.queue.push({ type: "checkin", guest });
-
-    hotelMsg(`Guest spawned: ${guest} is waiting in the lobby 👤`);
-    renderHotel();
+  tabs.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      tabs.forEach((t) => t.classList.remove("active"));
+      btn.classList.add("active");
+
+      Object.values(panels).forEach((p) => p && p.classList.remove("active"));
+      const key = btn.dataset.tab;
+      if (panels[key]) panels[key].classList.add("active");
+    });
   });
 }
 
-  // Run on DOM ready
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", init);
-  } else {
-    init();
+/* =========================
+HOTEL MODE (A)
+========================= */
+
+const HOTEL = {
+  roomCount: 6,
+  patienceMs: 15000,
+  stayMs: 10000,
+  cleanMsBase: 3000,
+  snackChance: 0.35,
+  snackTip: 3,
+  checkinCoin: 1,
+  checkoutCoin: 2,
+};
+
+const faces = ["🧑🏾‍🦱","👩🏾‍🦰","🧑🏿‍🦱","👨🏾‍🦲","👩🏿‍🦱","🧑🏾","👨🏿","👩🏾","🧑🏿","👨🏾‍🦱"];
+
+let hotelState = {
+  served: 0,
+  queue: [], // {id, face, expiresAt}
+  rooms: [], // {id, state, guestId, guestFace, ready, snackOrdered, cleaningUntil}
+  selectedRoomId: null,
+  upgrades: {
+    cleaner: 0,  // reduces cleaning time
+    bellboy: 0,  // increases snack tip
   }
-})();
+};
+
+function saveHotel() {
+  localStorage.setItem("mombasaHotel", JSON.stringify({
+    served: hotelState.served,
+    queue: hotelState.queue,
+    rooms: hotelState.rooms,
+    upgrades: hotelState.upgrades
+  }));
+}
+function loadHotel() {
+  try {
+    const raw = localStorage.getItem("mombasaHotel");
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    if (!data || !Array.isArray(data.rooms)) return false;
+    hotelState.served = Number(data.served) || 0;
+    hotelState.queue = Array.isArray(data.queue) ? data.queue : [];
+    hotelState.rooms = data.rooms;
+    hotelState.upgrades = data.upgrades || hotelState.upgrades;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function setHint(text) {
+  if ($("hint")) $("hint").textContent = text;
+}
+
+function updateHud() {
+  if ($("queueCount")) $("queueCount").textContent = String(hotelState.queue.length);
+  if ($("served")) $("served").textContent = String(hotelState.served);
+  setCoins(getCoins()); // refresh both coins displays
+}
+
+function initRoomsFresh() {
+  hotelState.rooms = [];
+  for (let i = 1; i <= HOTEL.roomCount; i++) {
+    hotelState.rooms.push({
+      id: i,
+      state: "empty", // empty | occupied | ready | dirty | cleaning
+      guestId: null,
+      guestFace: null,
+      ready: false,
+      snackOrdered: false,
+      cleaningUntil: 0
+    });
+  }
+}
+
+function roomLabel(room) {
+  if (room.state === "empty") return "✅ Empty";
+  if (room.state === "occupied") return "🟦 Occupied";
+  if (room.state === "ready") return room.snackOrdered ? "🛎️ Ready (Snack!)" : "⭐ Ready";
+  if (room.state === "dirty") return "🟥 Dirty";
+  if (room.state === "cleaning") return "🧽 Cleaning…";
+  return room.state;
+}
+
+function renderRooms() {
+  const grid = $("hotelGrid");
+  if (!grid) return;
+
+  grid.innerHTML = "";
+
+  hotelState.rooms.forEach((room) => {
+    const div = document.createElement("div");
+    const selected = hotelState.selectedRoomId === room.id;
+
+    div.className = "roomTile" + (selected ? " selected" : "");
+    div.style.cursor = "pointer";
+    div.style.padding = "12px";
+    div.style.borderRadius = "14px";
+    div.style.border = "1px solid rgba(255,255,255,.15)";
+    div.style.background = "rgba(255,255,255,.06)";
+    div.style.display = "flex";
+    div.style.flexDirection = "column";
+    div.style.gap = "6px";
+    div.style.minHeight = "90px";
+    if (selected) div.style.outline = "2px solid rgba(59,130,246,.35)";
+
+    div.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <strong>Room ${room.id}</strong>
+        <span style="font-size:12px;opacity:.85">${roomLabel(room)}</span>
+      </div>
+      <div style="font-size:18px">${room.guestFace ? room.guestFace : " "}</div>
+      <div style="font-size:12px;opacity:.75">${room.guestId ? ("Guest " + room.guestId) : ""}</div>
+    `;
+
+    div.addEventListener("click", () => {
+      hotelState.selectedRoomId = room.id;
+      renderRooms();
+      renderRoomCard();
+    });
+
+    grid.appendChild(div);
+  });
+}
+
+function renderRoomCard() {
+  const card = $("roomCard");
+  if (!card) return;
+
+  const room = getSelectedRoom();
+  if (!room) {
+    card.innerHTML = `<div class="muted">Select a room.</div>`;
+    return;
+  }
+
+  const status = roomLabel(room);
+  const guestText = room.guestId ? `${room.guestFace} Guest ${room.guestId}` : "No guest";
+  const snackText = room.snackOrdered ? "🛎️ Snack order pending" : "No snack order";
+  const readyText = room.state === "ready" ? "✅ Ready for checkout" : "";
+
+  card.innerHTML = `
+    <div><strong>Room ${room.id}</strong></div>
+    <div class="muted">${status}</div>
+    <div style="margin-top:8px">${guestText}</div>
+    <div style="margin-top:6px;opacity:.9">${snackText}</div>
+    <div style="margin-top:6px;opacity:.9">${readyText}</div>
+  `;
+}
+
+function getSelectedRoom() {
+  const id = hotelState.selectedRoomId;
+  return hotelState.rooms.find(r => r.id === id) || null;
+}
+
+function firstAvailableRoom() {
+  return hotelState.rooms.find(r => r.state === "empty") || null;
+}
+
+function spawnGuest() {
+  if (hotelState.queue.length >= 6) {
+    setHint("Queue full 😅 Serve guests first.");
+    return;
+  }
+  const id = Math.random().toString(16).slice(2, 6).toUpperCase();
+  const face = faces[randInt(0, faces.length - 1)];
+  const now = Date.now();
+  hotelState.queue.push({
+    id,
+    face,
+    expiresAt: now + HOTEL.patienceMs
+  });
+  setHint(`New guest arrived ${face} (Queue: ${hotelState.queue.length})`);
+  updateHud();
+  saveHotel();
+}
+
+function tickQueue() {
+  const now = Date.now();
+  const before = hotelState.queue.length;
+  hotelState.queue = hotelState.queue.filter(g => g.expiresAt > now);
+
+  if (hotelState.queue.length < before) {
+    setHint("Some guests left 😭 (patience ran out).");
+    updateHud();
+    saveHotel();
+  }
+}
+
+function checkInGuest(preferSelected = true) {
+  if (hotelState.queue.length === 0) {
+    setHint("No guests in queue. Tap “Spawn Guest”.");
+    return;
+  }
+
+  let room = null;
+  if (preferSelected) {
+    const sel = getSelectedRoom();
+    if (sel && sel.state === "empty") room = sel;
+  }
+  if (!room) room = firstAvailableRoom();
+
+  if (!room) {
+    setHint("No empty rooms! Checkout + clean first.");
+    return;
+  }
+
+  const guest = hotelState.queue.shift();
+  room.state = "occupied";
+  room.guestId = guest.id;
+  room.guestFace = guest.face;
+  room.ready = false;
+  room.snackOrdered = Math.random() < HOTEL.snackChance;
+  room.cleaningUntil = 0;
+
+  setCoins(getCoins() + HOTEL.checkinCoin);
+  setHint(`Checked in ${guest.face} to Room ${room.id} ✅`);
+  hotelState.selectedRoomId = room.id;
+
+  // After stay, mark ready
+  setTimeout(() => {
+    const r = hotelState.rooms.find(x => x.id === room.id);
+    if (!r) return;
+    // only if still occupied with same guest
+    if (r.state === "occupied" && r.guestId === guest.id) {
+      r.state = "ready";
+      r.ready = true;
+      setHint(r.snackOrdered ? `Room ${r.id}: Guest wants snacks 🛎️` : `Room ${r.id}: Ready to checkout ⭐`);
+      renderRooms();
+      renderRoomCard();
+      saveHotel();
+    }
+  }, HOTEL.stayMs);
+
+  updateHud();
+  renderRooms();
+  renderRoomCard();
+  saveHotel();
+}
+
+function deliverSnack() {
+  const room = getSelectedRoom();
+  if (!room) return setHint("Select a room first.");
+  if (!room.guestId) return setHint("No guest in this room.");
+  if (!room.snackOrdered) return setHint("No snack order here.");
+
+  room.snackOrdered = false;
+  const bonus = HOTEL.snackTip + (hotelState.upgrades.bellboy ? 2 : 0);
+  setCoins(getCoins() + bonus);
+  setHint(`Snack delivered! +${bonus} coins 😍`);
+  renderRooms();
+  renderRoomCard();
+  saveHotel();
+}
+
+function checkoutGuest() {
+  const room = getSelectedRoom();
+  if (!room) return setHint("Select a room first.");
+  if (!room.guestId) return setHint("No guest to checkout.");
+  if (room.state !== "ready" && room.state !== "occupied") {
+    return setHint("This room is not ready for checkout.");
+  }
+
+  // checkout
+  hotelState.served += 1;
+  setCoins(getCoins() + HOTEL.checkoutCoin);
+
+  setHint(`Guest checked out! Room ${room.id} is now dirty 🟥`);
+  room.state = "dirty";
+  room.ready = false;
+
+  // keep guest visible briefly? we clear it now:
+  room.guestId = null;
+  room.guestFace = null;
+  room.snackOrdered = false;
+
+  updateHud();
+  renderRooms();
+  renderRoomCard();
+  saveHotel();
+}
+
+function cleaningTimeMs() {
+  // cleaner upgrade reduces time
+  const reduction = hotelState.upgrades.cleaner ? 800 : 0;
+  return Math.max(1400, HOTEL.cleanMsBase - reduction);
+}
+
+function cleanRoom(selectedOnly = true) {
+  const room = selectedOnly ? getSelectedRoom() : null;
+  if (!room) return setHint("Select a room first.");
+  if (room.state !== "dirty") return setHint("Room is not dirty.");
+
+  room.state = "cleaning";
+  const ms = cleaningTimeMs();
+  room.cleaningUntil = Date.now() + ms;
+  setHint(`Cleaning Room ${room.id}… 🧽`);
+
+  renderRooms();
+  renderRoomCard();
+  saveHotel();
+
+  setTimeout(() => {
+    const r = hotelState.rooms.find(x => x.id === room.id);
+    if (!r) return;
+    if (r.state === "cleaning") {
+      r.state = "empty";
+      r.cleaningUntil = 0;
+      setHint(`Room ${r.id} is clean ✅`);
+      renderRooms();
+      renderRoomCard();
+      saveHotel();
+    }
+  }, ms);
+}
+
+/* -------------------------
+Shop buttons (simple)
+------------------------- */
+function buyUpgrade(which) {
+  const coins = getCoins();
+  if (which === "cleaner") {
+    if (hotelState.upgrades.cleaner) return setHint("Cleaner already bought ✅");
+    if (coins < 120) return setHint("Not enough coins for Cleaner.");
+    setCoins(coins - 120);
+    hotelState.upgrades.cleaner = 1;
+    setHint("Cleaner purchased 🧹 (cleaning faster)");
+  }
+
+  if (which === "bellboy") {
+    if (hotelState.upgrades.bellboy) return setHint("Bellboy already bought ✅");
+    if (coins < 160) return setHint("Not enough coins for Bellboy.");
+    setCoins(coins - 160);
+    hotelState.upgrades.bellboy = 1;
+    setHint("Bellboy purchased 🛎️ (snack tips higher)");
+  }
+
+  saveHotel();
+}
+
+function resetMombasaProgress() {
+  localStorage.removeItem("mombasaHotel");
+  localStorage.removeItem("coins");
+  hotelState.served = 0;
+  hotelState.queue = [];
+  hotelState.selectedRoomId = null;
+  hotelState.upgrades = { cleaner: 0, bellboy: 0 };
+  initRoomsFresh();
+  setCoins(0);
+  setHint("Progress reset ♻️");
+  updateHud();
+  renderRooms();
+  renderRoomCard();
+}
+
+/* =========================
+PUZZLE (simple match-3)
+- uses <div id="board">
+- images in images/tiles/
+========================= */
+
+const PUZZLE = {
+  width: 8,
+  tiles: [
+    "images/tiles/palm.png",
+    "images/tiles/shell.png",
+    "images/tiles/fish.png",
+    "images/tiles/coconut.png",
+    "images/tiles/wave.png",
+    "images/tiles/sun.png",
+  ],
+};
+
+let pBoard = [];      // array of {img, el}
+let pSelected = null; // index
+
+function initPuzzle() {
+  const boardEl = $("board");
+  if (!boardEl) return;
+
+  boardEl.innerHTML = "";
+  pBoard = [];
+  pSelected = null;
+
+  const total = PUZZLE.width * PUZZLE.width;
+
+  for (let i = 0; i < total; i++) {
+    const tile = document.createElement("div");
+    tile.className = "tile";
+    tile.dataset.i = String(i);
+
+    // If your CSS expects img inside tiles:
+    const img = document.createElement("img");
+    img.alt = "tile";
+    img.draggable = false;
+    img.style.width = "100%";
+    img.style.height = "100%";
+    img.style.objectFit = "cover";
+    img.style.borderRadius = "10px";
+
+    const src = PUZZLE.tiles[randInt(0, PUZZLE.tiles.length - 1)];
+    img.src = src;
+
+    tile.appendChild(img);
+
+    tile.addEventListener("click", () => onTileClick(i));
+    boardEl.appendChild(tile);
+
+    pBoard.push({ img: src, el: tile });
+  }
+
+  if ($("msg")) $("msg").textContent = "Make a match!";
+}
+
+function onTileClick(i) {
+  if (pSelected === null) {
+    pSelected = i;
+    highlightTile(i, true);
+    return;
+  }
+
+  if (pSelected === i) {
+    highlightTile(i, false);
+    pSelected = null;
+    return;
+  }
+
+  const a = pSelected;
+  const b = i;
+
+  // Must be adjacent
+  const ok = areAdjacent(a, b);
+  highlightTile(a, false);
+  pSelected = null;
+
+  if (!ok) {
+    pulseTile(b);
+    return;
+  }
+
+  swapTiles(a, b);
+
+  // Check matches after swap
+  const matches = findMatches();
+  if (matches.size === 0) {
+    // swap back
+    swapTiles(a, b);
+    pulseTile(b);
+    return;
+  }
+
+  crushMatches(matches);
+}
+
+function highlightTile(i, on) {
+  const el = pBoard[i]?.el;
+  if (!el) return;
+  el.style.outline = on ? "2px solid rgba(34,197,94,.7)" : "none";
+}
+
+function pulseTile(i) {
+  const el = pBoard[i]?.el;
+  if (!el) return;
+  el.style.transition = "transform 80ms";
+  el.style.transform = "scale(0.96)";
+  setTimeout(() => el.style.transform = "scale(1.03)", 90);
+  setTimeout(() => el.style.transform = "scale(1.0)", 180);
+}
+
+function areAdjacent(a, b) {
+  const w = PUZZLE.width;
+  const ax = a % w, ay = Math.floor(a / w);
+  const bx = b % w, by = Math.floor(b / w);
+  const dx = Math.abs(ax - bx);
+  const dy = Math.abs(ay - by);
+  return (dx + dy) === 1;
+}
+
+function tileImg(i) {
+  const imgEl = pBoard[i].el.querySelector("img");
+  return imgEl?.src || "";
+}
+
+function setTileImg(i, src) {
+  const imgEl = pBoard[i].el.querySelector("img");
+  if (imgEl) imgEl.src = src;
+  pBoard[i].img = src;
+}
+
+function swapTiles(a, b) {
+  const imgA = pBoard[a].img;
+  const imgB = pBoard[b].img;
+  setTileImg(a, imgB);
+  setTileImg(b, imgA);
+}
+
+function findMatches() {
+  const w = PUZZLE.width;
+  const total = w * w;
+  const matches = new Set();
+
+  // horizontal
+  for (let r = 0; r < w; r++) {
+    let runStart = r * w;
+    let runLen = 1;
+
+    for (let c = 1; c < w; c++) {
+      const i = r * w + c;
+      const prev = r * w + (c - 1);
+      if (pBoard[i].img === pBoard[prev].img) runLen++;
+      else {
+        if (runLen >= 3) {
+          for (let k = 0; k < runLen; k++) matches.add(runStart + k);
+        }
+        runStart = i;
+        runLen = 1;
+      }
+    }
+    if (runLen >= 3) {
+      for (let k = 0; k < runLen; k++) matches.add(runStart + k);
+    }
+  }
+
+  // vertical
+  for (let c = 0; c < w; c++) {
+    let runStart = c;
+    let runLen = 1;
+
+    for (let r = 1; r < w; r++) {
+      const i = r * w + c;
+      const prev = (r - 1) * w + c;
+      if (pBoard[i].img === pBoard[prev].img) runLen++;
+      else {
+        if (runLen >= 3) {
+          for (let k = 0; k < runLen; k++) matches.add(runStart + k * w);
+        }
+        runStart = i;
+        runLen = 1;
+      }
+    }
+    if (runLen >= 3) {
+      for (let k = 0; k < runLen; k++) matches.add(runStart + k * w);
+    }
+  }
+
+  return matches;
+}
+
+function crushMatches(matches) {
+  // coins reward: +1 per tile crushed
+  const earned = matches.size;
+  setCoins(getCoins() + earned);
+
+  if ($("msg")) $("msg").textContent = `Crush! +${earned} coins 🪙`;
+
+  // "crush" animation
+  matches.forEach(i => {
+    const el = pBoard[i].el;
+    el.style.transition = "transform 120ms, opacity 120ms";
+    el.style.opacity = "0.2";
+    el.style.transform = "scale(0.85)";
+  });
+
+  setTimeout(() => {
+    // replace matched tiles with random new tiles
+    matches.forEach(i => {
+      const src = PUZZLE.tiles[randInt(0, PUZZLE.tiles.length - 1)];
+      setTileImg(i, src);
+      const el = pBoard[i].el;
+      el.style.opacity = "1";
+      el.style.transform = "scale(1)";
+    });
+
+    // chain reaction
+    const chain = findMatches();
+    if (chain.size > 0) crushMatches(chain);
+  }, 150);
+}
+
+/* -------------------------
+Wire up buttons
+------------------------- */
+function bindHotelButtons() {
+  $("btnSpawnGuest")?.addEventListener("click", spawnGuest);
+
+  $("btnCheckIn")?.addEventListener("click", () => checkInGuest(true));
+  $("btnServeQueue")?.addEventListener("click", () => checkInGuest(false));
+
+  $("btnDeliverSnack")?.addEventListener("click", deliverSnack);
+  $("btnCheckout")?.addEventListener("click", checkoutGuest);
+  $("btnClean")?.addEventListener("click", () => cleanRoom(true));
+  $("btnEmergencyClean")?.addEventListener("click", () => cleanRoom(true));
+
+  $("buyCleaner")?.addEventListener("click", () => buyUpgrade("cleaner"));
+  $("buyBellboy")?.addEventListener("click", () => buyUpgrade("bellboy"));
+
+  $("btnResetMombasa")?.addEventListener("click", resetMombasaProgress);
+}
+
+function bindPuzzleButtons() {
+  $("resetPuzzle")?.addEventListener("click", initPuzzle);
+}
+
+/* -------------------------
+Boot
+------------------------- */
+window.addEventListener("load", () => {
+  // coins render
+  setCoins(getCoins());
+
+  initTabs();
+
+  // hotel load/init
+  const loaded = loadHotel();
+  if (!loaded) initRoomsFresh();
+
+  // If rooms array missing (safety)
+  if (!Array.isArray(hotelState.rooms) || hotelState.rooms.length === 0) initRoomsFresh();
+
+  // Select first room by default
+  if (!hotelState.selectedRoomId) hotelState.selectedRoomId = 1;
+
+  updateHud();
+  renderRooms();
+  renderRoomCard();
+
+  bindHotelButtons();
+
+  // queue patience tick
+  setInterval(tickQueue, 300);
+
+  // puzzle init
+  initPuzzle();
+  bindPuzzleButtons();
+});
