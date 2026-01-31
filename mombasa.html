@@ -1,6 +1,8 @@
 <!-- =========================
 File: mombasa.html
-Safari Stay – Mombasa Hotel
+Safari Stay – Mombasa Hotel (Mode 3)
+Auto: spawn + queue
+Manual: check-in, snack, checkout, clean
 ========================= -->
 <!DOCTYPE html>
 <html lang="en">
@@ -10,7 +12,7 @@ Safari Stay – Mombasa Hotel
   <title>Safari Stay – Mombasa Hotel</title>
   <link rel="stylesheet" href="style.css" />
 
-  <!-- ✅ Load ONCE (lowercase) -->
+  <!-- ✅ Load ONCE -->
   <script src="mombasa.js" defer></script>
 </head>
 
@@ -31,6 +33,7 @@ Safari Stay – Mombasa Hotel
       <div class="pill">🪙 Coins: <span id="coins">0</span></div>
       <div class="pill">👥 Queue: <span id="queueCount">0</span></div>
       <div class="pill">✅ Served: <span id="served">0</span></div>
+      <div class="pill">😡 Angry: <span id="angry">0</span></div>
     </div>
   </header>
 
@@ -39,21 +42,19 @@ Safari Stay – Mombasa Hotel
     <button class="tab" data-tab="puzzle">Puzzle</button>
     <button class="tab" data-tab="shop">Shop</button>
 
+    <button class="btn" id="btnAutoSpawn">🤖 Auto Spawn: ON</button>
     <button class="btn primary" id="btnSpawnGuest">👤 Spawn Guest</button>
   </nav>
 
   <main class="wrap">
-
-    <!-- =========================
-    HOTEL TAB
-    ========================= -->
+    <!-- HOTEL TAB -->
     <section class="panel active" id="tab-hotel">
       <div class="layout">
 
         <section class="card scene">
           <div class="sceneHeader">
             <div class="hint" id="hint">Welcome to Mombasa 🌴</div>
-            <div class="smallMuted">Tap a room to interact. Snack orders show 🛎️.</div>
+            <div class="smallMuted">Mode 3: Guests spawn + wait automatically. You manage rooms.</div>
           </div>
 
           <div class="hotelGrid" id="hotelGrid">
@@ -61,13 +62,18 @@ Safari Stay – Mombasa Hotel
           </div>
 
           <div class="bottomBar">
-            <button class="btn primary" id="btnCheckIn">➕ Check-in Guest</button>
-            <button class="btn" id="btnServeQueue">🧾 Serve Queue</button>
+            <button class="btn primary" id="btnCheckIn">➕ Check-in (Selected / First Empty)</button>
+            <button class="btn" id="btnServeQueue">⚡ Quick Check-in (First Empty)</button>
             <button class="btn danger" id="btnEmergencyClean">🧼 Clean Selected</button>
           </div>
         </section>
 
         <aside class="card side">
+          <h3>Entrance Queue</h3>
+          <div id="queueList" class="queueList"></div>
+
+          <div class="divider"></div>
+
           <h3>Room Details</h3>
           <div class="roomCard" id="roomCard">
             <div class="muted">Select a room.</div>
@@ -86,30 +92,24 @@ Safari Stay – Mombasa Hotel
 
           <h3>How it works</h3>
           <ul class="list">
-            <li>Guests spawn into a queue.</li>
-            <li>Check-in assigns a queued guest to the selected room (or first available).</li>
-            <li>Guests become ready to checkout after ~10s.</li>
-            <li>Checkout makes the room dirty.</li>
-            <li>Cleaning takes ~3s (manual).</li>
-            <li>Some guests order snacks 🛎️. Deliver snack for bonus coins.</li>
+            <li>Guests auto-spawn + wait with patience bars.</li>
+            <li>Check-in puts the next guest into an empty room.</li>
+            <li>Some guests request snacks 🛎️ → deliver for bonus coins.</li>
+            <li>Checkout → room becomes dirty → clean it to reuse.</li>
           </ul>
         </aside>
 
       </div>
     </section>
 
-    <!-- =========================
-    PUZZLE TAB
-    ========================= -->
+    <!-- PUZZLE TAB -->
     <section class="panel" id="tab-puzzle">
       <section class="card puzzlePanel">
-
         <div class="puzzleTop">
           <div>
             <h2>Mombasa Match-3</h2>
-            <p class="muted">Match 3 or more tiles to earn coins.</p>
+            <p class="muted">Match 3+ tiles to earn coins.</p>
           </div>
-
           <div class="puzzleStats">
             <div class="stat">🪙 Coins: <span id="coinsPuzzle">0</span></div>
             <div class="stat">🎯 Target: <span id="target">300</span></div>
@@ -124,18 +124,13 @@ Safari Stay – Mombasa Hotel
         </div>
 
         <div class="tip">
-          <strong>Images folder:</strong>
-          <code>images/tiles/</code>
-          <br>
-          palm.png, shell.png, fish.png, coconut.png, wave.png, sun.png
+          <strong>Images folder:</strong> <code>images/tiles/</code>
+          <br>palm.png, shell.png, fish.png, coconut.png, wave.png, sun.png
         </div>
-
       </section>
     </section>
 
-    <!-- =========================
-    SHOP TAB
-    ========================= -->
+    <!-- SHOP TAB -->
     <section class="panel" id="tab-shop">
       <section class="card">
         <h2>Shop</h2>
@@ -147,7 +142,7 @@ Safari Stay – Mombasa Hotel
               <div class="shopIcon">🧹</div>
               <div>
                 <div class="shopTitle">Cleaner</div>
-                <div class="muted">Reduces cleaning time a bit.</div>
+                <div class="muted">Reduces cleaning time.</div>
               </div>
             </div>
             <div class="rowBetween">
@@ -176,7 +171,6 @@ Safari Stay – Mombasa Hotel
         <button class="btn danger" id="btnResetMombasa">♻️ Reset Mombasa Progress</button>
       </section>
     </section>
-
   </main>
 </body>
 </html>
