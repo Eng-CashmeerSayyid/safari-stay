@@ -529,7 +529,8 @@ function tickRooms() {
   let didCheckout = 0;
 
   for (const r of state.rooms) {
-    if (r.status === "occupied" && r.readyAt && now >= r.readyAt) {
+    if (r.status === "ready" && r.readyAt && now >= r.readyAt + HOTEL.autoCheckoutDelayMs) {
+
       r.status = "ready";
       changed = true;
     }
