@@ -35,13 +35,23 @@
   <main class="wrap">
 
     <!-- HOTEL PANEL -->
-    <section id="tab-hotel" class="panel active">
-      <div class="card sceneHeader">
-        <div class="rowBetween">
-          <div>
-            <div class="hint" id="hint">Select a guest, then click an EMPTY room.</div>
-            <div class="smallMuted">Queue: <span id="queueCount">0</span> • Served: <span id="served">0</span> • Angry left: <span id="angry">0</span></div>
-          </div>
+        <section id="tab-hotel" class="panel active">
+  <div class="card sceneHeader">
+    <div class="rowBetween">
+      <div>
+        <div class="hint" id="hint">
+          Select a guest, then click an EMPTY room.
+        </div>
+
+        <div class="smallMuted">
+          Level: <span id="levelNo">1</span> •
+          Goal: <span id="levelGoal">10</span> •
+          Served: <span id="served">0</span> •
+          Angry left: <span id="angry">0</span> •
+          Queue: <span id="queueCount">0</span>
+        </div>
+      </div>
+
 
           <div class="rowBetween">
             <button class="btn primary" id="btnSpawnGuest" type="button">➕ Spawn Guest</button>
