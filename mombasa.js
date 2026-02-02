@@ -1,9 +1,11 @@
 /* =========================
-mombasa.js (FULL REVISED)
-Fixes:
-- Mood change feels slower (adds 😐 and longer patience)
-- Guest -> Room click always works (rooms are .roomBtn buttons)
-- Puzzle tiles use background-image (no question mark / reveal)
+mombasa.js (AUTO CHECKOUT + MANUAL CLEANING)
+- Queue patience slow
+- Click guest -> click EMPTY room to check-in
+- ✅ Auto checkout after ready
+- ❌ Cleaning is manual
+- Rooms = 4
+- Puzzle uses background-image tiles
 ========================= */
 
 /* ---------- helpers ---------- */
@@ -37,17 +39,22 @@ function initTabs() {
 }
 
 /* =========================
-HOTEL CONFIG (SLOWED DOWN)
+HOTEL CONFIG
 ========================= */
 const HOTEL = {
   roomCount: 4,
   maxQueue: 6,
-  spawnEveryMs: 7000,   // slower spawn
-  patienceMs: 65000,    // slower patience
-  stayMs: 9000,
-  cleanMsBase: 2600,
+
+  spawnEveryMs: 7000,      // guest arrival speed
+  patienceMs: 65000,       // patience total time
+
+  stayMs: 9000,            // time inside room before ready
+  autoCheckoutDelayMs: 3500, // ✅ after ready, guest checks out automatically
+
+  cleanMsBase: 2600,       // manual clean duration
   snackChance: 0.35,
   snackTip: 3,
+
   checkinCoin: 1,
   checkoutCoin: 2,
 };
@@ -59,7 +66,7 @@ let state = {
   served: 0,
   angry: 0,
   queue: [], // {id, face, createdAt, expiresAt}
-  rooms: [], // {id, status, guestId, guestFace, snackOrdered, readyAt}
+  rooms: [], // {id, status, guestId, guestFace, snackOrdered, readyAt, checkoutAt}
   selectedRoomId: 1,
   selectedGuestId: null,
   upgrades: { cleaner: 0, bellboy: 0 },
@@ -108,7 +115,8 @@ function initRooms() {
       guestId: null,
       guestFace: null,
       snackOrdered: false,
-      readyAt: 0
+      readyAt: 0,
+      checkoutAt: 0
     });
   }
   state.selectedRoomId = 1;
@@ -259,7 +267,7 @@ function renderRooms() {
       e.preventDefault();
       e.stopPropagation();
 
-      // If guest selected, attempt check-in first
+      // guest selected => try check-in first
       if (state.selectedGuestId) {
         if (r.status === "empty") {
           checkInSelectedGuestToRoom(r.id);
@@ -269,7 +277,7 @@ function renderRooms() {
         else hint("Room not available ❌ Choose an EMPTY room.");
       }
 
-      // otherwise just select room
+      // otherwise select room
       state.selectedRoomId = r.id;
       renderRooms();
       renderRoomCard();
@@ -294,6 +302,9 @@ function renderRoomCard() {
     <div class="muted">${roomLabel(r)}</div>
     <div style="margin-top:8px">${guest}</div>
     <div style="margin-top:6px;opacity:.9">${snack}</div>
+    <div style="margin-top:10px;" class="smallMuted">
+      Checkout is automatic ✅ (room becomes dirty).
+    </div>
   `;
 }
 
@@ -317,7 +328,10 @@ function checkInSelectedGuestToRoom(roomId) {
   r.guestId = g.id;
   r.guestFace = g.face;
   r.snackOrdered = Math.random() < HOTEL.snackChance;
-  r.readyAt = Date.now() + HOTEL.stayMs;
+
+  const now = Date.now();
+  r.readyAt = now + HOTEL.stayMs;
+  r.checkoutAt = r.readyAt + HOTEL.autoCheckoutDelayMs; // ✅ auto checkout schedule
 
   state.selectedGuestId = null;
   setCoins(getCoins() + HOTEL.checkinCoin);
@@ -360,18 +374,48 @@ function tickQueue() {
   }
 }
 
+function autoCheckoutRoom(r) {
+  // ✅ Only auto checkout if ready + has guest
+  if (!r.guestId) return;
+  if (r.status !== "ready") return;
+
+  state.served += 1;
+  setCoins(getCoins() + HOTEL.checkoutCoin);
+
+  r.status = "dirty";
+  r.guestId = null;
+  r.guestFace = null;
+  r.snackOrdered = false;
+  r.readyAt = 0;
+  r.checkoutAt = 0;
+}
+
 function tickRooms() {
   const now = Date.now();
   let changed = false;
+  let didCheckout = 0;
 
   for (const r of state.rooms) {
+    // occupied -> ready
     if (r.status === "occupied" && r.readyAt && now >= r.readyAt) {
       r.status = "ready";
       changed = true;
     }
+
+    // ready -> auto checkout
+    if (r.status === "ready" && r.checkoutAt && now >= r.checkoutAt) {
+      autoCheckoutRoom(r);
+      didCheckout++;
+      changed = true;
+    }
+  }
+
+  if (didCheckout > 0) {
+    hint(`${didCheckout} guest(s) checked out automatically ✅ Room(s) dirty 🟥`);
   }
 
   if (changed) {
+    updateHud();
     renderRooms();
     renderRoomCard();
     save();
@@ -395,22 +439,16 @@ function deliverSnack() {
   save();
 }
 
+/* ✅ Checkout button now optional (manual override) */
 function checkout() {
   const r = getSelectedRoom();
   if (!r) return;
   if (!r.guestId) return hint("No guest to checkout.");
   if (r.status !== "ready") return hint("Guest not ready yet ⭐");
 
-  state.served += 1;
-  setCoins(getCoins() + HOTEL.checkoutCoin);
+  autoCheckoutRoom(r);
+  hint(`Manual checkout ✅ Room ${r.id} dirty 🟥`);
 
-  r.status = "dirty";
-  r.guestId = null;
-  r.guestFace = null;
-  r.snackOrdered = false;
-  r.readyAt = 0;
-
-  hint(`Checkout complete ✅ Room ${r.id} is dirty 🟥`);
   updateHud();
   renderRooms();
   renderRoomCard();
@@ -511,8 +549,7 @@ function resetAll() {
 }
 
 /* =========================
-PUZZLE (MATCH-3) – REVISED
-Uses .tile buttons + background-image
+PUZZLE (MATCH-3) background-image tiles
 ========================= */
 const PUZZLE = {
   width: 8,
@@ -526,7 +563,7 @@ const PUZZLE = {
   ],
 };
 
-let pBoard = [];    // each = { src, el }
+let pBoard = [];
 let pSelected = null;
 
 function setBoardSizeCSS() {
@@ -585,7 +622,6 @@ function findMatches() {
   const w = PUZZLE.width;
   const matches = new Set();
 
-  // rows
   for (let r = 0; r < w; r++) {
     let runStart = r * w;
     let runLen = 1;
@@ -601,7 +637,6 @@ function findMatches() {
     if (runLen >= 3) for (let k = 0; k < runLen; k++) matches.add(runStart + k);
   }
 
-  // cols
   for (let c = 0; c < w; c++) {
     let runStart = c;
     let runLen = 1;
@@ -625,18 +660,15 @@ function crushMatches(matches) {
   setCoins(getCoins() + earned);
   $("msg") && ($("msg").textContent = `Crush! +${earned} coins 🪙`);
 
-  // animate crush
   matches.forEach(i => pBoard[i].el.classList.add("crush"));
 
   setTimeout(() => {
-    // replace tiles
     matches.forEach(i => {
       pBoard[i].el.classList.remove("crush");
       const src = PUZZLE.tiles[randInt(0, PUZZLE.tiles.length - 1)];
       setTileSrc(i, src);
     });
 
-    // chain
     const chain = findMatches();
     if (chain.size > 0) crushMatches(chain);
   }, 230);
@@ -660,7 +692,6 @@ function onTileClick(i) {
   const matches = findMatches();
 
   if (matches.size === 0) {
-    // invalid move: shake
     swapTiles(a, i);
     pBoard[i].el.classList.add("shake");
     setTimeout(() => pBoard[i].el.classList.remove("shake"), 250);
@@ -681,7 +712,7 @@ function bindButtons() {
   });
 
   $("btnDeliverSnack")?.addEventListener("click", deliverSnack);
-  $("btnCheckout")?.addEventListener("click", checkout);
+  $("btnCheckout")?.addEventListener("click", checkout);  // optional manual override
   $("btnClean")?.addEventListener("click", cleanSelected);
 
   $("buyCleaner")?.addEventListener("click", () => buyUpgrade("cleaner"));
@@ -707,9 +738,8 @@ window.addEventListener("load", () => {
 
   bindButtons();
 
-  // slower updates
   setInterval(tickQueue, 1000);
-  setInterval(tickRooms, 400);
+  setInterval(tickRooms, 300); // faster room tick so auto checkout feels smooth
 
   setInterval(() => {
     if (AUTO.spawn) spawnGuest(false);
