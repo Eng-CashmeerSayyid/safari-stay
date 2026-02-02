@@ -1,10 +1,5 @@
 /* =========================
-Safari Stay – style.css (UPDATED - FINAL)
-- Keeps your UI look
-- Tabs/panels work
-- Hotel UI remains
-- MATCH-3 Puzzle (5x5 / #board / .tile) supported
-- Removes old Match-2 puzzleGrid/pCard duplicates
+Safari Stay – style.css (REVISED - FINAL)
 Works for: index.html + Mombasa.html
 ========================= */
 
@@ -20,8 +15,6 @@ body{
     radial-gradient(900px 600px at 85% 10%, rgba(16,185,129,.18), transparent 55%),
     linear-gradient(180deg, #0b1220 0%, #070b14 100%);
 }
-
-/* links */
 a{ color:inherit; text-decoration:none; }
 
 /* ---------- layout helpers ---------- */
@@ -57,7 +50,6 @@ a{ color:inherit; text-decoration:none; }
   box-shadow: 0 10px 30px rgba(0,0,0,.25);
 }
 .logoLink{ display:inline-flex; }
-
 .title{ font-weight:800; letter-spacing:.2px; }
 .subtitle{ font-size:12px; color: rgba(238,242,255,.66); margin-top:2px; }
 
@@ -79,8 +71,6 @@ a{ color:inherit; text-decoration:none; }
   padding:16px;
   box-shadow: 0 18px 50px rgba(0,0,0,.35);
 }
-.hero h1{ margin:0 0 8px; font-size:28px; }
-.hero p{ margin:0 0 14px; }
 
 /* ---------- buttons ---------- */
 .btn{
@@ -102,19 +92,16 @@ a{ color:inherit; text-decoration:none; }
 .btn:hover{ background: rgba(255,255,255,.11); border-color: rgba(255,255,255,.18); }
 .btn:active{ transform: translateY(1px) scale(.99); }
 .btn:disabled{ opacity:.45; cursor:not-allowed; }
-
 .btn.primary{
   background: linear-gradient(135deg, rgba(99,102,241,.85), rgba(16,185,129,.75));
   border-color: rgba(255,255,255,.18);
 }
 .btn.primary:hover{ filter: brightness(1.05); }
-
 .btn.danger{
   background: rgba(239,68,68,.18);
   border-color: rgba(239,68,68,.28);
 }
 .btn.danger:hover{ background: rgba(239,68,68,.24); }
-
 .bottomBar{
   margin-top:12px;
   display:flex;
@@ -145,8 +132,6 @@ a{ color:inherit; text-decoration:none; }
   background: rgba(255,255,255,.12);
   border-color: rgba(255,255,255,.20);
 }
-
-/* IMPORTANT: this makes puzzle/shop/hotel show correctly */
 .panel{ display:none; }
 .panel.active{ display:block; }
 
@@ -159,7 +144,6 @@ a{ color:inherit; text-decoration:none; }
 @media (max-width:900px){
   .layout{ grid-template-columns: 1fr; }
 }
-
 .sceneHeader{ margin-bottom:10px; }
 .hint{
   font-size:18px;
@@ -192,6 +176,10 @@ a{ color:inherit; text-decoration:none; }
   min-height:82px;
   position:relative;
   overflow:hidden;
+
+  /* ✅ click reliability */
+  pointer-events: auto;
+  z-index: 2;
 }
 .roomBtn:hover{ background: rgba(255,255,255,.10); border-color: rgba(255,255,255,.18); }
 .roomBtn:active{ transform: translateY(1px); }
@@ -201,9 +189,10 @@ a{ color:inherit; text-decoration:none; }
   box-shadow: 0 0 0 3px rgba(99,102,241,.18);
 }
 
-/* room states */
+/* room states decorative blob */
 .roomBtn.state-empty::after,
 .roomBtn.state-occupied::after,
+.roomBtn.state-ready::after,
 .roomBtn.state-dirty::after,
 .roomBtn.state-cleaning::after{
   content:"";
@@ -213,13 +202,17 @@ a{ color:inherit; text-decoration:none; }
   height:140px;
   border-radius:999px;
   opacity:.25;
+
+  /* ✅ IMPORTANT: never block clicks */
+  pointer-events: none;
 }
 .roomBtn.state-empty::after{ background: rgba(16,185,129,.55); }
 .roomBtn.state-occupied::after{ background: rgba(99,102,241,.60); }
+.roomBtn.state-ready::after{ background: rgba(236,72,153,.55); }
 .roomBtn.state-dirty::after{ background: rgba(245,158,11,.65); }
 .roomBtn.state-cleaning::after{ background: rgba(56,189,248,.60); }
 
-/* room mini layout (your HTML) */
+/* room mini layout */
 .rRow{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
 .rTitle{ font-size:16px; }
 .rState{ font-size:12px; color: rgba(238,242,255,.70); font-weight:800; margin-top:4px; }
@@ -234,7 +227,6 @@ a{ color:inherit; text-decoration:none; }
   border:1px solid rgba(255,255,255,.10);
   min-height:80px;
 }
-.stack{ display:flex; flex-direction:column; gap:10px; }
 .divider{
   height:1px;
   background: rgba(255,255,255,.10);
@@ -243,7 +235,6 @@ a{ color:inherit; text-decoration:none; }
 .list{ margin:8px 0 0; padding-left:18px; }
 .list li{ margin:6px 0; color: rgba(238,242,255,.78); }
 
-/* ---------- tips / stats ---------- */
 .tip{
   margin-top:14px;
   padding:12px;
@@ -252,27 +243,6 @@ a{ color:inherit; text-decoration:none; }
   border:1px dashed rgba(255,255,255,.14);
   color: rgba(238,242,255,.78);
 }
-code{
-  background: rgba(0,0,0,.25);
-  padding:2px 6px;
-  border-radius:8px;
-  border:1px solid rgba(255,255,255,.10);
-}
-
-/* ---------- generic stats blocks (if you have them elsewhere) ---------- */
-.stats{
-  display:grid;
-  grid-template-columns: 1fr 1fr;
-  gap:12px;
-}
-.statBox{
-  padding:12px;
-  border-radius:16px;
-  background: rgba(255,255,255,.05);
-  border:1px solid rgba(255,255,255,.10);
-}
-.statLabel{ font-weight:800; color: rgba(238,242,255,.70); }
-.statValue{ font-size:24px; font-weight:950; margin-top:6px; }
 
 /* ---------- shop ---------- */
 .shopGrid{
@@ -281,7 +251,6 @@ code{
   gap:12px;
 }
 @media (max-width:700px){ .shopGrid{ grid-template-columns:1fr; } }
-
 .shopItem{
   padding:14px;
   border-radius:18px;
@@ -298,14 +267,11 @@ code{
 .shopTitle{ font-weight:950; }
 .price{ color: rgba(238,242,255,.78); }
 
-/* ---------- landing page tweak ---------- */
-body.landing .tabs{ display:none; }
-
 /* =========================================================
-MATCH-3 PUZZLE (FINAL)
+MATCH-3 PUZZLE (REVISED)
 Uses:
 - <div id="board" class="board"></div>
-- Tiles are <button class="tile" data-r data-c>
+- Tiles are <button class="tile">
 ========================================================= */
 
 .puzzlePanel{
@@ -317,7 +283,6 @@ Uses:
   border: 1px solid rgba(255,255,255,.10);
   backdrop-filter: blur(8px);
 }
-
 .puzzleTop{
   display:flex;
   align-items:flex-start;
@@ -325,20 +290,17 @@ Uses:
   gap:12px;
   margin-bottom: 12px;
 }
-
 .puzzleTop h2{
   margin:0;
   font-size: 18px;
   font-weight: 900;
 }
-
 .puzzleStats{
   display:flex;
   gap:10px;
   flex-wrap:wrap;
   justify-content:flex-end;
 }
-
 .puzzleStats .stat{
   font-size: 13px;
   padding: 6px 10px;
@@ -348,7 +310,7 @@ Uses:
 }
 
 .board{
-  --size: 5;
+  --size: 8; /* JS will override */
   display:grid;
   grid-template-columns: repeat(var(--size), 1fr);
   gap: 8px;
@@ -358,7 +320,6 @@ Uses:
   border: 1px solid rgba(255,255,255,.08);
 }
 
-/* Tile */
 .tile{
   width: 100%;
   aspect-ratio: 1 / 1;
@@ -376,8 +337,6 @@ Uses:
   transform: translateZ(0);
   transition: transform .15s ease, filter .15s ease, box-shadow .15s ease, border-color .2s ease, opacity .2s ease;
 }
-
-/* subtle shine */
 .tile::after{
   content:"";
   position:absolute;
@@ -385,41 +344,19 @@ Uses:
   background: radial-gradient(120px 80px at 20% 25%, rgba(255,255,255,.12), transparent 60%);
   pointer-events:none;
 }
-
 .tile:hover{
   transform: scale(1.03);
   box-shadow: 0 10px 25px rgba(0,0,0,.28);
   filter: brightness(1.04);
 }
-
 .tile:active{ transform: scale(1.01); }
-
-/* selection */
 .tile.selected{
   outline: 3px solid rgba(255,255,255,.55);
   box-shadow: 0 0 0 6px rgba(255,255,255,.12), 0 12px 26px rgba(0,0,0,.30);
 }
-
-/* empty after crush */
-.tile.empty{
-  background-image: none !important;
-  background-color: rgba(0,0,0,.08);
-  border-style: dashed;
-  opacity: .75;
-}
-
-/* crush */
-.tile.crush{
-  animation: crush .22s ease-in forwards;
-}
-@keyframes crush{
-  to{ transform: scale(.12); opacity: 0; }
-}
-
-/* shake (invalid move) */
-.tile.shake{
-  animation: shake .22s ease-in-out;
-}
+.tile.crush{ animation: crush .22s ease-in forwards; }
+@keyframes crush{ to{ transform: scale(.12); opacity: 0; } }
+.tile.shake{ animation: shake .22s ease-in-out; }
 @keyframes shake{
   0%,100%{ transform: translateX(0); }
   20%{ transform: translateX(-6px); }
@@ -427,8 +364,7 @@ Uses:
   60%{ transform: translateX(-4px); }
   80%{ transform: translateX(4px); }
 }
-
-/* bottom */
+.msg{ font-size: 13px; opacity: .9; }
 .puzzleBottom{
   display:flex;
   align-items:center;
@@ -437,38 +373,3 @@ Uses:
   margin-top: 12px;
 }
 
-.msg{
-  font-size: 13px;
-  opacity: .9;
-}
-
-/* win overlay */
-.winOverlay{
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.55);
-  display:grid;
-  place-items:center;
-  z-index: 9999;
-  padding: 18px;
-}
-
-.winCard{
-  width: min(460px, 92vw);
-  border-radius: 18px;
-  padding: 18px;
-  background: rgba(15,15,25,.92);
-  border: 1px solid rgba(255,255,255,.14);
-  text-align:center;
-}
-
-.winTitle{
-  font-size: 22px;
-  font-weight: 950;
-  margin-bottom: 6px;
-}
-
-.winText{
-  opacity: .95;
-  margin-bottom: 12px;
-}
