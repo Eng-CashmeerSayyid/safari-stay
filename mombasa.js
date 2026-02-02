@@ -1,11 +1,12 @@
 /* =========================
-mombasa.js (FINAL UPDATED)
+mombasa.js (FIXED)
 Manual Hotel Mania:
 - Queue visible with patience bar + mood 🙂
-- Click guest -> click empty room to check-in
+- Click guest -> click EMPTY room to check-in (reliable)
 - Manual checkout + manual cleaning (NOT automatic)
 - Rooms = 4
 - Auto spawn optional (slower)
+- Mood thresholds adjusted (feels slower)
 ========================= */
 
 /* ---------- helpers ---------- */
@@ -44,8 +45,8 @@ HOTEL CONFIG (SLOWED DOWN)
 const HOTEL = {
   roomCount: 4,
   maxQueue: 6,
-  spawnEveryMs: 6000,   // ✅ slower spawn
-  patienceMs: 45000,    // ✅ slower mood change (45s)
+  spawnEveryMs: 7000,   // ✅ slower spawn
+  patienceMs: 65000,    // ✅ slower patience (65s) so mood doesn’t feel fast
   stayMs: 9000,
   cleanMsBase: 2600,
   snackChance: 0.35,
@@ -125,11 +126,13 @@ function updateHud() {
   setCoins(getCoins());
 }
 
-/* ---------- mood: slower thresholds ---------- */
+/* ---------- mood: ADJUSTED so it feels slower ---------- */
 function guestMood(remainingMs) {
   const t = remainingMs / HOTEL.patienceMs;
-  if (t > 0.75) return "🙂";
-  if (t > 0.35) return "😤";
+  // 👇 stays 🙂 longer, adds 😐 stage, and only 😡 near the end
+  if (t > 0.70) return "🙂";
+  if (t > 0.40) return "😐";
+  if (t > 0.18) return "😤";
   return "😡";
 }
 
@@ -161,6 +164,7 @@ function renderQueue() {
     row.style.border = "1px solid rgba(255,255,255,.12)";
     row.style.background = "rgba(255,255,255,.05)";
     row.style.cursor = "pointer";
+    row.style.userSelect = "none";
     if (selected) row.style.outline = "2px solid rgba(34,197,94,.55)";
 
     row.innerHTML = `
@@ -174,7 +178,9 @@ function renderQueue() {
       </div>
     `;
 
-    row.addEventListener("click", () => {
+    row.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       state.selectedGuestId = g.id;
       renderSelectedGuest();
       renderQueue();
@@ -245,6 +251,7 @@ function renderRooms() {
     div.style.flexDirection = "column";
     div.style.gap = "6px";
     div.style.minHeight = "90px";
+    div.style.userSelect = "none";
     if (selected) div.style.outline = "2px solid rgba(59,130,246,.35)";
 
     div.innerHTML = `
@@ -256,18 +263,25 @@ function renderRooms() {
       <div style="font-size:12px;opacity:.75">${r.guestId ? ("Guest " + r.guestId) : ""}</div>
     `;
 
-    div.addEventListener("click", () => {
-      // ✅ always select the room first
+    div.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      // ✅ If a guest is selected, attempt check-in FIRST (no early re-render)
+      if (state.selectedGuestId) {
+        if (r.status === "empty") {
+          checkInSelectedGuestToRoom(r.id);
+          return;
+        }
+        // If room is not empty, give feedback so it doesn't feel "broken"
+        if (r.status === "dirty") hint("Room is dirty 🧽 Clean it first.");
+        else hint("Room not available ❌ Choose an EMPTY room.");
+      }
+
+      // ✅ Otherwise just select room
       state.selectedRoomId = r.id;
       renderRooms();
       renderRoomCard();
-
-      // ✅ if guest selected and room empty -> check in
-      if (state.selectedGuestId && r.status === "empty") {
-        checkInSelectedGuestToRoom(r.id);
-        return;
-      }
-
       save();
     });
 
@@ -294,7 +308,6 @@ function renderRoomCard() {
 
 /* ---------- actions ---------- */
 function checkInSelectedGuestToRoom(roomId) {
-  state.selectedRoomId = roomId; // ✅ important
   const r = getRoomById(roomId);
   if (!r || r.status !== "empty") return;
 
@@ -315,6 +328,7 @@ function checkInSelectedGuestToRoom(roomId) {
   r.snackOrdered = Math.random() < HOTEL.snackChance;
   r.readyAt = Date.now() + HOTEL.stayMs;
 
+  // clear selected guest
   state.selectedGuestId = null;
 
   setCoins(getCoins() + HOTEL.checkinCoin);
@@ -352,7 +366,7 @@ function tickQueue() {
     renderQueue();
     save();
   } else {
-    renderQueue(); // update bars
+    renderQueue(); // update bars smoothly
   }
 }
 
@@ -445,7 +459,10 @@ function cleanSelected() {
 
 /* ---------- spawning ---------- */
 function spawnGuest(manual=false) {
-  if (state.queue.length >= HOTEL.maxQueue) return;
+  if (state.queue.length >= HOTEL.maxQueue) {
+    if (manual) hint("Queue is full ❌");
+    return;
+  }
 
   const id = Math.random().toString(16).slice(2, 6).toUpperCase();
   const face = faces[randInt(0, faces.length - 1)];
@@ -504,7 +521,7 @@ function resetAll() {
 }
 
 /* =========================
-PUZZLE (simple match-3)
+PUZZLE (your match-3 unchanged)
 ========================= */
 const PUZZLE = {
   width: 8,
@@ -705,9 +722,9 @@ window.addEventListener("load", () => {
 
   bindButtons();
 
-  // slower updates (less “fast mood” feeling)
-  setInterval(tickQueue, 500);
-  setInterval(tickRooms, 300);
+  // ✅ slower updates = less “fast mood” feeling
+  setInterval(tickQueue, 1000);
+  setInterval(tickRooms, 400);
 
   setInterval(() => {
     if (AUTO.spawn) spawnGuest(false);
@@ -715,3 +732,4 @@ window.addEventListener("load", () => {
 
   initPuzzle();
 });
+
