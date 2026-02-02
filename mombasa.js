@@ -1,12 +1,9 @@
 /* =========================
-mombasa.js (FIXED)
-Manual Hotel Mania:
-- Queue visible with patience bar + mood 🙂
-- Click guest -> click EMPTY room to check-in (reliable)
-- Manual checkout + manual cleaning (NOT automatic)
-- Rooms = 4
-- Auto spawn optional (slower)
-- Mood thresholds adjusted (feels slower)
+mombasa.js (FULL REVISED)
+Fixes:
+- Mood change feels slower (adds 😐 and longer patience)
+- Guest -> Room click always works (rooms are .roomBtn buttons)
+- Puzzle tiles use background-image (no question mark / reveal)
 ========================= */
 
 /* ---------- helpers ---------- */
@@ -45,8 +42,8 @@ HOTEL CONFIG (SLOWED DOWN)
 const HOTEL = {
   roomCount: 4,
   maxQueue: 6,
-  spawnEveryMs: 7000,   // ✅ slower spawn
-  patienceMs: 65000,    // ✅ slower patience (65s) so mood doesn’t feel fast
+  spawnEveryMs: 7000,   // slower spawn
+  patienceMs: 65000,    // slower patience
   stayMs: 9000,
   cleanMsBase: 2600,
   snackChance: 0.35,
@@ -56,7 +53,6 @@ const HOTEL = {
 };
 
 const faces = ["🧑🏾‍🦱","👩🏾‍🦰","🧑🏿‍🦱","👨🏾‍🦲","👩🏿‍🦱","🧑🏾","👨🏿","👩🏾","🧑🏿","👨🏾‍🦱"];
-
 const AUTO = { spawn: true };
 
 let state = {
@@ -108,7 +104,7 @@ function initRooms() {
   for (let i = 1; i <= HOTEL.roomCount; i++) {
     state.rooms.push({
       id: i,
-      status: "empty",
+      status: "empty", // empty | occupied | ready | dirty | cleaning
       guestId: null,
       guestFace: null,
       snackOrdered: false,
@@ -126,10 +122,9 @@ function updateHud() {
   setCoins(getCoins());
 }
 
-/* ---------- mood: ADJUSTED so it feels slower ---------- */
+/* ---------- mood ---------- */
 function guestMood(remainingMs) {
   const t = remainingMs / HOTEL.patienceMs;
-  // 👇 stays 🙂 longer, adds 😐 stage, and only 😡 near the end
   if (t > 0.70) return "🙂";
   if (t > 0.40) return "😐";
   if (t > 0.18) return "😤";
@@ -216,7 +211,7 @@ function renderSelectedGuest() {
   `;
 }
 
-/* ---------- rooms render ---------- */
+/* ---------- rooms ---------- */
 function roomLabel(r) {
   if (r.status === "empty") return "✅ Empty";
   if (r.status === "occupied") return "🟦 Occupied";
@@ -241,51 +236,47 @@ function renderRooms() {
   state.rooms.forEach((r) => {
     const selected = r.id === state.selectedRoomId;
 
-    const div = document.createElement("div");
-    div.style.cursor = "pointer";
-    div.style.padding = "12px";
-    div.style.borderRadius = "14px";
-    div.style.border = "1px solid rgba(255,255,255,.15)";
-    div.style.background = "rgba(255,255,255,.06)";
-    div.style.display = "flex";
-    div.style.flexDirection = "column";
-    div.style.gap = "6px";
-    div.style.minHeight = "90px";
-    div.style.userSelect = "none";
-    if (selected) div.style.outline = "2px solid rgba(59,130,246,.35)";
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "roomBtn";
+    btn.classList.add("state-" + r.status);
+    if (selected) btn.classList.add("selected");
 
-    div.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <strong>Room ${r.id}</strong>
-        <span style="font-size:12px;opacity:.85">${roomLabel(r)}</span>
+    const badge = r.guestFace ? r.guestFace : "";
+    const guestLine = r.guestId ? `Guest ${r.guestId}` : "";
+    const stateLine = roomLabel(r);
+
+    btn.innerHTML = `
+      <div class="rRow">
+        <div class="rTitle">Room ${r.id}</div>
+        <div class="rBadge">${badge}</div>
       </div>
-      <div style="font-size:20px">${r.guestFace ? r.guestFace : " "}</div>
-      <div style="font-size:12px;opacity:.75">${r.guestId ? ("Guest " + r.guestId) : ""}</div>
+      <div class="rState">${stateLine}</div>
+      <div class="smallMuted">${guestLine}</div>
     `;
 
-    div.addEventListener("click", (e) => {
+    btn.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
 
-      // ✅ If a guest is selected, attempt check-in FIRST (no early re-render)
+      // If guest selected, attempt check-in first
       if (state.selectedGuestId) {
         if (r.status === "empty") {
           checkInSelectedGuestToRoom(r.id);
           return;
         }
-        // If room is not empty, give feedback so it doesn't feel "broken"
         if (r.status === "dirty") hint("Room is dirty 🧽 Clean it first.");
         else hint("Room not available ❌ Choose an EMPTY room.");
       }
 
-      // ✅ Otherwise just select room
+      // otherwise just select room
       state.selectedRoomId = r.id;
       renderRooms();
       renderRoomCard();
       save();
     });
 
-    grid.appendChild(div);
+    grid.appendChild(btn);
   });
 }
 
@@ -328,10 +319,9 @@ function checkInSelectedGuestToRoom(roomId) {
   r.snackOrdered = Math.random() < HOTEL.snackChance;
   r.readyAt = Date.now() + HOTEL.stayMs;
 
-  // clear selected guest
   state.selectedGuestId = null;
-
   setCoins(getCoins() + HOTEL.checkinCoin);
+
   hint(`Checked in ${g.face} to Room ${r.id} ✅`);
 
   updateHud();
@@ -366,7 +356,7 @@ function tickQueue() {
     renderQueue();
     save();
   } else {
-    renderQueue(); // update bars smoothly
+    renderQueue();
   }
 }
 
@@ -521,7 +511,8 @@ function resetAll() {
 }
 
 /* =========================
-PUZZLE (your match-3 unchanged)
+PUZZLE (MATCH-3) – REVISED
+Uses .tile buttons + background-image
 ========================= */
 const PUZZLE = {
   width: 8,
@@ -535,13 +526,19 @@ const PUZZLE = {
   ],
 };
 
-let pBoard = [];
+let pBoard = [];    // each = { src, el }
 let pSelected = null;
+
+function setBoardSizeCSS() {
+  const boardEl = $("board");
+  if (boardEl) boardEl.style.setProperty("--size", String(PUZZLE.width));
+}
 
 function initPuzzle() {
   const boardEl = $("board");
   if (!boardEl) return;
 
+  setBoardSizeCSS();
   boardEl.innerHTML = "";
   pBoard = [];
   pSelected = null;
@@ -549,25 +546,17 @@ function initPuzzle() {
   const total = PUZZLE.width * PUZZLE.width;
 
   for (let i = 0; i < total; i++) {
-    const tile = document.createElement("div");
-    tile.className = "tile";
-
-    const img = document.createElement("img");
-    img.alt = "tile";
-    img.draggable = false;
-    img.style.width = "100%";
-    img.style.height = "100%";
-    img.style.objectFit = "cover";
-    img.style.borderRadius = "10px";
+    const tileBtn = document.createElement("button");
+    tileBtn.type = "button";
+    tileBtn.className = "tile";
 
     const src = PUZZLE.tiles[randInt(0, PUZZLE.tiles.length - 1)];
-    img.src = src;
+    tileBtn.style.backgroundImage = `url("${src}")`;
 
-    tile.appendChild(img);
-    tile.addEventListener("click", () => onTileClick(i));
+    tileBtn.addEventListener("click", () => onTileClick(i));
 
-    boardEl.appendChild(tile);
-    pBoard.push({ img: src, el: tile });
+    boardEl.appendChild(tileBtn);
+    pBoard.push({ src, el: tileBtn });
   }
 
   $("msg") && ($("msg").textContent = "Make a match!");
@@ -580,30 +569,30 @@ function areAdjacent(a, b) {
   return (Math.abs(ax - bx) + Math.abs(ay - by)) === 1;
 }
 
-function setTileImg(i, src) {
-  const imgEl = pBoard[i].el.querySelector("img");
-  if (imgEl) imgEl.src = src;
-  pBoard[i].img = src;
+function setTileSrc(i, src) {
+  pBoard[i].src = src;
+  pBoard[i].el.style.backgroundImage = `url("${src}")`;
 }
 
 function swapTiles(a, b) {
-  const imgA = pBoard[a].img;
-  const imgB = pBoard[b].img;
-  setTileImg(a, imgB);
-  setTileImg(b, imgA);
+  const srcA = pBoard[a].src;
+  const srcB = pBoard[b].src;
+  setTileSrc(a, srcB);
+  setTileSrc(b, srcA);
 }
 
 function findMatches() {
   const w = PUZZLE.width;
   const matches = new Set();
 
+  // rows
   for (let r = 0; r < w; r++) {
     let runStart = r * w;
     let runLen = 1;
     for (let c = 1; c < w; c++) {
       const i = r * w + c;
       const prev = r * w + (c - 1);
-      if (pBoard[i].img === pBoard[prev].img) runLen++;
+      if (pBoard[i].src === pBoard[prev].src) runLen++;
       else {
         if (runLen >= 3) for (let k = 0; k < runLen; k++) matches.add(runStart + k);
         runStart = i; runLen = 1;
@@ -612,13 +601,14 @@ function findMatches() {
     if (runLen >= 3) for (let k = 0; k < runLen; k++) matches.add(runStart + k);
   }
 
+  // cols
   for (let c = 0; c < w; c++) {
     let runStart = c;
     let runLen = 1;
     for (let r = 1; r < w; r++) {
       const i = r * w + c;
       const prev = (r - 1) * w + c;
-      if (pBoard[i].img === pBoard[prev].img) runLen++;
+      if (pBoard[i].src === pBoard[prev].src) runLen++;
       else {
         if (runLen >= 3) for (let k = 0; k < runLen; k++) matches.add(runStart + k * w);
         runStart = i; runLen = 1;
@@ -635,36 +625,32 @@ function crushMatches(matches) {
   setCoins(getCoins() + earned);
   $("msg") && ($("msg").textContent = `Crush! +${earned} coins 🪙`);
 
-  matches.forEach(i => {
-    const el = pBoard[i].el;
-    el.style.transition = "transform 120ms, opacity 120ms";
-    el.style.opacity = "0.25";
-    el.style.transform = "scale(0.88)";
-  });
+  // animate crush
+  matches.forEach(i => pBoard[i].el.classList.add("crush"));
 
   setTimeout(() => {
+    // replace tiles
     matches.forEach(i => {
+      pBoard[i].el.classList.remove("crush");
       const src = PUZZLE.tiles[randInt(0, PUZZLE.tiles.length - 1)];
-      setTileImg(i, src);
-      const el = pBoard[i].el;
-      el.style.opacity = "1";
-      el.style.transform = "scale(1)";
+      setTileSrc(i, src);
     });
 
+    // chain
     const chain = findMatches();
     if (chain.size > 0) crushMatches(chain);
-  }, 150);
+  }, 230);
 }
 
 function onTileClick(i) {
   if (pSelected === null) {
     pSelected = i;
-    pBoard[i].el.style.outline = "2px solid rgba(34,197,94,.75)";
+    pBoard[i].el.classList.add("selected");
     return;
   }
 
   const a = pSelected;
-  pBoard[a].el.style.outline = "none";
+  pBoard[a].el.classList.remove("selected");
   pSelected = null;
 
   if (a === i) return;
@@ -674,11 +660,10 @@ function onTileClick(i) {
   const matches = findMatches();
 
   if (matches.size === 0) {
+    // invalid move: shake
     swapTiles(a, i);
-    pBoard[i].el.style.transition = "transform 80ms";
-    pBoard[i].el.style.transform = "scale(0.96)";
-    setTimeout(() => pBoard[i].el.style.transform = "scale(1.03)", 90);
-    setTimeout(() => pBoard[i].el.style.transform = "scale(1)", 180);
+    pBoard[i].el.classList.add("shake");
+    setTimeout(() => pBoard[i].el.classList.remove("shake"), 250);
     return;
   }
 
@@ -722,7 +707,7 @@ window.addEventListener("load", () => {
 
   bindButtons();
 
-  // ✅ slower updates = less “fast mood” feeling
+  // slower updates
   setInterval(tickQueue, 1000);
   setInterval(tickRooms, 400);
 
@@ -732,4 +717,3 @@ window.addEventListener("load", () => {
 
   initPuzzle();
 });
-
