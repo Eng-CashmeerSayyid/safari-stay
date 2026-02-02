@@ -161,6 +161,29 @@
 
   </main>
 
+  <!-- LEVEL COMPLETE MODAL -->
+<div id="levelModal" class="modalOverlay" aria-hidden="true">
+  <div class="modalBox">
+    <div class="modalTitle">Level <span id="modalLevelNo">1</span> Complete 🎉</div>
+
+    <div id="modalStars" class="starsRow" aria-label="stars">
+      <span class="star">⭐</span><span class="star">⭐</span><span class="star">⭐</span>
+    </div>
+
+    <div class="modalStats">
+      <div>Guests served: <b id="modalServed">0</b></div>
+      <div>Angry left: <b id="modalAngry">0</b></div>
+      <div>Time: <b id="modalTime">0</b>s</div>
+    </div>
+
+    <div class="modalBtns">
+      <button class="btn" id="btnRetryLevel" type="button">🔁 Retry</button>
+      <button class="btn primary" id="btnNextLevel" type="button">➡️ Next Level</button>
+    </div>
+  </div>
+</div>
+
+
   <script src="mombasa.js"></script>
 </body>
 </html>
