@@ -1,25 +1,14 @@
-<!-- =========================
-File: mombasa.html
-Safari Stay – Mombasa Hotel (Manual Hotel Mania)
-Queue visible + patience moods
-Click guest -> click room to check-in
-Manual checkout + manual cleaning
-Rooms = 4
-========================= -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Safari Stay – Mombasa Hotel</title>
+  <title>Safari Stay – Mombasa</title>
   <link rel="stylesheet" href="style.css" />
-
-  <!-- ✅ Load ONCE -->
-  <script src="mombasa.js" defer></script>
 </head>
-
 <body>
 
+  <!-- TOPBAR -->
   <header class="topbar">
     <div class="brand">
       <a class="logoLink" href="index.html" title="Back">
@@ -27,144 +16,142 @@ Rooms = 4
       </a>
       <div>
         <div class="title">Safari Stay</div>
-        <div class="subtitle">Mombasa Hotel</div>
+        <div class="subtitle">Mombasa Hotel + Puzzle</div>
       </div>
     </div>
 
     <div class="hud">
       <div class="pill">🪙 Coins: <span id="coins">0</span></div>
-      <div class="pill">👥 Queue: <span id="queueCount">0</span></div>
-      <div class="pill">✅ Served: <span id="served">0</span></div>
-      <div class="pill">😡 Angry: <span id="angry">0</span></div>
     </div>
   </header>
 
-  <nav class="tabs">
-    <button class="tab active" data-tab="hotel">Hotel</button>
-    <button class="tab" data-tab="puzzle">Puzzle</button>
-    <button class="tab" data-tab="shop">Shop</button>
-
-    <button class="btn" id="btnAutoSpawn">👤 Auto Spawn: ON</button>
-    <button class="btn primary" id="btnSpawnGuest">+ Spawn Guest</button>
-  </nav>
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" data-tab="hotel" type="button">🏨 Hotel</button>
+    <button class="tab" data-tab="puzzle" type="button">🧩 Puzzle</button>
+    <button class="tab" data-tab="shop" type="button">🛍️ Shop</button>
+  </div>
 
   <main class="wrap">
-    <!-- HOTEL TAB -->
-    <section class="panel active" id="tab-hotel">
+
+    <!-- HOTEL PANEL -->
+    <section id="tab-hotel" class="panel active">
+      <div class="card sceneHeader">
+        <div class="rowBetween">
+          <div>
+            <div class="hint" id="hint">Select a guest, then click an EMPTY room.</div>
+            <div class="smallMuted">Queue: <span id="queueCount">0</span> • Served: <span id="served">0</span> • Angry left: <span id="angry">0</span></div>
+          </div>
+
+          <div class="rowBetween">
+            <button class="btn primary" id="btnSpawnGuest" type="button">➕ Spawn Guest</button>
+            <button class="btn" id="btnAutoSpawn" type="button">👤 Auto Spawn: ON</button>
+            <button class="btn danger" id="btnResetMombasa" type="button">Reset</button>
+          </div>
+        </div>
+      </div>
+
       <div class="layout">
+        <!-- LEFT: QUEUE + ROOMS -->
+        <div class="card">
+          <div class="grid2">
+            <div>
+              <h3 style="margin:0 0 8px;">Queue</h3>
+              <div id="queueList"></div>
 
-        <section class="card scene">
-          <div class="sceneHeader">
-            <div class="hint" id="hint">Click a guest in the queue, then click an empty room 🏨</div>
-            <div class="smallMuted">Manual check-in, checkout & cleaning. Mood changes with patience.</div>
+              <div class="divider"></div>
+
+              <h3 style="margin:0 0 8px;">Rooms</h3>
+              <div id="hotelGrid" class="hotelGrid"></div>
+            </div>
+
+            <div class="side">
+              <h3>Selected Guest</h3>
+              <div id="guestCard" class="roomCard">
+                <div class="muted">No guest selected. Click one in the queue.</div>
+              </div>
+
+              <div class="divider"></div>
+
+              <h3>Room Actions</h3>
+              <div id="roomCard" class="roomCard"></div>
+
+              <div class="bottomBar">
+                <button class="btn" id="btnDeliverSnack" type="button">🛎️ Deliver Snack</button>
+                <button class="btn" id="btnCheckout" type="button">✅ Checkout</button>
+                <button class="btn" id="btnClean" type="button">🧽 Clean</button>
+              </div>
+
+              <div class="tip">
+                <b>How to play:</b>
+                <ul class="list">
+                  <li>Click a guest in the queue (green outline).</li>
+                  <li>Click an <b>EMPTY</b> room to check-in.</li>
+                  <li>Wait until room becomes ⭐ Ready, then Checkout.</li>
+                  <li>Room becomes 🟥 Dirty → Clean manually.</li>
+                </ul>
+              </div>
+            </div>
           </div>
-
-          <div class="hotelGrid" id="hotelGrid"></div>
-
-          <div class="bottomBar">
-            <button class="btn" id="btnDeliverSnack">🍟 Deliver Snack</button>
-            <button class="btn" id="btnCheckout">🚪 Checkout Selected Room</button>
-            <button class="btn danger" id="btnClean">🧽 Clean Selected Room</button>
-          </div>
-        </section>
-
-        <aside class="card side">
-          <h3>Entrance Queue</h3>
-          <div id="queueList" class="queueList"></div>
-
-          <div class="divider"></div>
-
-          <h3>Selected Guest</h3>
-          <div class="roomCard" id="guestCard">
-            <div class="muted">No guest selected. Click one in the queue.</div>
-          </div>
-
-          <div class="divider"></div>
-
-          <h3>Room Details</h3>
-          <div class="roomCard" id="roomCard">
-            <div class="muted">Select a room.</div>
-          </div>
-
-          <div class="divider"></div>
-
-          <h3>How it works</h3>
-          <ul class="list">
-            <li>Guests auto-spawn and wait with patience.</li>
-            <li>Mood goes 🙂 → 😤 → 😡 → leaves.</li>
-            <li>Click guest → click empty room to check in.</li>
-            <li>After a short stay the room becomes ⭐ Ready.</li>
-            <li>Checkout makes room 🟥 Dirty → clean manually.</li>
-          </ul>
-        </aside>
-
+        </div>
       </div>
     </section>
 
-    <!-- PUZZLE TAB -->
-    <section class="panel" id="tab-puzzle">
-      <section class="card puzzlePanel">
+    <!-- PUZZLE PANEL -->
+    <section id="tab-puzzle" class="panel">
+      <div class="puzzlePanel">
         <div class="puzzleTop">
           <div>
-            <h2>Mombasa Match-3</h2>
-            <p class="muted">Match 3+ tiles to earn coins.</p>
+            <h2>Match-3 Puzzle</h2>
+            <div class="msg" id="msg">Make a match!</div>
           </div>
           <div class="puzzleStats">
             <div class="stat">🪙 Coins: <span id="coinsPuzzle">0</span></div>
-            <div class="stat">🎯 Target: <span id="target">300</span></div>
+            <button class="btn" id="resetPuzzle" type="button">Reset Puzzle</button>
           </div>
         </div>
 
         <div id="board" class="board"></div>
 
         <div class="puzzleBottom">
-          <button class="btn" id="resetPuzzle">🔄 Reset</button>
-          <div id="msg" class="msg"></div>
+          <div class="smallMuted">Tip: Click 2 adjacent tiles to swap.</div>
         </div>
-      </section>
+      </div>
     </section>
 
-    <!-- SHOP TAB -->
-    <section class="panel" id="tab-shop">
-      <section class="card">
-        <h2>Shop</h2>
-        <p class="muted">Buy upgrades using coins.</p>
-
+    <!-- SHOP PANEL -->
+    <section id="tab-shop" class="panel">
+      <div class="card">
+        <h2 style="margin-top:0;">Shop</h2>
         <div class="shopGrid">
           <div class="shopItem">
             <div class="shopTop">
               <div class="shopIcon">🧹</div>
               <div>
-                <div class="shopTitle">Cleaner</div>
-                <div class="muted">Reduces cleaning time.</div>
+                <div class="shopTitle">Cleaner Upgrade</div>
+                <div class="price">Cost: 120 coins</div>
               </div>
             </div>
-            <div class="rowBetween">
-              <div class="price">Cost: <strong>120</strong> coins</div>
-              <button class="btn primary" id="buyCleaner">Buy</button>
-            </div>
+            <button class="btn primary" id="buyCleaner" type="button">Buy Cleaner</button>
           </div>
 
           <div class="shopItem">
             <div class="shopTop">
               <div class="shopIcon">🛎️</div>
               <div>
-                <div class="shopTitle">Bellboy</div>
-                <div class="muted">More snack tips.</div>
+                <div class="shopTitle">Bellboy Upgrade</div>
+                <div class="price">Cost: 160 coins</div>
               </div>
             </div>
-            <div class="rowBetween">
-              <div class="price">Cost: <strong>160</strong> coins</div>
-              <button class="btn primary" id="buyBellboy">Buy</button>
-            </div>
+            <button class="btn primary" id="buyBellboy" type="button">Buy Bellboy</button>
           </div>
         </div>
-
-        <div class="divider"></div>
-        <button class="btn danger" id="btnResetMombasa">♻️ Reset Mombasa Progress</button>
-      </section>
+      </div>
     </section>
 
   </main>
+
+  <script src="mombasa.js"></script>
 </body>
 </html>
+
