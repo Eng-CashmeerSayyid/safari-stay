@@ -372,3 +372,51 @@ Uses:
   gap:10px;
   margin-top: 12px;
 }
+/* ===== Level Modal ===== */
+.modalOverlay{
+  position:fixed; inset:0;
+  display:none; align-items:center; justify-content:center;
+  background:rgba(0,0,0,.55);
+  z-index:9999;
+  padding:16px;
+}
+.modalOverlay.show{ display:flex; }
+
+.modalBox{
+  width:min(420px, 92vw);
+  background:rgba(18, 24, 48, .95);
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:18px;
+  padding:18px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.55);
+}
+
+.modalTitle{
+  font-weight:800;
+  font-size:20px;
+  margin-bottom:12px;
+}
+
+.starsRow{
+  display:flex;
+  gap:6px;
+  font-size:22px;
+  margin:6px 0 12px;
+}
+
+.modalStats{
+  display:grid;
+  gap:6px;
+  font-size:14px;
+  opacity:.95;
+  padding:10px 0 14px;
+  border-top:1px solid rgba(255,255,255,.10);
+  border-bottom:1px solid rgba(255,255,255,.10);
+  margin-bottom:12px;
+}
+
+.modalBtns{
+  display:flex;
+  gap:10px;
+  justify-content:flex-end;
+}
