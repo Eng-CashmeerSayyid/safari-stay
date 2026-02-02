@@ -1,11 +1,12 @@
 /* =========================
-mombasa.js (AUTO CHECKOUT + MANUAL CLEANING)
-- Queue patience slow
-- Click guest -> click EMPTY room to check-in
-- ✅ Auto checkout after ready
-- ❌ Cleaning is manual
+mombasa.js (LEVELS + HOTEL MANIA FLOW)
+- Manual check-in: click guest -> click EMPTY room
+- Auto checkout after ready (always)
+- Manual cleaning: click detergent mode -> click dirty room
+- Snacks: PREP (time) -> HOLD -> click room to deliver
+- Slow patience timers, adjustable per level
 - Rooms = 4
-- Puzzle uses background-image tiles
+- Puzzle unchanged (background-image tiles)
 ========================= */
 
 /* ---------- helpers ---------- */
@@ -39,51 +40,115 @@ function initTabs() {
 }
 
 /* =========================
-HOTEL CONFIG
+LEVELS (Mombasa 1–10)
+You can tweak these numbers later.
 ========================= */
-const HOTEL = {
+const LEVELS = {
+  // region: "mombasa" (levels 1-10)
+  1: { goalGuests: 5,  failNoAngry: false, patienceMs: 70000, spawnEveryMs: 8000, snackChance: 0.15 },
+  2: { goalGuests: 8,  failNoAngry: false, patienceMs: 68000, spawnEveryMs: 7600, snackChance: 0.20 },
+  3: { goalGuests: 10, failNoAngry: false, patienceMs: 65000, spawnEveryMs: 7200, snackChance: 0.25 },
+  4: { goalGuests: 10, failNoAngry: false, patienceMs: 65000, spawnEveryMs: 7000, snackChance: 0.35 }, // snacks start
+  5: { goalGuests: 12, failNoAngry: false, patienceMs: 63000, spawnEveryMs: 6800, snackChance: 0.40 },
+  6: { goalGuests: 12, failNoAngry: true,  patienceMs: 65000, spawnEveryMs: 7200, snackChance: 0.35 }, // no angry
+  7: { goalGuests: 14, failNoAngry: true,  patienceMs: 62000, spawnEveryMs: 6800, snackChance: 0.45 },
+  8: { goalGuests: 15, failNoAngry: true,  patienceMs: 60000, spawnEveryMs: 6500, snackChance: 0.50 },
+  9: { goalGuests: 16, failNoAngry: true,  patienceMs: 58000, spawnEveryMs: 6200, snackChance: 0.55 },
+  10:{ goalGuests: 18, failNoAngry: true,  patienceMs: 58000, spawnEveryMs: 6000, snackChance: 0.60 },
+};
+
+function clampLevel(n) {
+  const x = Number(n) || 1;
+  if (x < 1) return 1;
+  if (x > 10) return 10;
+  return x;
+}
+
+/* =========================
+HOTEL BASE CONFIG
+(Level overrides will apply)
+========================= */
+const HOTEL_BASE = {
   roomCount: 4,
   maxQueue: 6,
 
-  spawnEveryMs: 7000,      // guest arrival speed
-  patienceMs: 65000,       // patience total time
-
-  stayMs: 9000,            // time inside room before ready
-  autoCheckoutDelayMs: 3500, // ✅ after ready, guest checks out automatically
-
-  cleanMsBase: 2600,       // manual clean duration
+  // these get overridden per level
+  spawnEveryMs: 7000,
+  patienceMs: 65000,
   snackChance: 0.35,
-  snackTip: 3,
 
-  checkinCoin: 1,
-  checkoutCoin: 2,
+  // core timings
+  stayMs: 9000,              // time inside room before "ready"
+  autoCheckoutDelayMs: 3500, // after ready, auto checkout
+
+  cleanMsBase: 2600,         // cleaning duration
+  snackPrepMs: 2200,         // PREP snack duration (hold in hand)
+
+  // money rules
+  checkinCoin: 2,
+  checkoutCoin: 3,
+  snackPay: 4,               // paid when snack delivered
 };
 
 const faces = ["🧑🏾‍🦱","👩🏾‍🦰","🧑🏿‍🦱","👨🏾‍🦲","👩🏿‍🦱","🧑🏾","👨🏿","👩🏾","🧑🏿","👨🏾‍🦱"];
 const AUTO = { spawn: true };
 
 let state = {
+  level: 1,
   served: 0,
   angry: 0,
   queue: [], // {id, face, createdAt, expiresAt}
   rooms: [], // {id, status, guestId, guestFace, snackOrdered, readyAt, checkoutAt}
+
   selectedRoomId: 1,
   selectedGuestId: null,
+
   upgrades: { cleaner: 0, bellboy: 0 },
+
+  // “Hotel Mania” tools / hands (simple version)
+  tool: null,           // null | "detergent" | "deliverSnack"
+  snackHeld: false,     // prepared snack in hand
+  snackPreparing: false // prep timer running
 };
 
+let HOTEL = { ...HOTEL_BASE }; // active config for the current level
+
 function hint(t) { if ($("hint")) $("hint").textContent = t; }
+
+function applyLevelConfig() {
+  state.level = clampLevel(state.level);
+  const cfg = LEVELS[state.level] || LEVELS[1];
+
+  HOTEL = { ...HOTEL_BASE };
+  HOTEL.spawnEveryMs = cfg.spawnEveryMs ?? HOTEL_BASE.spawnEveryMs;
+  HOTEL.patienceMs   = cfg.patienceMs ?? HOTEL_BASE.patienceMs;
+  HOTEL.snackChance  = cfg.snackChance ?? HOTEL_BASE.snackChance;
+
+  if ($("levelNo")) $("levelNo").textContent = String(state.level);
+  if ($("levelGoal")) $("levelGoal").textContent = String(cfg.goalGuests);
+}
+
+function currentGoalGuests() {
+  const cfg = LEVELS[state.level] || LEVELS[1];
+  return cfg.goalGuests;
+}
+function currentFailNoAngry() {
+  const cfg = LEVELS[state.level] || LEVELS[1];
+  return !!cfg.failNoAngry;
+}
 
 /* ---------- save/load ---------- */
 function save() {
   localStorage.setItem("mombasaHotel", JSON.stringify({
+    level: state.level,
     served: state.served,
     angry: state.angry,
     queue: state.queue,
     rooms: state.rooms,
     selectedRoomId: state.selectedRoomId,
     selectedGuestId: state.selectedGuestId,
-    upgrades: state.upgrades
+    upgrades: state.upgrades,
+    snackHeld: state.snackHeld
   }));
 }
 
@@ -93,8 +158,9 @@ function load() {
     if (!raw) return false;
     const d = JSON.parse(raw);
     if (!d || !Array.isArray(d.rooms)) return false;
-    if (d.rooms.length !== HOTEL.roomCount) return false;
+    if (d.rooms.length !== HOTEL_BASE.roomCount) return false;
 
+    state.level = clampLevel(d.level || 1);
     state.served = Number(d.served) || 0;
     state.angry = Number(d.angry) || 0;
     state.queue = Array.isArray(d.queue) ? d.queue : [];
@@ -102,13 +168,20 @@ function load() {
     state.selectedRoomId = Number(d.selectedRoomId) || 1;
     state.selectedGuestId = d.selectedGuestId || null;
     state.upgrades = d.upgrades || state.upgrades;
+    state.snackHeld = !!d.snackHeld;
+    state.tool = null;
+    state.snackPreparing = false;
+
+    applyLevelConfig();
     return true;
-  } catch { return false; }
+  } catch {
+    return false;
+  }
 }
 
 function initRooms() {
   state.rooms = [];
-  for (let i = 1; i <= HOTEL.roomCount; i++) {
+  for (let i = 1; i <= HOTEL_BASE.roomCount; i++) {
     state.rooms.push({
       id: i,
       status: "empty", // empty | occupied | ready | dirty | cleaning
@@ -124,9 +197,14 @@ function initRooms() {
 
 /* ---------- HUD ---------- */
 function updateHud() {
-  $("queueCount") && ($("queueCount").textContent = String(state.queue.length));
-  $("served") && ($("served").textContent = String(state.served));
-  $("angry") && ($("angry").textContent = String(state.angry));
+  if ($("queueCount")) $("queueCount").textContent = String(state.queue.length);
+  if ($("served")) $("served").textContent = String(state.served);
+  if ($("angry")) $("angry").textContent = String(state.angry);
+
+  // update level text if exists
+  if ($("levelNo")) $("levelNo").textContent = String(state.level);
+  if ($("levelGoal")) $("levelGoal").textContent = String(currentGoalGuests());
+
   setCoins(getCoins());
 }
 
@@ -267,7 +345,27 @@ function renderRooms() {
       e.preventDefault();
       e.stopPropagation();
 
-      // guest selected => try check-in first
+      // 1) If detergent tool active -> clean dirty room
+      if (state.tool === "detergent") {
+        if (r.status === "dirty") {
+          startCleaningRoom(r.id);
+        } else {
+          hint("Detergent is ready 🧴 Click a DIRTY room.");
+        }
+        return;
+      }
+
+      // 2) If we have snack held -> deliver to snack room
+      if (state.tool === "deliverSnack" && state.snackHeld) {
+        if (r.guestId && r.snackOrdered) {
+          deliverSnackToRoom(r.id);
+        } else {
+          hint("Snack ready 🥪 Click a room that says (Snack!).");
+        }
+        return;
+      }
+
+      // 3) guest selected => try check-in first
       if (state.selectedGuestId) {
         if (r.status === "empty") {
           checkInSelectedGuestToRoom(r.id);
@@ -277,7 +375,7 @@ function renderRooms() {
         else hint("Room not available ❌ Choose an EMPTY room.");
       }
 
-      // otherwise select room
+      // 4) otherwise select room
       state.selectedRoomId = r.id;
       renderRooms();
       renderRoomCard();
@@ -303,9 +401,30 @@ function renderRoomCard() {
     <div style="margin-top:8px">${guest}</div>
     <div style="margin-top:6px;opacity:.9">${snack}</div>
     <div style="margin-top:10px;" class="smallMuted">
-      Checkout is automatic ✅ (room becomes dirty).
+      Check-in is manual ✅ • Checkout is automatic ✅ • Cleaning is manual ✅
     </div>
   `;
+}
+
+/* ---------- level win/lose ---------- */
+function levelWin() {
+  hint(`Level ${state.level} complete ✅`);
+  // move to next level (cap at 10 for Mombasa)
+  if (state.level < 10) {
+    state.level += 1;
+    applyLevelConfig();
+    save();
+    hint(`Level up! Now Level ${state.level} 🎉`);
+  } else {
+    hint("Mombasa complete ✅ Next region: Amboseli (coming next) 🐘");
+  }
+}
+function levelFail(reason) {
+  hint(`❌ Level failed: ${reason}`);
+  // simple fail behavior: stop auto spawn until reset
+  AUTO.spawn = false;
+  const btn = $("btnAutoSpawn");
+  if (btn) btn.textContent = "👤 Auto Spawn: OFF";
 }
 
 /* ---------- actions ---------- */
@@ -331,9 +450,11 @@ function checkInSelectedGuestToRoom(roomId) {
 
   const now = Date.now();
   r.readyAt = now + HOTEL.stayMs;
-  r.checkoutAt = r.readyAt + HOTEL.autoCheckoutDelayMs; // ✅ auto checkout schedule
+  r.checkoutAt = r.readyAt + HOTEL.autoCheckoutDelayMs;
 
   state.selectedGuestId = null;
+
+  // coins for check-in
   setCoins(getCoins() + HOTEL.checkinCoin);
 
   hint(`Checked in ${g.face} to Room ${r.id} ✅`);
@@ -359,6 +480,11 @@ function tickQueue() {
   if (left > 0) {
     state.angry += left;
 
+    // fail rule: no angry guests
+    if (currentFailNoAngry()) {
+      levelFail("A guest left angry 😡");
+    }
+
     if (state.selectedGuestId && !kept.some(x => x.id === state.selectedGuestId)) {
       state.selectedGuestId = null;
       renderSelectedGuest();
@@ -375,12 +501,19 @@ function tickQueue() {
 }
 
 function autoCheckoutRoom(r) {
-  // ✅ Only auto checkout if ready + has guest
   if (!r.guestId) return;
   if (r.status !== "ready") return;
 
+  // guest served
   state.served += 1;
+
+  // coins for checkout
   setCoins(getCoins() + HOTEL.checkoutCoin);
+
+  // level goal check
+  if (state.served >= currentGoalGuests()) {
+    levelWin();
+  }
 
   r.status = "dirty";
   r.guestId = null;
@@ -396,13 +529,11 @@ function tickRooms() {
   let didCheckout = 0;
 
   for (const r of state.rooms) {
-    // occupied -> ready
     if (r.status === "occupied" && r.readyAt && now >= r.readyAt) {
       r.status = "ready";
       changed = true;
     }
 
-    // ready -> auto checkout
     if (r.status === "ready" && r.checkoutAt && now >= r.checkoutAt) {
       autoCheckoutRoom(r);
       didCheckout++;
@@ -422,58 +553,103 @@ function tickRooms() {
   }
 }
 
-function deliverSnack() {
-  const r = getSelectedRoom();
-  if (!r) return;
-  if (!r.guestId) return hint("No guest here.");
-  if (!r.snackOrdered) return hint("No snack order here.");
+/* ---------- snack system (prep -> hold -> click room) ---------- */
+function updateSnackButton() {
+  const btn = $("btnDeliverSnack");
+  if (!btn) return;
+
+  if (state.snackPreparing) {
+    btn.textContent = "⏳ Preparing…";
+    btn.disabled = true;
+    return;
+  }
+
+  if (state.snackHeld) {
+    btn.textContent = "🥪 Snack Ready";
+    btn.disabled = false;
+    return;
+  }
+
+  btn.textContent = "🛎️ Prep Snack";
+  btn.disabled = false;
+}
+
+function prepSnack() {
+  if (state.snackPreparing) return;
+  if (state.snackHeld) {
+    // toggle into deliver mode
+    state.tool = "deliverSnack";
+    hint("Snack ready 🥪 Now click a room that needs snack (Snack!).");
+    save();
+    return;
+  }
+
+  state.snackPreparing = true;
+  state.tool = null;
+  updateSnackButton();
+  hint("Preparing snack… 🥪");
+
+  setTimeout(() => {
+    state.snackPreparing = false;
+    state.snackHeld = true;
+    state.tool = "deliverSnack";
+    updateSnackButton();
+    hint("Snack ready 🥪 Click a room that needs snack!");
+    save();
+  }, HOTEL.snackPrepMs);
+}
+
+function deliverSnackToRoom(roomId) {
+  const r = getRoomById(roomId);
+  if (!r || !r.guestId || !r.snackOrdered) return;
 
   r.snackOrdered = false;
-  const bonus = HOTEL.snackTip + (state.upgrades.bellboy ? 2 : 0);
-  setCoins(getCoins() + bonus);
+  state.snackHeld = false;
+  state.tool = null;
 
-  hint(`Snack delivered 😍 +${bonus} coins`);
+  const pay = HOTEL.snackPay + (state.upgrades.bellboy ? 2 : 0);
+  setCoins(getCoins() + pay);
+
+  hint(`Snack delivered 😍 +${pay} coins`);
   updateHud();
   renderRooms();
   renderRoomCard();
+  updateSnackButton();
   save();
 }
 
-/* ✅ Checkout button now optional (manual override) */
-function checkout() {
-  const r = getSelectedRoom();
-  if (!r) return;
-  if (!r.guestId) return hint("No guest to checkout.");
-  if (r.status !== "ready") return hint("Guest not ready yet ⭐");
-
-  autoCheckoutRoom(r);
-  hint(`Manual checkout ✅ Room ${r.id} dirty 🟥`);
-
-  updateHud();
-  renderRooms();
-  renderRoomCard();
-  save();
-}
-
+/* ---------- cleaning system (detergent mode -> click dirty room) ---------- */
 function cleaningTimeMs() {
   const reduction = state.upgrades.cleaner ? 700 : 0;
   return Math.max(1200, HOTEL.cleanMsBase - reduction);
 }
 
-function cleanSelected() {
-  const r = getSelectedRoom();
-  if (!r) return;
-  if (r.status !== "dirty") return hint("Room is not dirty.");
+function toggleDetergentMode() {
+  if (state.tool === "detergent") {
+    state.tool = null;
+    hint("Detergent mode OFF.");
+  } else {
+    state.tool = "detergent";
+    hint("Detergent ready 🧴 Click a DIRTY room to clean.");
+  }
+  save();
+}
+
+function startCleaningRoom(roomId) {
+  const r = getRoomById(roomId);
+  if (!r || r.status !== "dirty") return;
 
   r.status = "cleaning";
+  state.tool = null;
   hint(`Cleaning Room ${r.id}… 🧽`);
+
   renderRooms();
   renderRoomCard();
   save();
 
   const ms = cleaningTimeMs();
   setTimeout(() => {
-    const rr = getRoomById(r.id);
+    const rr = getRoomById(roomId);
     if (!rr) return;
     if (rr.status === "cleaning") {
       rr.status = "empty";
@@ -527,16 +703,22 @@ function buyUpgrade(which) {
   save();
 }
 
+/* ---------- reset ---------- */
 function resetAll() {
   localStorage.removeItem("mombasaHotel");
   localStorage.removeItem("coins");
 
+  state.level = 1;
   state.served = 0;
   state.angry = 0;
   state.queue = [];
   state.selectedGuestId = null;
   state.upgrades = { cleaner: 0, bellboy: 0 };
+  state.tool = null;
+  state.snackHeld = false;
+  state.snackPreparing = false;
 
+  applyLevelConfig();
   initRooms();
   setCoins(0);
 
@@ -546,10 +728,15 @@ function resetAll() {
   renderSelectedGuest();
   renderRooms();
   renderRoomCard();
+  updateSnackButton();
+
+  AUTO.spawn = true;
+  const btn = $("btnAutoSpawn");
+  if (btn) btn.textContent = "👤 Auto Spawn: ON";
 }
 
 /* =========================
-PUZZLE (MATCH-3) background-image tiles
+PUZZLE (MATCH-3) background-image tiles (UNCHANGED)
 ========================= */
 const PUZZLE = {
   width: 8,
@@ -711,9 +898,13 @@ function bindButtons() {
     hint(AUTO.spawn ? "Auto spawn ON ✅" : "Auto spawn OFF ⛔");
   });
 
-  $("btnDeliverSnack")?.addEventListener("click", deliverSnack);
-  $("btnCheckout")?.addEventListener("click", checkout);  // optional manual override
-  $("btnClean")?.addEventListener("click", cleanSelected);
+  // repurposed:
+  $("btnDeliverSnack")?.addEventListener("click", prepSnack);
+  $("btnClean")?.addEventListener("click", toggleDetergentMode);
+
+  // checkout button is optional now — auto checkout is the main rule
+  // You can hide it in CSS if you want.
+  $("btnCheckout") && ($("btnCheckout").style.display = "none");
 
   $("buyCleaner")?.addEventListener("click", () => buyUpgrade("cleaner"));
   $("buyBellboy")?.addEventListener("click", () => buyUpgrade("bellboy"));
@@ -728,22 +919,48 @@ window.addEventListener("load", () => {
   initTabs();
 
   const ok = load();
-  if (!ok) initRooms();
+  if (!ok) {
+    state.level = 1;
+    applyLevelConfig();
+    initRooms();
+  }
 
+  applyLevelConfig();
   updateHud();
   renderQueue();
   renderSelectedGuest();
   renderRooms();
   renderRoomCard();
+  updateSnackButton();
 
   bindButtons();
 
   setInterval(tickQueue, 1000);
-  setInterval(tickRooms, 300); // faster room tick so auto checkout feels smooth
+  setInterval(tickRooms, 300);
 
   setInterval(() => {
     if (AUTO.spawn) spawnGuest(false);
-  }, HOTEL.spawnEveryMs);
+  }, () => HOTEL.spawnEveryMs);
 
+  // NOTE: setInterval cannot take a function delay; use a fixed interval and check time.
+  // We’ll implement it properly:
+});
+
+/* ---------- proper auto-spawn loop (dynamic spawnEveryMs per level) ---------- */
+let _lastSpawn = 0;
+setInterval(() => {
+  const now = Date.now();
+  if (!_lastSpawn) _lastSpawn = now;
+
+  if (!AUTO.spawn) return;
+  if (now - _lastSpawn >= HOTEL.spawnEveryMs) {
+    spawnGuest(false);
+    _lastSpawn = now;
+  }
+}, 250);
+
+/* ---------- init puzzle after load ---------- */
+window.addEventListener("load", () => {
   initPuzzle();
 });
+
