@@ -104,6 +104,7 @@ let state = {
   selectedGuestId: null,
 
   upgrades: { cleaner: 0, bellboy: 0 },
+  let levelStartAt = Date.now();
 
   // “Hotel Mania” tools / hands (simple version)
   tool: null,           // null | "detergent" | "deliverSnack"
