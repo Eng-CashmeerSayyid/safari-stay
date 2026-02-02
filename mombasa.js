@@ -1,10 +1,10 @@
 /* =========================
-mombasa.js (LEVELS + HOTEL MANIA FLOW)
+mombasa.js (LEVELS + MODAL + HOTEL MANIA FLOW)
 - Manual check-in: click guest -> click EMPTY room
 - Auto checkout after ready (always)
 - Manual cleaning: click detergent mode -> click dirty room
 - Snacks: PREP (time) -> HOLD -> click room to deliver
-- Slow patience timers, adjustable per level
+- Slow patience timers (per level)
 - Rooms = 4
 - Puzzle unchanged (background-image tiles)
 ========================= */
@@ -41,16 +41,14 @@ function initTabs() {
 
 /* =========================
 LEVELS (Mombasa 1–10)
-You can tweak these numbers later.
 ========================= */
 const LEVELS = {
-  // region: "mombasa" (levels 1-10)
   1: { goalGuests: 5,  failNoAngry: false, patienceMs: 70000, spawnEveryMs: 8000, snackChance: 0.15 },
   2: { goalGuests: 8,  failNoAngry: false, patienceMs: 68000, spawnEveryMs: 7600, snackChance: 0.20 },
   3: { goalGuests: 10, failNoAngry: false, patienceMs: 65000, spawnEveryMs: 7200, snackChance: 0.25 },
-  4: { goalGuests: 10, failNoAngry: false, patienceMs: 65000, spawnEveryMs: 7000, snackChance: 0.35 }, // snacks start
+  4: { goalGuests: 10, failNoAngry: false, patienceMs: 65000, spawnEveryMs: 7000, snackChance: 0.35 },
   5: { goalGuests: 12, failNoAngry: false, patienceMs: 63000, spawnEveryMs: 6800, snackChance: 0.40 },
-  6: { goalGuests: 12, failNoAngry: true,  patienceMs: 65000, spawnEveryMs: 7200, snackChance: 0.35 }, // no angry
+  6: { goalGuests: 12, failNoAngry: true,  patienceMs: 65000, spawnEveryMs: 7200, snackChance: 0.35 },
   7: { goalGuests: 14, failNoAngry: true,  patienceMs: 62000, spawnEveryMs: 6800, snackChance: 0.45 },
   8: { goalGuests: 15, failNoAngry: true,  patienceMs: 60000, spawnEveryMs: 6500, snackChance: 0.50 },
   9: { goalGuests: 16, failNoAngry: true,  patienceMs: 58000, spawnEveryMs: 6200, snackChance: 0.55 },
@@ -66,53 +64,50 @@ function clampLevel(n) {
 
 /* =========================
 HOTEL BASE CONFIG
-(Level overrides will apply)
+(Level overrides apply)
 ========================= */
 const HOTEL_BASE = {
   roomCount: 4,
   maxQueue: 6,
 
-  // these get overridden per level
   spawnEveryMs: 7000,
   patienceMs: 65000,
   snackChance: 0.35,
 
-  // core timings
-  stayMs: 9000,              // time inside room before "ready"
-  autoCheckoutDelayMs: 3500, // after ready, auto checkout
+  stayMs: 9000,
+  autoCheckoutDelayMs: 3500,
 
-  cleanMsBase: 2600,         // cleaning duration
-  snackPrepMs: 2200,         // PREP snack duration (hold in hand)
+  cleanMsBase: 2600,
+  snackPrepMs: 2200,
 
-  // money rules
   checkinCoin: 2,
   checkoutCoin: 3,
-  snackPay: 4,               // paid when snack delivered
+  snackPay: 4,
 };
 
 const faces = ["🧑🏾‍🦱","👩🏾‍🦰","🧑🏿‍🦱","👨🏾‍🦲","👩🏿‍🦱","🧑🏾","👨🏿","👩🏾","🧑🏿","👨🏾‍🦱"];
 const AUTO = { spawn: true };
 
+let HOTEL = { ...HOTEL_BASE };
+
 let state = {
   level: 1,
   served: 0,
   angry: 0,
-  queue: [], // {id, face, createdAt, expiresAt}
-  rooms: [], // {id, status, guestId, guestFace, snackOrdered, readyAt, checkoutAt}
+  queue: [],
+  rooms: [],
 
   selectedRoomId: 1,
   selectedGuestId: null,
 
   upgrades: { cleaner: 0, bellboy: 0 },
-  let levelStartAt = Date.now();
 
-  // “Hotel Mania” tools / hands (simple version)
-  tool: null,           // null | "detergent" | "deliverSnack"
-  snackHeld: false,     // prepared snack in hand
-  snackPreparing: false // prep timer running
+  tool: null, // null | "detergent" | "deliverSnack"
+  snackHeld: false,
+  snackPreparing: false
 };
 
-let HOTEL = { ...HOTEL_BASE }; // active config for the current level
+let levelStartAt = Date.now();
 
 function hint(t) { if ($("hint")) $("hint").textContent = t; }
 
@@ -130,12 +125,10 @@ function applyLevelConfig() {
 }
 
 function currentGoalGuests() {
-  const cfg = LEVELS[state.level] || LEVELS[1];
-  return cfg.goalGuests;
+  return (LEVELS[state.level] || LEVELS[1]).goalGuests;
 }
 function currentFailNoAngry() {
-  const cfg = LEVELS[state.level] || LEVELS[1];
-  return !!cfg.failNoAngry;
+  return !!(LEVELS[state.level] || LEVELS[1]).failNoAngry;
 }
 
 /* ---------- save/load ---------- */
@@ -166,12 +159,14 @@ function load() {
     state.angry = Number(d.angry) || 0;
     state.queue = Array.isArray(d.queue) ? d.queue : [];
     state.rooms = d.rooms;
+
     state.selectedRoomId = Number(d.selectedRoomId) || 1;
     state.selectedGuestId = d.selectedGuestId || null;
     state.upgrades = d.upgrades || state.upgrades;
-    state.snackHeld = !!d.snackHeld;
+
     state.tool = null;
     state.snackPreparing = false;
+    state.snackHeld = !!d.snackHeld;
 
     applyLevelConfig();
     return true;
@@ -189,8 +184,7 @@ function initRooms() {
       guestId: null,
       guestFace: null,
       snackOrdered: false,
-      readyAt: 0,
-      checkoutAt: 0
+      readyAt: 0
     });
   }
   state.selectedRoomId = 1;
@@ -201,11 +195,8 @@ function updateHud() {
   if ($("queueCount")) $("queueCount").textContent = String(state.queue.length);
   if ($("served")) $("served").textContent = String(state.served);
   if ($("angry")) $("angry").textContent = String(state.angry);
-
-  // update level text if exists
   if ($("levelNo")) $("levelNo").textContent = String(state.level);
   if ($("levelGoal")) $("levelGoal").textContent = String(currentGoalGuests());
-
   setCoins(getCoins());
 }
 
@@ -346,27 +337,21 @@ function renderRooms() {
       e.preventDefault();
       e.stopPropagation();
 
-      // 1) If detergent tool active -> clean dirty room
+      // detergent mode
       if (state.tool === "detergent") {
-        if (r.status === "dirty") {
-          startCleaningRoom(r.id);
-        } else {
-          hint("Detergent is ready 🧴 Click a DIRTY room.");
-        }
+        if (r.status === "dirty") startCleaningRoom(r.id);
+        else hint("Detergent ready 🧴 Click a DIRTY room.");
         return;
       }
 
-      // 2) If we have snack held -> deliver to snack room
+      // snack delivery mode
       if (state.tool === "deliverSnack" && state.snackHeld) {
-        if (r.guestId && r.snackOrdered) {
-          deliverSnackToRoom(r.id);
-        } else {
-          hint("Snack ready 🥪 Click a room that says (Snack!).");
-        }
+        if (r.guestId && r.snackOrdered) deliverSnackToRoom(r.id);
+        else hint("Snack ready 🥪 Click a room that needs snack (Snack!).");
         return;
       }
 
-      // 3) guest selected => try check-in first
+      // guest selected => check in
       if (state.selectedGuestId) {
         if (r.status === "empty") {
           checkInSelectedGuestToRoom(r.id);
@@ -376,7 +361,6 @@ function renderRooms() {
         else hint("Room not available ❌ Choose an EMPTY room.");
       }
 
-      // 4) otherwise select room
       state.selectedRoomId = r.id;
       renderRooms();
       renderRoomCard();
@@ -402,27 +386,77 @@ function renderRoomCard() {
     <div style="margin-top:8px">${guest}</div>
     <div style="margin-top:6px;opacity:.9">${snack}</div>
     <div style="margin-top:10px;" class="smallMuted">
-      Check-in is manual ✅ • Checkout is automatic ✅ • Cleaning is manual ✅
+      Check-in manual ✅ • Checkout automatic ✅ • Cleaning manual ✅
     </div>
   `;
 }
 
-/* ---------- level win/lose ---------- */
-function levelWin() {
-  hint(`Level ${state.level} complete ✅`);
-  // move to next level (cap at 10 for Mombasa)
-  if (state.level < 10) {
-    state.level += 1;
-    applyLevelConfig();
-    save();
-    hint(`Level up! Now Level ${state.level} 🎉`);
-  } else {
-    hint("Mombasa complete ✅ Next region: Amboseli (coming next) 🐘");
+/* ---------- Level Modal ---------- */
+function openLevelModal(stars, served, angry, seconds) {
+  const modal = $("levelModal");
+  if (!modal) return;
+
+  $("modalLevelNo").textContent = String(state.level);
+  $("modalServed").textContent = String(served);
+  $("modalAngry").textContent = String(angry);
+  $("modalTime").textContent = String(seconds);
+
+  const starsWrap = $("modalStars");
+  if (starsWrap) {
+    starsWrap.innerHTML = "";
+    for (let i = 0; i < 3; i++) {
+      const s = document.createElement("span");
+      s.className = "star";
+      s.textContent = i < stars ? "⭐" : "☆";
+      starsWrap.appendChild(s);
+    }
   }
+
+  modal.classList.add("show");
+  modal.setAttribute("aria-hidden", "false");
 }
+
+function closeLevelModal() {
+  const modal = $("levelModal");
+  if (!modal) return;
+  modal.classList.remove("show");
+  modal.setAttribute("aria-hidden", "true");
+}
+
+function computeStars(served, angry, seconds) {
+  if (angry === 0 && seconds <= 60) return 3;
+  if (angry <= 1 && seconds <= 90) return 2;
+  return 1;
+}
+
+function resetLevelState() {
+  state.served = 0;
+  state.angry = 0;
+  state.queue = [];
+  state.selectedGuestId = null;
+  state.tool = null;
+  state.snackHeld = false;
+  state.snackPreparing = false;
+  initRooms();
+  levelStartAt = Date.now();
+  updateHud();
+  renderQueue();
+  renderSelectedGuest();
+  renderRooms();
+  renderRoomCard();
+  save();
+}
+
+function levelWin() {
+  AUTO.spawn = false;
+  const seconds = Math.max(0, Math.round((Date.now() - levelStartAt) / 1000));
+  const stars = computeStars(state.served, state.angry, seconds);
+  hint(`Level ${state.level} complete ✅`);
+  openLevelModal(stars, state.served, state.angry, seconds);
+}
+
 function levelFail(reason) {
   hint(`❌ Level failed: ${reason}`);
-  // simple fail behavior: stop auto spawn until reset
   AUTO.spawn = false;
   const btn = $("btnAutoSpawn");
   if (btn) btn.textContent = "👤 Auto Spawn: OFF";
@@ -451,11 +485,9 @@ function checkInSelectedGuestToRoom(roomId) {
 
   const now = Date.now();
   r.readyAt = now + HOTEL.stayMs;
-  r.checkoutAt = r.readyAt + HOTEL.autoCheckoutDelayMs;
 
   state.selectedGuestId = null;
 
-  // coins for check-in
   setCoins(getCoins() + HOTEL.checkinCoin);
 
   hint(`Checked in ${g.face} to Room ${r.id} ✅`);
@@ -481,10 +513,7 @@ function tickQueue() {
   if (left > 0) {
     state.angry += left;
 
-    // fail rule: no angry guests
-    if (currentFailNoAngry()) {
-      levelFail("A guest left angry 😡");
-    }
+    if (currentFailNoAngry()) levelFail("A guest left angry 😡");
 
     if (state.selectedGuestId && !kept.some(x => x.id === state.selectedGuestId)) {
       state.selectedGuestId = null;
@@ -505,13 +534,9 @@ function autoCheckoutRoom(r) {
   if (!r.guestId) return;
   if (r.status !== "ready") return;
 
-  // guest served
   state.served += 1;
-
-  // coins for checkout
   setCoins(getCoins() + HOTEL.checkoutCoin);
 
-  // level goal check
   if (state.served >= currentGoalGuests()) {
     levelWin();
   }
@@ -521,7 +546,6 @@ function autoCheckoutRoom(r) {
   r.guestFace = null;
   r.snackOrdered = false;
   r.readyAt = 0;
-  r.checkoutAt = 0;
 }
 
 function tickRooms() {
@@ -530,13 +554,13 @@ function tickRooms() {
   let didCheckout = 0;
 
   for (const r of state.rooms) {
-    if (r.status === "ready" && r.readyAt && now >= r.readyAt + HOTEL.autoCheckoutDelayMs) {
-
+    if (r.status === "occupied" && r.readyAt && now >= r.readyAt) {
       r.status = "ready";
       changed = true;
     }
 
-    if (r.status === "ready" && r.checkoutAt && now >= r.checkoutAt) {
+    // ✅ FIXED: uses readyAt always
+    if (r.status === "ready" && r.readyAt && now >= r.readyAt + HOTEL.autoCheckoutDelayMs) {
       autoCheckoutRoom(r);
       didCheckout++;
       changed = true;
@@ -544,7 +568,7 @@ function tickRooms() {
   }
 
   if (didCheckout > 0) {
-    hint(`${didCheckout} guest(s) checked out automatically ✅ Room(s) dirty 🟥`);
+    hint(`${didCheckout} guest(s) checked out ✅ Rooms dirty 🟥`);
   }
 
   if (changed) {
@@ -555,7 +579,7 @@ function tickRooms() {
   }
 }
 
-/* ---------- snack system (prep -> hold -> click room) ---------- */
+/* ---------- snack (prep -> hold -> deliver) ---------- */
 function updateSnackButton() {
   const btn = $("btnDeliverSnack");
   if (!btn) return;
@@ -565,23 +589,21 @@ function updateSnackButton() {
     btn.disabled = true;
     return;
   }
-
   if (state.snackHeld) {
     btn.textContent = "🥪 Snack Ready";
     btn.disabled = false;
     return;
   }
-
   btn.textContent = "🛎️ Prep Snack";
   btn.disabled = false;
 }
 
 function prepSnack() {
   if (state.snackPreparing) return;
+
   if (state.snackHeld) {
-    // toggle into deliver mode
     state.tool = "deliverSnack";
-    hint("Snack ready 🥪 Now click a room that needs snack (Snack!).");
+    hint("Snack ready 🥪 Click a room that needs snack (Snack!).");
     save();
     return;
   }
@@ -620,7 +642,7 @@ function deliverSnackToRoom(roomId) {
   save();
 }
 
-/* ---------- cleaning system (detergent mode -> click dirty room) ---------- */
+/* ---------- cleaning (detergent mode) ---------- */
 function cleaningTimeMs() {
   const reduction = state.upgrades.cleaner ? 700 : 0;
   return Math.max(1200, HOTEL.cleanMsBase - reduction);
@@ -722,6 +744,7 @@ function resetAll() {
 
   applyLevelConfig();
   initRooms();
+  levelStartAt = Date.now();
   setCoins(0);
 
   hint("Progress reset ♻️");
@@ -900,12 +923,10 @@ function bindButtons() {
     hint(AUTO.spawn ? "Auto spawn ON ✅" : "Auto spawn OFF ⛔");
   });
 
-  // repurposed:
   $("btnDeliverSnack")?.addEventListener("click", prepSnack);
   $("btnClean")?.addEventListener("click", toggleDetergentMode);
 
-  // checkout button is optional now — auto checkout is the main rule
-  // You can hide it in CSS if you want.
+  // hide manual checkout (auto checkout is main rule)
   $("btnCheckout") && ($("btnCheckout").style.display = "none");
 
   $("buyCleaner")?.addEventListener("click", () => buyUpgrade("cleaner"));
@@ -913,6 +934,27 @@ function bindButtons() {
   $("btnResetMombasa")?.addEventListener("click", resetAll);
 
   $("resetPuzzle")?.addEventListener("click", initPuzzle);
+
+  // modal buttons
+  $("btnRetryLevel")?.addEventListener("click", () => {
+    closeLevelModal();
+    resetLevelState();
+    AUTO.spawn = true;
+    hint(`Retry Level ${state.level} 🔁`);
+  });
+
+  $("btnNextLevel")?.addEventListener("click", () => {
+    closeLevelModal();
+    if (state.level < 10) {
+      state.level += 1;
+      applyLevelConfig();
+      resetLevelState();
+      AUTO.spawn = true;
+      hint(`Level ${state.level} 🎉 Let’s go!`);
+    } else {
+      hint("Mombasa complete ✅ Next: Amboseli unlock coming next 🐘");
+    }
+  });
 }
 
 /* ---------- boot ---------- */
@@ -940,29 +982,16 @@ window.addEventListener("load", () => {
   setInterval(tickQueue, 1000);
   setInterval(tickRooms, 300);
 
+  // dynamic auto-spawn
+  let lastSpawn = Date.now();
   setInterval(() => {
-    if (AUTO.spawn) spawnGuest(false);
-  }, () => HOTEL.spawnEveryMs);
+    const now = Date.now();
+    if (!AUTO.spawn) return;
+    if (now - lastSpawn >= HOTEL.spawnEveryMs) {
+      spawnGuest(false);
+      lastSpawn = now;
+    }
+  }, 250);
 
-  // NOTE: setInterval cannot take a function delay; use a fixed interval and check time.
-  // We’ll implement it properly:
-});
-
-/* ---------- proper auto-spawn loop (dynamic spawnEveryMs per level) ---------- */
-let _lastSpawn = 0;
-setInterval(() => {
-  const now = Date.now();
-  if (!_lastSpawn) _lastSpawn = now;
-
-  if (!AUTO.spawn) return;
-  if (now - _lastSpawn >= HOTEL.spawnEveryMs) {
-    spawnGuest(false);
-    _lastSpawn = now;
-  }
-}, 250);
-
-/* ---------- init puzzle after load ---------- */
-window.addEventListener("load", () => {
   initPuzzle();
 });
-
