@@ -35,23 +35,20 @@
   <main class="wrap">
 
     <!-- HOTEL PANEL -->
-        <section id="tab-hotel" class="panel active">
-  <div class="card sceneHeader">
-    <div class="rowBetween">
-      <div>
-        <div class="hint" id="hint">
-          Select a guest, then click an EMPTY room.
-        </div>
+    <section id="tab-hotel" class="panel active">
+      <div class="card sceneHeader">
+        <div class="rowBetween">
+          <div>
+            <div class="hint" id="hint">Select a guest, then click an EMPTY room.</div>
 
-        <div class="smallMuted">
-          Level: <span id="levelNo">1</span> •
-          Goal: <span id="levelGoal">10</span> •
-          Served: <span id="served">0</span> •
-          Angry left: <span id="angry">0</span> •
-          Queue: <span id="queueCount">0</span>
-        </div>
-      </div>
-
+            <!-- ✅ UPDATED HUD LINE -->
+            <div class="smallMuted">
+              Level: <span id="levelNo">1</span> • Goal: <span id="levelGoal">10</span>
+              • Served: <span id="served">0</span>
+              • Angry left: <span id="angry">0</span>
+              • Queue: <span id="queueCount">0</span>
+            </div>
+          </div>
 
           <div class="rowBetween">
             <button class="btn primary" id="btnSpawnGuest" type="button">➕ Spawn Guest</button>
@@ -87,9 +84,9 @@
               <div id="roomCard" class="roomCard"></div>
 
               <div class="bottomBar">
-                <button class="btn" id="btnDeliverSnack" type="button">🛎️ Deliver Snack</button>
+                <button class="btn" id="btnDeliverSnack" type="button">🛎️ Prep Snack</button>
                 <button class="btn" id="btnCheckout" type="button">✅ Checkout</button>
-                <button class="btn" id="btnClean" type="button">🧽 Clean</button>
+                <button class="btn" id="btnClean" type="button">🧽 Detergent</button>
               </div>
 
               <div class="tip">
@@ -97,8 +94,9 @@
                 <ul class="list">
                   <li>Click a guest in the queue (green outline).</li>
                   <li>Click an <b>EMPTY</b> room to check-in.</li>
-                  <li>Wait until room becomes ⭐ Ready, then Checkout.</li>
-                  <li>Room becomes 🟥 Dirty → Clean manually.</li>
+                  <li>Checkout is automatic ✅</li>
+                  <li>Room becomes 🟥 Dirty → click 🧽 then click the dirty room.</li>
+                  <li>Snacks: click 🛎️ to prep, then click a room that needs snack.</li>
                 </ul>
               </div>
             </div>
@@ -161,30 +159,28 @@
 
   </main>
 
-  <!-- LEVEL COMPLETE MODAL -->
-<div id="levelModal" class="modalOverlay" aria-hidden="true">
-  <div class="modalBox">
-    <div class="modalTitle">Level <span id="modalLevelNo">1</span> Complete 🎉</div>
+  <!-- ✅ LEVEL COMPLETE MODAL -->
+  <div id="levelModal" class="modalOverlay" aria-hidden="true">
+    <div class="modalBox">
+      <div class="modalTitle">Level <span id="modalLevelNo">1</span> Complete 🎉</div>
 
-    <div id="modalStars" class="starsRow" aria-label="stars">
-      <span class="star">⭐</span><span class="star">⭐</span><span class="star">⭐</span>
-    </div>
+      <div id="modalStars" class="starsRow" aria-label="stars"></div>
 
-    <div class="modalStats">
-      <div>Guests served: <b id="modalServed">0</b></div>
-      <div>Angry left: <b id="modalAngry">0</b></div>
-      <div>Time: <b id="modalTime">0</b>s</div>
-    </div>
+      <div class="modalStats">
+        <div>Guests served: <b id="modalServed">0</b></div>
+        <div>Angry left: <b id="modalAngry">0</b></div>
+        <div>Time: <b id="modalTime">0</b>s</div>
+      </div>
 
-    <div class="modalBtns">
-      <button class="btn" id="btnRetryLevel" type="button">🔁 Retry</button>
-      <button class="btn primary" id="btnNextLevel" type="button">➡️ Next Level</button>
+      <div class="modalBtns">
+        <button class="btn" id="btnRetryLevel" type="button">🔁 Retry</button>
+        <button class="btn primary" id="btnNextLevel" type="button">➡️ Next Level</button>
+      </div>
     </div>
   </div>
-</div>
-
 
   <script src="mombasa.js"></script>
 </body>
 </html>
+
 
