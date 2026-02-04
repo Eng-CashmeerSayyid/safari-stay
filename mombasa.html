@@ -58,37 +58,35 @@ Lowercase filenames: mombasa.html / mombasa.js / style.css
 
     <!-- STATIONS -->
     <section class="card">
-      <div class="cardTitle">Stations</div>
-      <div class="smallMuted">Pick snacks/tools, then click rooms (delivery requires 2 taps).</div>
+  <div class="cardTitle">Stations</div>
+  <div class="smallMuted">Pick snacks/tools, then click rooms.</div>
 
-      <div class="stationsRow">
+  <div class="stationsRow" id="stationsRow">
 
-        <button class="stationBtn" id="snackStation" type="button">
-          🍹 Snack Bar <span class="tiny" id="stockLine">stock...</span>
-        </button>
+    <button class="stationBtn" id="snackStation" type="button">
+      🍹 Snack Bar <span class="tiny" id="stockLine">stock...</span>
+    </button>
 
-        <button class="stationBtn" id="cleanTool" type="button">
-          🧴 Detergent
-        </button>
+    <button class="stationBtn" id="cleanTool" type="button">
+      🧴 Detergent
+    </button>
 
-        <!-- Bellboy carry HUD -->
-        <div class="carryHud" style="margin-left:auto;">
-          <div class="bellboy">🧍🏾‍♂️</div>
-
-          <div class="hands">
-            <div class="hand">🤚 L: <span id="handL">Empty</span></div>
-            <div class="hand">🤚 R: <span id="handR">Empty</span></div>
-          </div>
-
-          <!-- Drop buttons (Level 1 only; auto-hidden in Level 2+) -->
-          <div class="dropRow" id="dropRow">
-            <button class="btn mini" id="dropL" type="button">Drop L</button>
-            <button class="btn mini" id="dropR" type="button">Drop R</button>
-          </div>
-        </div>
-
+    <div class="carryHud" style="margin-left:auto;">
+      <div class="bellboy">🧍🏾‍♂️</div>
+      <div class="hands">
+        <div class="hand">🤚 L: <span id="handL">Empty</span></div>
+        <div class="hand">🤚 R: <span id="handR">Empty</span></div>
       </div>
-    </section>
+
+      <div class="dropRow" id="dropRow">
+        <button class="btn mini" id="dropL" type="button">Drop L</button>
+        <button class="btn mini" id="dropR" type="button">Drop R</button>
+      </div>
+    </div>
+
+  </div>
+</section>
+
 
     <section class="grid2">
 
