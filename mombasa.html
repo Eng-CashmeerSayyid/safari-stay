@@ -1,7 +1,9 @@
 <!-- =========================
-File: mombasa.html
-Safari Stay – Mombasa Hotel (FULL – FIXED)
-Lowercase filenames: mombasa.html / mombasa.js / style.css
+File: mombasa.html  (lowercase)
+Safari Stay – Mombasa Hotel (FULL v7)
+- Separate snack buttons (Soda/Coconut/Sandwich)
+- 2-hand carry HUD
+- Manual delivery (tap room twice to confirm)
 ========================= -->
 <!DOCTYPE html>
 <html lang="en">
@@ -10,7 +12,7 @@ Lowercase filenames: mombasa.html / mombasa.js / style.css
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Safari Stay – Mombasa Hotel</title>
 
-  <!-- cache-busted -->
+  <!-- cache-bust -->
   <link rel="stylesheet" href="style.css?v=20260204" />
   <script src="mombasa.js?v=20260204" defer></script>
 </head>
@@ -46,7 +48,7 @@ Lowercase filenames: mombasa.html / mombasa.js / style.css
             Guests will spawn automatically. Click a guest, then click an EMPTY room.
           </div>
           <div class="smallMuted">
-            Tip: Pick snacks anytime at 🍹 Snack Bar. Deliver is manual: click room twice to confirm.
+            Snack delivery is manual: when a room orders, tap the room twice to deliver.
           </div>
         </div>
 
@@ -58,35 +60,42 @@ Lowercase filenames: mombasa.html / mombasa.js / style.css
 
     <!-- STATIONS -->
     <section class="card">
-  <div class="cardTitle">Stations</div>
-  <div class="smallMuted">Pick snacks/tools, then click rooms.</div>
+      <div class="cardTitle">Stations</div>
+      <div class="smallMuted">Pick snacks/tools, then click rooms.</div>
 
-  <div class="stationsRow" id="stationsRow">
+      <div class="stationsRow" id="stationsRow">
 
-    <button class="stationBtn" id="snackStation" type="button">
-      🍹 Snack Bar <span class="tiny" id="stockLine">stock...</span>
-    </button>
+        <!-- Snack buttons (choose exactly what to pick) -->
+        <div class="snackBarGroup">
+          <button class="stationBtn" id="pickSoda" type="button">🥤 Soda</button>
+          <button class="stationBtn" id="pickCoconut" type="button">🥥 Coconut</button>
+          <button class="stationBtn" id="pickSandwich" type="button">🥪 Sandwich</button>
+          <span class="tiny" id="stockLine">stock...</span>
+        </div>
 
-    <button class="stationBtn" id="cleanTool" type="button">
-      🧴 Detergent
-    </button>
+        <!-- Detergent -->
+        <button class="stationBtn" id="cleanTool" type="button">
+          🧴 Detergent
+        </button>
 
-    <div class="carryHud" style="margin-left:auto;">
-      <div class="bellboy">🧍🏾‍♂️</div>
-      <div class="hands">
-        <div class="hand">🤚 L: <span id="handL">Empty</span></div>
-        <div class="hand">🤚 R: <span id="handR">Empty</span></div>
+        <!-- Bellboy carry HUD -->
+        <div class="carryHud" style="margin-left:auto;">
+          <div class="bellboy">🧍🏾‍♂️</div>
+
+          <div class="hands">
+            <div class="hand">🤚 L: <span id="handL">Empty</span></div>
+            <div class="hand">🤚 R: <span id="handR">Empty</span></div>
+          </div>
+
+          <!-- Drop buttons (Level 1 only; auto-hidden in Level 2+) -->
+          <div class="dropRow" id="dropRow">
+            <button class="btn mini" id="dropL" type="button">Drop L</button>
+            <button class="btn mini" id="dropR" type="button">Drop R</button>
+          </div>
+        </div>
+
       </div>
-
-      <div class="dropRow" id="dropRow">
-        <button class="btn mini" id="dropL" type="button">Drop L</button>
-        <button class="btn mini" id="dropR" type="button">Drop R</button>
-      </div>
-    </div>
-
-  </div>
-</section>
-
+    </section>
 
     <section class="grid2">
 
