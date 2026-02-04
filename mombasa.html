@@ -1,12 +1,6 @@
 <!-- =========================
-File: Mombasa.html
-Safari Stay – Mombasa Hotel (FULL)
-- Auto guest spawn + patience moods
-- Manual check-in (click guest -> click empty room)
-- Auto checkout -> dirty room
-- Manual cleaning
-- Optional snack requests
-- Uses localStorage: coins, snacks
+File: mombasa.html
+Safari Stay – Mombasa Hotel (FULL – FIXED)
 ========================= -->
 <!DOCTYPE html>
 <html lang="en">
@@ -14,12 +8,15 @@ Safari Stay – Mombasa Hotel (FULL)
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Safari Stay – Mombasa Hotel</title>
+
+  <!-- cache-busted -->
   <link rel="stylesheet" href="style.css?v=20260204" />
   <script src="mombasa.js?v=20260204" defer></script>
 </head>
 
 <body>
 
+  <!-- ================= HEADER ================= -->
   <header class="topbar">
     <div class="brand">
       <a class="logoLink" href="index.html" title="Back">
@@ -42,12 +39,15 @@ Safari Stay – Mombasa Hotel (FULL)
 
   <main class="wrap">
 
+    <!-- ================= HINT ================= -->
     <section class="card sceneHeader">
       <div class="rowBetween">
         <div>
-          <div class="hint" id="hint">Guests will spawn automatically. Click a guest, then click an EMPTY room.</div>
-          <div class="smallMuted" id="subhint">
-            Tip: Some guests will ask for snacks 🍪 while in the room. Not all.
+          <div class="hint" id="hint">
+            Guests will spawn automatically. Click a guest, then click an EMPTY room.
+          </div>
+          <div class="smallMuted">
+            Tip: Guests may request snacks 🥤🥥🥪 while inside rooms.
           </div>
         </div>
 
@@ -57,58 +57,67 @@ Safari Stay – Mombasa Hotel (FULL)
       </div>
     </section>
 
+    <!-- ================= STATIONS ================= -->
     <section class="card">
-  <div class="cardTitle">Stations</div>
-  <div class="smallMuted">Pick an action tool, then click a room.</div>
+      <div class="cardTitle">Stations</div>
+      <div class="smallMuted">Pick a tool or order, then click a room.</div>
 
-  <div class="stationsRow">
-    <button class="stationBtn" id="snackStation" type="button">
-      🍹 Snack Bar <span class="tiny" id="stockLine">stock...</span>
-    </button>
+      <div class="stationsRow">
 
-    <button class="stationBtn" id="cleanTool" type="button">
-      🧴 Detergent
-    </button>
+        <!-- Snack Bar (ONLY ONE) -->
+        <button class="stationBtn" id="snackStation" type="button">
+          🍹 Snack Bar <span class="tiny" id="stockLine">stock...</span>
+        </button>
 
-    <button class="stationBtn" id="snackStation" type="button">
-  🍹 Snack Bar <span class="tiny" id="stockLine">stock...</span>
-</button>
+        <!-- Detergent -->
+        <button class="stationBtn" id="cleanTool" type="button">
+          🧴 Detergent
+        </button>
 
-    <div class="carryHud" style="margin-left:auto;">
-  <div class="bellboy">🧍🏾‍♂️</div>
-  <div class="hands">
-    <div class="hand">🤚 L: <span id="handL">Empty</span></div>
-    <div class="hand">🤚 R: <span id="handR">Empty</span></div>
-  </div>
+        <!-- Bellboy Carry HUD -->
+        <div class="carryHud" style="margin-left:auto;">
+          <div class="bellboy">🧍🏾‍♂️</div>
 
-  <!-- Optional drop buttons (Level 1 only; Level 2+ hidden in JS) -->
-  <div class="dropRow" id="dropRow">
-    <button class="btn mini" id="dropL" type="button">Drop L</button>
-    <button class="btn mini" id="dropR" type="button">Drop R</button>
-  </div>
-</div>
+          <div class="hands">
+            <div class="hand">🤚 L: <span id="handL">Empty</span></div>
+            <div class="hand">🤚 R: <span id="handR">Empty</span></div>
+          </div>
 
-   
-  </div>
-</section>
+          <!-- Drop buttons (LEVEL 1 only; auto-hidden in LEVEL 2+) -->
+          <div class="dropRow" id="dropRow">
+            <button class="btn mini" id="dropL" type="button">Drop L</button>
+            <button class="btn mini" id="dropR" type="button">Drop R</button>
+          </div>
+        </div>
 
+      </div>
+    </section>
+
+    <!-- ================= MAIN GRID ================= -->
     <section class="grid2">
+
       <!-- QUEUE -->
       <section class="card">
         <div class="cardTitle">Queue</div>
-        <div class="smallMuted">Mood changes slowly: 🙂 calm → 😐 impatient → 😡 angry (may leave)</div>
+        <div class="smallMuted">
+          Mood changes slowly: 🙂 calm → 😐 impatient → 😡 angry (may leave)
+        </div>
         <div id="queueList" class="queueList"></div>
       </section>
 
       <!-- ROOMS -->
       <section class="card">
         <div class="cardTitle">Rooms</div>
-        <div class="smallMuted">4 rooms • Checkout is automatic • Cleaning is manual</div>
+        <div class="smallMuted">
+          4 rooms • Checkout is automatic • Cleaning is manual
+        </div>
         <div id="roomsGrid" class="roomsGrid"></div>
       </section>
+
     </section>
 
   </main>
 
 </body>
 </html>
+
