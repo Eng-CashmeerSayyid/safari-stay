@@ -531,4 +531,7 @@ Uses:
   outline: 2px solid rgba(255,255,255,.28);
   box-shadow: 0 0 0 4px rgba(255,255,255,.06);
 }
+#stationsRow{ position:relative; z-index:9999; pointer-events:auto; }
+#snackStation{ position:relative; z-index:10000; pointer-events:auto; }
+#cleanTool{ position:relative; z-index:10000; pointer-events:auto; }
 
