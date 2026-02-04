@@ -551,6 +551,16 @@ function renderRooms() {
     const box = document.createElement("div");
     box.className = "roomCard";
 
+    // Visual feedback: glow if room has an active order
+if (r.status === "occupied" && r.order) {
+  box.classList.add("hasOrder");
+
+  // urgent when order wait is low (about to turn angry)
+  if (r.orderWaitLeft <= 5) {
+    box.classList.add("orderUrgent");
+  }
+}
+
     if (pendingDeliveryRoom === r.no) box.classList.add("pending");
 
     if (r.status === "empty") {
