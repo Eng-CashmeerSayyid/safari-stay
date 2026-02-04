@@ -26,17 +26,24 @@ function getInv(item) { return Number(localStorage.getItem(INV_KEYS[item])) || 0
 function setInv(item, n) { localStorage.setItem(INV_KEYS[item], String(Math.max(0, Math.floor(n)))); }
 
 function ensureInventoryInitialized() {
-  const hasAny =
-    localStorage.getItem(INV_KEYS.soda) !== null ||
-    localStorage.getItem(INV_KEYS.coconut) !== null ||
+  const hasKeys =
+    localStorage.getItem(INV_KEYS.soda) !== null &&
+    localStorage.getItem(INV_KEYS.coconut) !== null &&
     localStorage.getItem(INV_KEYS.sandwich) !== null;
 
-  if (!hasAny) {
-    setInv("soda", 3);
-    setInv("coconut", 3);
-    setInv("sandwich", 2);
+  // If keys missing OR everything is zero -> seed stock
+  const allZero =
+    getInv("soda") === 0 &&
+    getInv("coconut") === 0 &&
+    getInv("sandwich") === 0;
+
+  if (!hasKeys || allZero) {
+    setInv("soda", 5);
+    setInv("coconut", 5);
+    setInv("sandwich", 5);
   }
 }
+
 function totalSnacksCount() {
   return getInv("soda") + getInv("coconut") + getInv("sandwich");
 }
