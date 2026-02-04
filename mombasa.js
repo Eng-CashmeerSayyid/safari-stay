@@ -1,997 +1,529 @@
-/* =========================
-mombasa.js (LEVELS + MODAL + HOTEL MANIA FLOW)
-- Manual check-in: click guest -> click EMPTY room
-- Auto checkout after ready (always)
-- Manual cleaning: click detergent mode -> click dirty room
-- Snacks: PREP (time) -> HOLD -> click room to deliver
-- Slow patience timers (per level)
-- Rooms = 4
-- Puzzle unchanged (background-image tiles)
-========================= */
+// ===============================
+// SAFARI STAY – Mombasa Hotel (FULL)
+// Auto spawn + patience + moods
+// Manual check-in
+// Auto checkout -> dirty
+// Manual cleaning
+// Optional snack requests
+// localStorage keys: coins, snacks
+// ===============================
 
-/* ---------- helpers ---------- */
-const $ = (id) => document.getElementById(id);
-const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
-
-/* ---------- coins ---------- */
+// ---------- LocalStorage helpers ----------
 function getCoins() {
   return Number(localStorage.getItem("coins")) || 0;
 }
 function setCoins(n) {
-  const val = Math.max(0, Number(n) || 0);
-  localStorage.setItem("coins", String(val));
-  if ($("coins")) $("coins").textContent = String(val);
-  if ($("coinsPuzzle")) $("coinsPuzzle").textContent = String(val);
+  localStorage.setItem("coins", String(Math.max(0, Math.floor(n))));
+}
+function addCoins(n) {
+  setCoins(getCoins() + Number(n || 0));
 }
 
-/* ---------- tabs ---------- */
-function initTabs() {
-  const tabs = document.querySelectorAll(".tab[data-tab]");
-  const panels = { hotel: $("tab-hotel"), puzzle: $("tab-puzzle"), shop: $("tab-shop") };
-
-  tabs.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      tabs.forEach((t) => t.classList.remove("active"));
-      btn.classList.add("active");
-      Object.values(panels).forEach((p) => p && p.classList.remove("active"));
-      panels[btn.dataset.tab]?.classList.add("active");
-    });
-  });
+function getSnacks() {
+  return Number(localStorage.getItem("snacks")) || 0;
+}
+function setSnacks(n) {
+  localStorage.setItem("snacks", String(Math.max(0, Math.floor(n))));
+}
+function addSnacks(n) {
+  setSnacks(getSnacks() + Number(n || 0));
 }
 
-/* =========================
-LEVELS (Mombasa 1–10)
-========================= */
-const LEVELS = {
-  1: { goalGuests: 5,  failNoAngry: false, patienceMs: 70000, spawnEveryMs: 8000, snackChance: 0.15 },
-  2: { goalGuests: 8,  failNoAngry: false, patienceMs: 68000, spawnEveryMs: 7600, snackChance: 0.20 },
-  3: { goalGuests: 10, failNoAngry: false, patienceMs: 65000, spawnEveryMs: 7200, snackChance: 0.25 },
-  4: { goalGuests: 10, failNoAngry: false, patienceMs: 65000, spawnEveryMs: 7000, snackChance: 0.35 },
-  5: { goalGuests: 12, failNoAngry: false, patienceMs: 63000, spawnEveryMs: 6800, snackChance: 0.40 },
-  6: { goalGuests: 12, failNoAngry: true,  patienceMs: 65000, spawnEveryMs: 7200, snackChance: 0.35 },
-  7: { goalGuests: 14, failNoAngry: true,  patienceMs: 62000, spawnEveryMs: 6800, snackChance: 0.45 },
-  8: { goalGuests: 15, failNoAngry: true,  patienceMs: 60000, spawnEveryMs: 6500, snackChance: 0.50 },
-  9: { goalGuests: 16, failNoAngry: true,  patienceMs: 58000, spawnEveryMs: 6200, snackChance: 0.55 },
-  10:{ goalGuests: 18, failNoAngry: true,  patienceMs: 58000, spawnEveryMs: 6000, snackChance: 0.60 },
-};
+// ---------- UI elements ----------
+const coinsEl = document.getElementById("coins");
+const snacksEl = document.getElementById("snacks");
+const servedEl = document.getElementById("served");
+const angryEl = document.getElementById("angry");
+const queueCountEl = document.getElementById("queueCount");
 
-function clampLevel(n) {
-  const x = Number(n) || 1;
-  if (x < 1) return 1;
-  if (x > 10) return 10;
-  return x;
+const queueListEl = document.getElementById("queueList");
+const roomsGridEl = document.getElementById("roomsGrid");
+const hintEl = document.getElementById("hint");
+
+const resetRunBtn = document.getElementById("resetRunBtn");
+
+// ---------- Game constants (tweak anytime) ----------
+const MAX_QUEUE = 6;
+
+// spawn
+const SPAWN_EVERY_MS = 8500; // slower = calmer
+const SPAWN_JITTER_MS = 2500;
+
+// queue patience
+const PATIENCE_TOTAL = 50;     // seconds total patience in queue
+const MOOD_IMPATIENT_AT = 0.55; // when timeLeft <= 55% => 😐
+const MOOD_ANGRY_AT = 0.25;     // when timeLeft <= 25% => 😡
+
+// room stay
+const STAY_MIN = 28; // seconds
+const STAY_MAX = 50;
+
+// snack requests (some guests only)
+const SNACK_REQUEST_CHANCE = 0.45; // not all guests
+const SNACK_GRACE = 18;            // seconds to deliver snack once requested
+
+// cleaning
+const CLEAN_TIME = 5; // seconds
+
+// coins
+const COINS_CHECKIN = 1;
+const COINS_CHECKOUT = 3;
+const COINS_SNACK_FAST = 3;
+const COINS_SNACK_LATE = 1;
+
+// ---------- State ----------
+let served = 0;
+let angryLeft = 0;
+
+let queue = []; // guests waiting
+let selectedGuestId = null;
+
+let rooms = [
+  makeRoom(1),
+  makeRoom(2),
+  makeRoom(3),
+  makeRoom(4),
+];
+
+let tickTimer = null;
+let spawnTimer = null;
+
+// ---------- Models ----------
+function uid() {
+  return Math.random().toString(16).slice(2) + Date.now().toString(16);
 }
 
-/* =========================
-HOTEL BASE CONFIG
-(Level overrides apply)
-========================= */
-const HOTEL_BASE = {
-  roomCount: 4,
-  maxQueue: 6,
-
-  spawnEveryMs: 7000,
-  patienceMs: 65000,
-  snackChance: 0.35,
-
-  stayMs: 9000,
-  autoCheckoutDelayMs: 3500,
-
-  cleanMsBase: 2600,
-  snackPrepMs: 2200,
-
-  checkinCoin: 2,
-  checkoutCoin: 3,
-  snackPay: 4,
-};
-
-const faces = ["🧑🏾‍🦱","👩🏾‍🦰","🧑🏿‍🦱","👨🏾‍🦲","👩🏿‍🦱","🧑🏾","👨🏿","👩🏾","🧑🏿","👨🏾‍🦱"];
-const AUTO = { spawn: true };
-
-let HOTEL = { ...HOTEL_BASE };
-
-let state = {
-  level: 1,
-  served: 0,
-  angry: 0,
-  queue: [],
-  rooms: [],
-
-  selectedRoomId: 1,
-  selectedGuestId: null,
-
-  upgrades: { cleaner: 0, bellboy: 0 },
-
-  tool: null, // null | "detergent" | "deliverSnack"
-  snackHeld: false,
-  snackPreparing: false
-};
-
-let levelStartAt = Date.now();
-
-function hint(t) { if ($("hint")) $("hint").textContent = t; }
-
-function applyLevelConfig() {
-  state.level = clampLevel(state.level);
-  const cfg = LEVELS[state.level] || LEVELS[1];
-
-  HOTEL = { ...HOTEL_BASE };
-  HOTEL.spawnEveryMs = cfg.spawnEveryMs ?? HOTEL_BASE.spawnEveryMs;
-  HOTEL.patienceMs   = cfg.patienceMs ?? HOTEL_BASE.patienceMs;
-  HOTEL.snackChance  = cfg.snackChance ?? HOTEL_BASE.snackChance;
-
-  if ($("levelNo")) $("levelNo").textContent = String(state.level);
-  if ($("levelGoal")) $("levelGoal").textContent = String(cfg.goalGuests);
+function makeGuest() {
+  const names = ["Amina", "Zuri", "Maya", "Imani", "Kato", "Jabari", "Nia", "Tala", "Safi", "Kesi"];
+  const name = names[Math.floor(Math.random() * names.length)];
+  return {
+    id: uid(),
+    name,
+    patienceLeft: PATIENCE_TOTAL,
+    mood: "🙂", // 🙂 😐 😡
+    selected: false,
+  };
 }
 
-function currentGoalGuests() {
-  return (LEVELS[state.level] || LEVELS[1]).goalGuests;
-}
-function currentFailNoAngry() {
-  return !!(LEVELS[state.level] || LEVELS[1]).failNoAngry;
-}
-
-/* ---------- save/load ---------- */
-function save() {
-  localStorage.setItem("mombasaHotel", JSON.stringify({
-    level: state.level,
-    served: state.served,
-    angry: state.angry,
-    queue: state.queue,
-    rooms: state.rooms,
-    selectedRoomId: state.selectedRoomId,
-    selectedGuestId: state.selectedGuestId,
-    upgrades: state.upgrades,
-    snackHeld: state.snackHeld
-  }));
+function makeRoom(no) {
+  return {
+    no,
+    status: "empty", // empty | occupied | dirty | cleaning
+    guest: null,     // guest object when occupied
+    stayLeft: 0,
+    wantsSnack: false,
+    snackLeft: 0,
+    snackResolved: true,  // false when requesting
+    willRequestSnack: false,
+    requestAt: 0,         // seconds into stay to request snack
+    cleanLeft: 0,
+  };
 }
 
-function load() {
-  try {
-    const raw = localStorage.getItem("mombasaHotel");
-    if (!raw) return false;
-    const d = JSON.parse(raw);
-    if (!d || !Array.isArray(d.rooms)) return false;
-    if (d.rooms.length !== HOTEL_BASE.roomCount) return false;
+// ---------- Core loop ----------
+function start() {
+  stop();
 
-    state.level = clampLevel(d.level || 1);
-    state.served = Number(d.served) || 0;
-    state.angry = Number(d.angry) || 0;
-    state.queue = Array.isArray(d.queue) ? d.queue : [];
-    state.rooms = d.rooms;
-
-    state.selectedRoomId = Number(d.selectedRoomId) || 1;
-    state.selectedGuestId = d.selectedGuestId || null;
-    state.upgrades = d.upgrades || state.upgrades;
-
-    state.tool = null;
-    state.snackPreparing = false;
-    state.snackHeld = !!d.snackHeld;
-
-    applyLevelConfig();
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function initRooms() {
-  state.rooms = [];
-  for (let i = 1; i <= HOTEL_BASE.roomCount; i++) {
-    state.rooms.push({
-      id: i,
-      status: "empty", // empty | occupied | ready | dirty | cleaning
-      guestId: null,
-      guestFace: null,
-      snackOrdered: false,
-      readyAt: 0
-    });
-  }
-  state.selectedRoomId = 1;
-}
-
-/* ---------- HUD ---------- */
-function updateHud() {
-  if ($("queueCount")) $("queueCount").textContent = String(state.queue.length);
-  if ($("served")) $("served").textContent = String(state.served);
-  if ($("angry")) $("angry").textContent = String(state.angry);
-  if ($("levelNo")) $("levelNo").textContent = String(state.level);
-  if ($("levelGoal")) $("levelGoal").textContent = String(currentGoalGuests());
-  setCoins(getCoins());
-}
-
-/* ---------- mood ---------- */
-function guestMood(remainingMs) {
-  const t = remainingMs / HOTEL.patienceMs;
-  if (t > 0.70) return "🙂";
-  if (t > 0.40) return "😐";
-  if (t > 0.18) return "😤";
-  return "😡";
-}
-
-/* ---------- queue render ---------- */
-function renderQueue() {
-  const wrap = $("queueList");
-  if (!wrap) return;
-
-  const now = Date.now();
-  wrap.innerHTML = "";
-
-  if (state.queue.length === 0) {
-    wrap.innerHTML = `<div style="opacity:.75;font-size:13px;">No guests yet…</div>`;
-    return;
+  // initial spawn so screen isn't empty
+  if (queue.length === 0) {
+    for (let i = 0; i < 2; i++) queue.push(makeGuest());
   }
 
-  state.queue.forEach((g, idx) => {
-    const remaining = Math.max(0, g.expiresAt - now);
-    const ratio = Math.max(0, Math.min(1, remaining / HOTEL.patienceMs));
-    const mood = guestMood(remaining);
-    const selected = state.selectedGuestId === g.id;
-
-    const row = document.createElement("div");
-    row.style.display = "flex";
-    row.style.alignItems = "center";
-    row.style.gap = "10px";
-    row.style.padding = "10px";
-    row.style.borderRadius = "12px";
-    row.style.border = "1px solid rgba(255,255,255,.12)";
-    row.style.background = "rgba(255,255,255,.05)";
-    row.style.cursor = "pointer";
-    row.style.userSelect = "none";
-    if (selected) row.style.outline = "2px solid rgba(34,197,94,.55)";
-
-    row.innerHTML = `
-      <div style="font-size:18px">${g.face}</div>
-      <div style="font-size:18px">${mood}</div>
-      <div style="flex:1">
-        <div style="height:8px;border-radius:999px;background:rgba(255,255,255,.12);overflow:hidden;">
-          <div style="height:100%;width:${Math.round(ratio*100)}%;background:rgba(34,197,94,.85)"></div>
-        </div>
-        <div style="font-size:12px;opacity:.8;margin-top:4px;">${Math.ceil(remaining/1000)}s • #${idx+1}</div>
-      </div>
-    `;
-
-    row.addEventListener("click", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      state.selectedGuestId = g.id;
-      renderSelectedGuest();
-      renderQueue();
-      hint("Guest selected ✅ Now click an EMPTY room to check in.");
-      save();
-    });
-
-    wrap.appendChild(row);
-  });
+  tickTimer = setInterval(tick, 1000);
+  scheduleNextSpawn();
+  renderAll();
 }
 
-function renderSelectedGuest() {
-  const card = $("guestCard");
-  if (!card) return;
+function stop() {
+  if (tickTimer) clearInterval(tickTimer);
+  if (spawnTimer) clearTimeout(spawnTimer);
+  tickTimer = null;
+  spawnTimer = null;
+}
 
-  if (!state.selectedGuestId) {
-    card.innerHTML = `<div class="muted">No guest selected. Click one in the queue.</div>`;
-    return;
+function scheduleNextSpawn() {
+  const delay = SPAWN_EVERY_MS + Math.floor(Math.random() * SPAWN_JITTER_MS);
+  spawnTimer = setTimeout(() => {
+    spawnGuest();
+    scheduleNextSpawn();
+  }, delay);
+}
+
+function spawnGuest() {
+  // only spawn if queue has space and at least one room can eventually accept
+  if (queue.length >= MAX_QUEUE) return;
+
+  queue.push(makeGuest());
+  renderQueue();
+  renderHUD();
+}
+
+// ---------- Tick updates ----------
+function tick() {
+  updateQueueMoods();
+  updateRooms();
+  renderHUD();
+  renderQueue();
+  renderRooms();
+}
+
+function updateQueueMoods() {
+  // patience decreases for everyone in queue
+  for (let i = queue.length - 1; i >= 0; i--) {
+    const g = queue[i];
+    g.patienceLeft -= 1;
+
+    const ratio = g.patienceLeft / PATIENCE_TOTAL;
+    if (ratio <= MOOD_ANGRY_AT) g.mood = "😡";
+    else if (ratio <= MOOD_IMPATIENT_AT) g.mood = "😐";
+    else g.mood = "🙂";
+
+    // if patience finishes -> leaves angry
+    if (g.patienceLeft <= 0) {
+      // if selected, unselect
+      if (selectedGuestId === g.id) selectedGuestId = null;
+      queue.splice(i, 1);
+      angryLeft += 1;
+    }
   }
 
-  const g = state.queue.find(x => x.id === state.selectedGuestId);
-  if (!g) {
-    state.selectedGuestId = null;
-    card.innerHTML = `<div class="muted">No guest selected. Click one in the queue.</div>`;
-    return;
-  }
-
-  const remaining = Math.max(0, g.expiresAt - Date.now());
-  card.innerHTML = `
-    <div><strong>${g.face} Guest ${g.id}</strong></div>
-    <div class="muted">Mood: ${guestMood(remaining)} • Patience: ${Math.ceil(remaining/1000)}s</div>
-    <div style="margin-top:8px;opacity:.85">Click an empty room to assign.</div>
-  `;
+  // keep selection consistent
+  queue.forEach(qg => (qg.selected = (qg.id === selectedGuestId)));
 }
 
-/* ---------- rooms ---------- */
-function roomLabel(r) {
-  if (r.status === "empty") return "✅ Empty";
-  if (r.status === "occupied") return "🟦 Occupied";
-  if (r.status === "ready") return r.snackOrdered ? "🛎️ Ready (Snack!)" : "⭐ Ready";
-  if (r.status === "dirty") return "🟥 Dirty";
-  if (r.status === "cleaning") return "🧽 Cleaning…";
-  return r.status;
-}
+function updateRooms() {
+  for (const r of rooms) {
+    if (r.status === "occupied") {
+      r.stayLeft -= 1;
 
-function getRoomById(id) {
-  return state.rooms.find(r => r.id === id) || null;
-}
-function getSelectedRoom() {
-  return getRoomById(state.selectedRoomId);
-}
-
-function renderRooms() {
-  const grid = $("hotelGrid");
-  if (!grid) return;
-  grid.innerHTML = "";
-
-  state.rooms.forEach((r) => {
-    const selected = r.id === state.selectedRoomId;
-
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "roomBtn";
-    btn.classList.add("state-" + r.status);
-    if (selected) btn.classList.add("selected");
-
-    const badge = r.guestFace ? r.guestFace : "";
-    const guestLine = r.guestId ? `Guest ${r.guestId}` : "";
-    const stateLine = roomLabel(r);
-
-    btn.innerHTML = `
-      <div class="rRow">
-        <div class="rTitle">Room ${r.id}</div>
-        <div class="rBadge">${badge}</div>
-      </div>
-      <div class="rState">${stateLine}</div>
-      <div class="smallMuted">${guestLine}</div>
-    `;
-
-    btn.addEventListener("click", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-
-      // detergent mode
-      if (state.tool === "detergent") {
-        if (r.status === "dirty") startCleaningRoom(r.id);
-        else hint("Detergent ready 🧴 Click a DIRTY room.");
-        return;
-      }
-
-      // snack delivery mode
-      if (state.tool === "deliverSnack" && state.snackHeld) {
-        if (r.guestId && r.snackOrdered) deliverSnackToRoom(r.id);
-        else hint("Snack ready 🥪 Click a room that needs snack (Snack!).");
-        return;
-      }
-
-      // guest selected => check in
-      if (state.selectedGuestId) {
-        if (r.status === "empty") {
-          checkInSelectedGuestToRoom(r.id);
-          return;
+      // handle snack request moment
+      if (r.willRequestSnack && r.snackResolved && r.stayLeft > 0) {
+        const secondsStayed = (r.guest._stayTotal - r.stayLeft);
+        if (secondsStayed >= r.requestAt) {
+          r.wantsSnack = true;
+          r.snackResolved = false;
+          r.snackLeft = SNACK_GRACE;
         }
-        if (r.status === "dirty") hint("Room is dirty 🧽 Clean it first.");
-        else hint("Room not available ❌ Choose an EMPTY room.");
       }
 
-      state.selectedRoomId = r.id;
-      renderRooms();
-      renderRoomCard();
-      save();
-    });
+      // if snack is requested and not resolved, countdown
+      if (r.wantsSnack && !r.snackResolved) {
+        r.snackLeft -= 1;
 
-    grid.appendChild(btn);
-  });
+        // if snack timer ends -> guest gets angry, may reduce reward
+        if (r.snackLeft <= 0) {
+          // they "give up" on snack; could ask again later (small chance)
+          r.wantsSnack = false;
+          r.snackResolved = true;
+
+          // 30% chance they request again after some time
+          if (Math.random() < 0.3 && r.stayLeft > 10) {
+            r.willRequestSnack = true;
+            r.requestAt = (r.guest._stayTotal - r.stayLeft) + 6; // try again in 6s
+            r.snackResolved = true;
+          }
+        }
+      }
+
+      // checkout
+      if (r.stayLeft <= 0) {
+        checkoutRoom(r.no);
+      }
+    }
+
+    if (r.status === "cleaning") {
+      r.cleanLeft -= 1;
+      if (r.cleanLeft <= 0) {
+        r.status = "empty";
+        r.cleanLeft = 0;
+      }
+    }
+  }
 }
 
-function renderRoomCard() {
-  const card = $("roomCard");
-  if (!card) return;
-  const r = getSelectedRoom();
+// ---------- Actions ----------
+function selectGuest(id) {
+  selectedGuestId = id;
+  queue.forEach(g => (g.selected = (g.id === id)));
+  hintEl.textContent = "Now click an EMPTY room to check-in.";
+  renderQueue();
+  renderRooms();
+}
+
+function tryCheckIn(roomNo) {
+  const r = rooms.find(x => x.no === roomNo);
   if (!r) return;
 
-  const guest = r.guestId ? `${r.guestFace} Guest ${r.guestId}` : "No guest";
-  const snack = r.snackOrdered ? "🛎️ Snack order pending" : "No snack order";
-
-  card.innerHTML = `
-    <div><strong>Room ${r.id}</strong></div>
-    <div class="muted">${roomLabel(r)}</div>
-    <div style="margin-top:8px">${guest}</div>
-    <div style="margin-top:6px;opacity:.9">${snack}</div>
-    <div style="margin-top:10px;" class="smallMuted">
-      Check-in manual ✅ • Checkout automatic ✅ • Cleaning manual ✅
-    </div>
-  `;
-}
-
-/* ---------- Level Modal ---------- */
-function openLevelModal(stars, served, angry, seconds) {
-  const modal = $("levelModal");
-  if (!modal) return;
-
-  $("modalLevelNo").textContent = String(state.level);
-  $("modalServed").textContent = String(served);
-  $("modalAngry").textContent = String(angry);
-  $("modalTime").textContent = String(seconds);
-
-  const starsWrap = $("modalStars");
-  if (starsWrap) {
-    starsWrap.innerHTML = "";
-    for (let i = 0; i < 3; i++) {
-      const s = document.createElement("span");
-      s.className = "star";
-      s.textContent = i < stars ? "⭐" : "☆";
-      starsWrap.appendChild(s);
-    }
+  if (!selectedGuestId) {
+    hintEl.textContent = "Click a guest first, then click an EMPTY room.";
+    return;
   }
 
-  modal.classList.add("show");
-  modal.setAttribute("aria-hidden", "false");
-}
+  if (r.status !== "empty") {
+    hintEl.textContent = "That room is not empty. Choose an EMPTY room.";
+    return;
+  }
 
-function closeLevelModal() {
-  const modal = $("levelModal");
-  if (!modal) return;
-  modal.classList.remove("show");
-  modal.setAttribute("aria-hidden", "true");
-}
-
-function computeStars(served, angry, seconds) {
-  if (angry === 0 && seconds <= 60) return 3;
-  if (angry <= 1 && seconds <= 90) return 2;
-  return 1;
-}
-
-function resetLevelState() {
-  state.served = 0;
-  state.angry = 0;
-  state.queue = [];
-  state.selectedGuestId = null;
-  state.tool = null;
-  state.snackHeld = false;
-  state.snackPreparing = false;
-  initRooms();
-  levelStartAt = Date.now();
-  updateHud();
-  renderQueue();
-  renderSelectedGuest();
-  renderRooms();
-  renderRoomCard();
-  save();
-}
-
-function levelWin() {
-  AUTO.spawn = false;
-  const seconds = Math.max(0, Math.round((Date.now() - levelStartAt) / 1000));
-  const stars = computeStars(state.served, state.angry, seconds);
-  hint(`Level ${state.level} complete ✅`);
-  openLevelModal(stars, state.served, state.angry, seconds);
-}
-
-function levelFail(reason) {
-  hint(`❌ Level failed: ${reason}`);
-  AUTO.spawn = false;
-  const btn = $("btnAutoSpawn");
-  if (btn) btn.textContent = "👤 Auto Spawn: OFF";
-}
-
-/* ---------- actions ---------- */
-function checkInSelectedGuestToRoom(roomId) {
-  const r = getRoomById(roomId);
-  if (!r || r.status !== "empty") return;
-
-  const idx = state.queue.findIndex(g => g.id === state.selectedGuestId);
+  const idx = queue.findIndex(g => g.id === selectedGuestId);
   if (idx === -1) {
-    state.selectedGuestId = null;
-    renderSelectedGuest();
-    renderQueue();
-    hint("That guest is gone. Select another guest.");
+    selectedGuestId = null;
+    hintEl.textContent = "Guest not found. Click a guest again.";
     return;
   }
 
-  const g = state.queue.splice(idx, 1)[0];
+  const guest = queue.splice(idx, 1)[0];
+  selectedGuestId = null;
 
+  // set up room stay
   r.status = "occupied";
-  r.guestId = g.id;
-  r.guestFace = g.face;
-  r.snackOrdered = Math.random() < HOTEL.snackChance;
+  r.guest = guest;
 
-  const now = Date.now();
-  r.readyAt = now + HOTEL.stayMs;
+  const stay = randInt(STAY_MIN, STAY_MAX);
+  r.stayLeft = stay;
+  r.guest._stayTotal = stay;
 
-  state.selectedGuestId = null;
+  // snack plan for this guest
+  r.willRequestSnack = (Math.random() < SNACK_REQUEST_CHANCE);
+  r.snackResolved = true;
+  r.wantsSnack = false;
+  r.snackLeft = 0;
 
-  setCoins(getCoins() + HOTEL.checkinCoin);
-
-  hint(`Checked in ${g.face} to Room ${r.id} ✅`);
-
-  updateHud();
-  renderQueue();
-  renderSelectedGuest();
-  renderRooms();
-  renderRoomCard();
-  save();
-}
-
-function tickQueue() {
-  const now = Date.now();
-  let left = 0;
-
-  const kept = [];
-  for (const g of state.queue) {
-    if (g.expiresAt > now) kept.push(g);
-    else left++;
-  }
-
-  if (left > 0) {
-    state.angry += left;
-
-    if (currentFailNoAngry()) levelFail("A guest left angry 😡");
-
-    if (state.selectedGuestId && !kept.some(x => x.id === state.selectedGuestId)) {
-      state.selectedGuestId = null;
-      renderSelectedGuest();
-    }
-
-    hint(`${left} guest(s) left 😡`);
-    state.queue = kept;
-    updateHud();
-    renderQueue();
-    save();
+  if (r.willRequestSnack) {
+    // ask sometime after check-in (not immediately)
+    r.requestAt = randInt(6, Math.max(7, stay - 8));
   } else {
-    renderQueue();
+    r.requestAt = 0;
   }
+
+  addCoins(COINS_CHECKIN);
+  hintEl.textContent = "Nice! A guest checked in. Watch for snack requests 🍪.";
+  renderAll();
 }
 
-function autoCheckoutRoom(r) {
-  if (!r.guestId) return;
-  if (r.status !== "ready") return;
+function checkoutRoom(roomNo) {
+  const r = rooms.find(x => x.no === roomNo);
+  if (!r || r.status !== "occupied") return;
 
-  state.served += 1;
-  setCoins(getCoins() + HOTEL.checkoutCoin);
+  served += 1;
 
-  if (state.served >= currentGoalGuests()) {
-    levelWin();
-  }
+  // base checkout reward
+  addCoins(COINS_CHECKOUT);
 
+  // if snack request was active and never resolved, reduce vibe (we won’t subtract coins, just no bonus)
+  // (keeps gameplay positive)
+
+  // go dirty
   r.status = "dirty";
-  r.guestId = null;
-  r.guestFace = null;
-  r.snackOrdered = false;
-  r.readyAt = 0;
+  r.guest = null;
+  r.stayLeft = 0;
+
+  // reset snack state
+  r.wantsSnack = false;
+  r.snackLeft = 0;
+  r.snackResolved = true;
+  r.willRequestSnack = false;
+  r.requestAt = 0;
+
+  renderAll();
 }
 
-function tickRooms() {
-  const now = Date.now();
-  let changed = false;
-  let didCheckout = 0;
-
-  for (const r of state.rooms) {
-    if (r.status === "occupied" && r.readyAt && now >= r.readyAt) {
-      r.status = "ready";
-      changed = true;
-    }
-
-    // ✅ FIXED: uses readyAt always
-    if (r.status === "ready" && r.readyAt && now >= r.readyAt + HOTEL.autoCheckoutDelayMs) {
-      autoCheckoutRoom(r);
-      didCheckout++;
-      changed = true;
-    }
-  }
-
-  if (didCheckout > 0) {
-    hint(`${didCheckout} guest(s) checked out ✅ Rooms dirty 🟥`);
-  }
-
-  if (changed) {
-    updateHud();
-    renderRooms();
-    renderRoomCard();
-    save();
-  }
-}
-
-/* ---------- snack (prep -> hold -> deliver) ---------- */
-function updateSnackButton() {
-  const btn = $("btnDeliverSnack");
-  if (!btn) return;
-
-  if (state.snackPreparing) {
-    btn.textContent = "⏳ Preparing…";
-    btn.disabled = true;
-    return;
-  }
-  if (state.snackHeld) {
-    btn.textContent = "🥪 Snack Ready";
-    btn.disabled = false;
-    return;
-  }
-  btn.textContent = "🛎️ Prep Snack";
-  btn.disabled = false;
-}
-
-function prepSnack() {
-  if (state.snackPreparing) return;
-
-  if (state.snackHeld) {
-    state.tool = "deliverSnack";
-    hint("Snack ready 🥪 Click a room that needs snack (Snack!).");
-    save();
-    return;
-  }
-
-  state.snackPreparing = true;
-  state.tool = null;
-  updateSnackButton();
-  hint("Preparing snack… 🥪");
-
-  setTimeout(() => {
-    state.snackPreparing = false;
-    state.snackHeld = true;
-    state.tool = "deliverSnack";
-    updateSnackButton();
-    hint("Snack ready 🥪 Click a room that needs snack!");
-    save();
-  }, HOTEL.snackPrepMs);
-}
-
-function deliverSnackToRoom(roomId) {
-  const r = getRoomById(roomId);
-  if (!r || !r.guestId || !r.snackOrdered) return;
-
-  r.snackOrdered = false;
-  state.snackHeld = false;
-  state.tool = null;
-
-  const pay = HOTEL.snackPay + (state.upgrades.bellboy ? 2 : 0);
-  setCoins(getCoins() + pay);
-
-  hint(`Snack delivered 😍 +${pay} coins`);
-  updateHud();
-  renderRooms();
-  renderRoomCard();
-  updateSnackButton();
-  save();
-}
-
-/* ---------- cleaning (detergent mode) ---------- */
-function cleaningTimeMs() {
-  const reduction = state.upgrades.cleaner ? 700 : 0;
-  return Math.max(1200, HOTEL.cleanMsBase - reduction);
-}
-
-function toggleDetergentMode() {
-  if (state.tool === "detergent") {
-    state.tool = null;
-    hint("Detergent mode OFF.");
-  } else {
-    state.tool = "detergent";
-    hint("Detergent ready 🧴 Click a DIRTY room to clean.");
-  }
-  save();
-}
-
-function startCleaningRoom(roomId) {
-  const r = getRoomById(roomId);
+function startCleaning(roomNo) {
+  const r = rooms.find(x => x.no === roomNo);
   if (!r || r.status !== "dirty") return;
 
   r.status = "cleaning";
-  state.tool = null;
-  hint(`Cleaning Room ${r.id}… 🧽`);
-
+  r.cleanLeft = CLEAN_TIME;
   renderRooms();
-  renderRoomCard();
-  save();
-
-  const ms = cleaningTimeMs();
-  setTimeout(() => {
-    const rr = getRoomById(roomId);
-    if (!rr) return;
-    if (rr.status === "cleaning") {
-      rr.status = "empty";
-      hint(`Room ${rr.id} is clean ✅`);
-      renderRooms();
-      renderRoomCard();
-      save();
-    }
-  }, ms);
 }
 
-/* ---------- spawning ---------- */
-function spawnGuest(manual=false) {
-  if (state.queue.length >= HOTEL.maxQueue) {
-    if (manual) hint("Queue is full ❌");
+function deliverSnack(roomNo) {
+  const r = rooms.find(x => x.no === roomNo);
+  if (!r || r.status !== "occupied") return;
+
+  if (!r.wantsSnack || r.snackResolved) return;
+
+  const snacks = getSnacks();
+  if (snacks <= 0) {
+    hintEl.textContent = "No snacks left 😭 Play puzzle to earn snacks, or add snacks from your puzzle rewards.";
     return;
   }
 
-  const id = Math.random().toString(16).slice(2, 6).toUpperCase();
-  const face = faces[randInt(0, faces.length - 1)];
-  const now = Date.now();
+  // consume snack
+  setSnacks(snacks - 1);
 
-  state.queue.push({ id, face, createdAt: now, expiresAt: now + HOTEL.patienceMs });
+  // reward based on remaining time
+  const deliveredFast = r.snackLeft > Math.floor(SNACK_GRACE * 0.35);
+  addCoins(deliveredFast ? COINS_SNACK_FAST : COINS_SNACK_LATE);
 
-  if (manual) hint(`New guest arrived ${face} 👤`);
-  updateHud();
-  renderQueue();
-  save();
+  r.wantsSnack = false;
+  r.snackResolved = true;
+
+  hintEl.textContent = deliveredFast ? "Snack delivered fast! Bonus coins ✅" : "Snack delivered (late) 😅";
+  renderAll();
 }
 
-/* ---------- shop ---------- */
-function buyUpgrade(which) {
-  const coins = getCoins();
+// ---------- Rendering ----------
+function renderHUD() {
+  coinsEl.textContent = String(getCoins());
+  snacksEl.textContent = String(getSnacks());
+  servedEl.textContent = String(served);
+  angryEl.textContent = String(angryLeft);
+  queueCountEl.textContent = String(queue.length);
+}
 
-  if (which === "cleaner") {
-    if (state.upgrades.cleaner) return hint("Cleaner already bought ✅");
-    if (coins < 120) return hint("Not enough coins for Cleaner.");
-    setCoins(coins - 120);
-    state.upgrades.cleaner = 1;
-    hint("Cleaner purchased 🧹");
+function renderQueue() {
+  queueListEl.innerHTML = "";
+
+  if (queue.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "smallMuted";
+    empty.textContent = "No guests right now. They will spawn automatically…";
+    queueListEl.appendChild(empty);
+    return;
   }
 
-  if (which === "bellboy") {
-    if (state.upgrades.bellboy) return hint("Bellboy already bought ✅");
-    if (coins < 160) return hint("Not enough coins for Bellboy.");
-    setCoins(coins - 160);
-    state.upgrades.bellboy = 1;
-    hint("Bellboy purchased 🛎️");
-  }
+  queue.forEach((g) => {
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = "queueItem" + (g.selected ? " selected" : "");
+    card.onclick = () => selectGuest(g.id);
 
-  save();
+    // patience bar percent
+    const pct = Math.max(0, Math.min(100, Math.round((g.patienceLeft / PATIENCE_TOTAL) * 100)));
+
+    card.innerHTML = `
+      <div class="rowBetween">
+        <div class="qName">${g.mood} ${escapeHtml(g.name)}</div>
+        <div class="qTime">${Math.max(0, g.patienceLeft)}s</div>
+      </div>
+      <div class="bar"><div class="barFill" style="width:${pct}%"></div></div>
+      <div class="smallMuted">${g.selected ? "Selected • Click an empty room" : "Click to select"}</div>
+    `;
+    queueListEl.appendChild(card);
+  });
 }
 
-/* ---------- reset ---------- */
-function resetAll() {
-  localStorage.removeItem("mombasaHotel");
-  localStorage.removeItem("coins");
+function renderRooms() {
+  roomsGridEl.innerHTML = "";
 
-  state.level = 1;
-  state.served = 0;
-  state.angry = 0;
-  state.queue = [];
-  state.selectedGuestId = null;
-  state.upgrades = { cleaner: 0, bellboy: 0 };
-  state.tool = null;
-  state.snackHeld = false;
-  state.snackPreparing = false;
+  rooms.forEach((r) => {
+    const box = document.createElement("div");
+    box.className = "roomCard";
 
-  applyLevelConfig();
-  initRooms();
-  levelStartAt = Date.now();
-  setCoins(0);
+    if (r.status === "empty") {
+      box.classList.add("clickable");
+      box.onclick = () => tryCheckIn(r.no);
+      box.innerHTML = `
+        <div class="rowBetween">
+          <div class="roomTitle">Room ${r.no}</div>
+          <div class="roomState">EMPTY</div>
+        </div>
+        <div class="roomBody smallMuted">Click to check-in selected guest</div>
+      `;
+    }
 
-  hint("Progress reset ♻️");
-  updateHud();
-  renderQueue();
-  renderSelectedGuest();
-  renderRooms();
-  renderRoomCard();
-  updateSnackButton();
+    if (r.status === "occupied") {
+      const snackLine = (r.wantsSnack && !r.snackResolved)
+        ? `<div class="snackLine">🍪 Snack needed: <b>${Math.max(0, r.snackLeft)}s</b></div>`
+        : `<div class="smallMuted">No snack request right now</div>`;
 
-  AUTO.spawn = true;
-  const btn = $("btnAutoSpawn");
-  if (btn) btn.textContent = "👤 Auto Spawn: ON";
-}
+      const snackBtn = (r.wantsSnack && !r.snackResolved)
+        ? `<button class="btn mini" type="button" data-room="${r.no}">Deliver Snack</button>`
+        : `<button class="btn mini ghost" type="button" disabled>Deliver Snack</button>`;
 
-/* =========================
-PUZZLE (MATCH-3) background-image tiles (UNCHANGED)
-========================= */
-const PUZZLE = {
-  width: 8,
-  tiles: [
-    "images/tiles/palm.png",
-    "images/tiles/shell.png",
-    "images/tiles/fish.png",
-    "images/tiles/coconut.png",
-    "images/tiles/wave.png",
-    "images/tiles/sun.png",
-  ],
-};
+      box.innerHTML = `
+        <div class="rowBetween">
+          <div class="roomTitle">Room ${r.no}</div>
+          <div class="roomState">OCCUPIED</div>
+        </div>
 
-let pBoard = [];
-let pSelected = null;
+        <div class="roomBody">
+          <div class="guestLine">👤 ${escapeHtml(r.guest.name)}</div>
+          <div class="smallMuted">Checkout in: <b>${Math.max(0, r.stayLeft)}s</b></div>
+          ${snackLine}
+          <div class="roomActions">${snackBtn}</div>
+        </div>
+      `;
 
-function setBoardSizeCSS() {
-  const boardEl = $("board");
-  if (boardEl) boardEl.style.setProperty("--size", String(PUZZLE.width));
-}
-
-function initPuzzle() {
-  const boardEl = $("board");
-  if (!boardEl) return;
-
-  setBoardSizeCSS();
-  boardEl.innerHTML = "";
-  pBoard = [];
-  pSelected = null;
-
-  const total = PUZZLE.width * PUZZLE.width;
-
-  for (let i = 0; i < total; i++) {
-    const tileBtn = document.createElement("button");
-    tileBtn.type = "button";
-    tileBtn.className = "tile";
-
-    const src = PUZZLE.tiles[randInt(0, PUZZLE.tiles.length - 1)];
-    tileBtn.style.backgroundImage = `url("${src}")`;
-
-    tileBtn.addEventListener("click", () => onTileClick(i));
-
-    boardEl.appendChild(tileBtn);
-    pBoard.push({ src, el: tileBtn });
-  }
-
-  $("msg") && ($("msg").textContent = "Make a match!");
-}
-
-function areAdjacent(a, b) {
-  const w = PUZZLE.width;
-  const ax = a % w, ay = Math.floor(a / w);
-  const bx = b % w, by = Math.floor(b / w);
-  return (Math.abs(ax - bx) + Math.abs(ay - by)) === 1;
-}
-
-function setTileSrc(i, src) {
-  pBoard[i].src = src;
-  pBoard[i].el.style.backgroundImage = `url("${src}")`;
-}
-
-function swapTiles(a, b) {
-  const srcA = pBoard[a].src;
-  const srcB = pBoard[b].src;
-  setTileSrc(a, srcB);
-  setTileSrc(b, srcA);
-}
-
-function findMatches() {
-  const w = PUZZLE.width;
-  const matches = new Set();
-
-  for (let r = 0; r < w; r++) {
-    let runStart = r * w;
-    let runLen = 1;
-    for (let c = 1; c < w; c++) {
-      const i = r * w + c;
-      const prev = r * w + (c - 1);
-      if (pBoard[i].src === pBoard[prev].src) runLen++;
-      else {
-        if (runLen >= 3) for (let k = 0; k < runLen; k++) matches.add(runStart + k);
-        runStart = i; runLen = 1;
+      // bind snack button
+      const btn = box.querySelector("button[data-room]");
+      if (btn) {
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          deliverSnack(r.no);
+        });
       }
     }
-    if (runLen >= 3) for (let k = 0; k < runLen; k++) matches.add(runStart + k);
-  }
 
-  for (let c = 0; c < w; c++) {
-    let runStart = c;
-    let runLen = 1;
-    for (let r = 1; r < w; r++) {
-      const i = r * w + c;
-      const prev = (r - 1) * w + c;
-      if (pBoard[i].src === pBoard[prev].src) runLen++;
-      else {
-        if (runLen >= 3) for (let k = 0; k < runLen; k++) matches.add(runStart + k * w);
-        runStart = i; runLen = 1;
-      }
+    if (r.status === "dirty") {
+      box.classList.add("dirty");
+      box.innerHTML = `
+        <div class="rowBetween">
+          <div class="roomTitle">Room ${r.no}</div>
+          <div class="roomState">DIRTY</div>
+        </div>
+        <div class="roomBody">
+          <div class="smallMuted">Needs cleaning before next guest</div>
+          <div class="roomActions">
+            <button class="btn mini" type="button" data-clean="${r.no}">Clean</button>
+          </div>
+        </div>
+      `;
+
+      const cbtn = box.querySelector("button[data-clean]");
+      cbtn.addEventListener("click", () => startCleaning(r.no));
     }
-    if (runLen >= 3) for (let k = 0; k < runLen; k++) matches.add(runStart + k * w);
-  }
 
-  return matches;
-}
-
-function crushMatches(matches) {
-  const earned = matches.size;
-  setCoins(getCoins() + earned);
-  $("msg") && ($("msg").textContent = `Crush! +${earned} coins 🪙`);
-
-  matches.forEach(i => pBoard[i].el.classList.add("crush"));
-
-  setTimeout(() => {
-    matches.forEach(i => {
-      pBoard[i].el.classList.remove("crush");
-      const src = PUZZLE.tiles[randInt(0, PUZZLE.tiles.length - 1)];
-      setTileSrc(i, src);
-    });
-
-    const chain = findMatches();
-    if (chain.size > 0) crushMatches(chain);
-  }, 230);
-}
-
-function onTileClick(i) {
-  if (pSelected === null) {
-    pSelected = i;
-    pBoard[i].el.classList.add("selected");
-    return;
-  }
-
-  const a = pSelected;
-  pBoard[a].el.classList.remove("selected");
-  pSelected = null;
-
-  if (a === i) return;
-  if (!areAdjacent(a, i)) return;
-
-  swapTiles(a, i);
-  const matches = findMatches();
-
-  if (matches.size === 0) {
-    swapTiles(a, i);
-    pBoard[i].el.classList.add("shake");
-    setTimeout(() => pBoard[i].el.classList.remove("shake"), 250);
-    return;
-  }
-
-  crushMatches(matches);
-}
-
-/* ---------- buttons ---------- */
-function bindButtons() {
-  $("btnSpawnGuest")?.addEventListener("click", () => spawnGuest(true));
-
-  $("btnAutoSpawn")?.addEventListener("click", () => {
-    AUTO.spawn = !AUTO.spawn;
-    $("btnAutoSpawn").textContent = AUTO.spawn ? "👤 Auto Spawn: ON" : "👤 Auto Spawn: OFF";
-    hint(AUTO.spawn ? "Auto spawn ON ✅" : "Auto spawn OFF ⛔");
-  });
-
-  $("btnDeliverSnack")?.addEventListener("click", prepSnack);
-  $("btnClean")?.addEventListener("click", toggleDetergentMode);
-
-  // hide manual checkout (auto checkout is main rule)
-  $("btnCheckout") && ($("btnCheckout").style.display = "none");
-
-  $("buyCleaner")?.addEventListener("click", () => buyUpgrade("cleaner"));
-  $("buyBellboy")?.addEventListener("click", () => buyUpgrade("bellboy"));
-  $("btnResetMombasa")?.addEventListener("click", resetAll);
-
-  $("resetPuzzle")?.addEventListener("click", initPuzzle);
-
-  // modal buttons
-  $("btnRetryLevel")?.addEventListener("click", () => {
-    closeLevelModal();
-    resetLevelState();
-    AUTO.spawn = true;
-    hint(`Retry Level ${state.level} 🔁`);
-  });
-
-  $("btnNextLevel")?.addEventListener("click", () => {
-    closeLevelModal();
-    if (state.level < 10) {
-      state.level += 1;
-      applyLevelConfig();
-      resetLevelState();
-      AUTO.spawn = true;
-      hint(`Level ${state.level} 🎉 Let’s go!`);
-    } else {
-      hint("Mombasa complete ✅ Next: Amboseli unlock coming next 🐘");
+    if (r.status === "cleaning") {
+      box.classList.add("cleaning");
+      box.innerHTML = `
+        <div class="rowBetween">
+          <div class="roomTitle">Room ${r.no}</div>
+          <div class="roomState">CLEANING</div>
+        </div>
+        <div class="roomBody">
+          <div class="smallMuted">Cleaning… <b>${Math.max(0, r.cleanLeft)}s</b></div>
+        </div>
+      `;
     }
+
+    roomsGridEl.appendChild(box);
   });
 }
 
-/* ---------- boot ---------- */
-window.addEventListener("load", () => {
-  setCoins(getCoins());
-  initTabs();
-
-  const ok = load();
-  if (!ok) {
-    state.level = 1;
-    applyLevelConfig();
-    initRooms();
-  }
-
-  applyLevelConfig();
-  updateHud();
+function renderAll() {
+  renderHUD();
   renderQueue();
-  renderSelectedGuest();
   renderRooms();
-  renderRoomCard();
-  updateSnackButton();
+}
 
-  bindButtons();
+// ---------- Reset run (keeps coins/snacks) ----------
+resetRunBtn.addEventListener("click", () => {
+  // only reset the hotel run counters + state, NOT coins/snacks
+  served = 0;
+  angryLeft = 0;
+  selectedGuestId = null;
 
-  setInterval(tickQueue, 1000);
-  setInterval(tickRooms, 300);
+  queue = [];
+  rooms = [makeRoom(1), makeRoom(2), makeRoom(3), makeRoom(4)];
 
-  // dynamic auto-spawn
-  let lastSpawn = Date.now();
-  setInterval(() => {
-    const now = Date.now();
-    if (!AUTO.spawn) return;
-    if (now - lastSpawn >= HOTEL.spawnEveryMs) {
-      spawnGuest(false);
-      lastSpawn = now;
-    }
-  }, 250);
-
-  initPuzzle();
+  hintEl.textContent = "Run reset. Guests will spawn automatically. Click a guest, then an EMPTY room.";
+  start();
 });
+
+// ---------- utils ----------
+function randInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (m) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;",
+  }[m]));
+}
+
+// ---------- boot ----------
+start();
