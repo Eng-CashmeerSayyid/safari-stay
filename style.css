@@ -534,4 +534,9 @@ Uses:
 #stationsRow{ position:relative; z-index:9999; pointer-events:auto; }
 #snackStation{ position:relative; z-index:10000; pointer-events:auto; }
 #cleanTool{ position:relative; z-index:10000; pointer-events:auto; }
+.snackBarGroup{
+  display:flex;
+  gap:8px;
+  align-items:center;
+}
 
