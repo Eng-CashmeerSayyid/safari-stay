@@ -563,4 +563,24 @@ Uses:
   25%{ transform: translateX(-2px); }
   75%{ transform: translateX(2px); }
 }
+.roomCard.hasOrder{
+  outline: 2px solid rgba(255,255,255,.28);
+  box-shadow: 0 0 0 4px rgba(255,255,255,.06), 0 10px 30px rgba(0,0,0,.25);
+  animation: orderPulse 1.1s ease-in-out infinite;
+}
+
+@keyframes orderPulse{
+  0%,100%{ transform: translateY(0); }
+  50%{ transform: translateY(-2px); }
+}
+
+.roomCard.orderUrgent{
+  animation: urgentShake .25s ease-in-out infinite;
+}
+
+@keyframes urgentShake{
+  0%,100%{ transform: translateX(0); }
+  25%{ transform: translateX(-2px); }
+  75%{ transform: translateX(2px); }
+}
 
