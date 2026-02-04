@@ -1,14 +1,25 @@
+<!-- =========================
+File: Mombasa.html
+Safari Stay – Mombasa Hotel (FULL)
+- Auto guest spawn + patience moods
+- Manual check-in (click guest -> click empty room)
+- Auto checkout -> dirty room
+- Manual cleaning
+- Optional snack requests
+- Uses localStorage: coins, snacks
+========================= -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Safari Stay – Mombasa</title>
+  <title>Safari Stay – Mombasa Hotel</title>
   <link rel="stylesheet" href="style.css" />
+  <script src="Mombasa.js" defer></script>
 </head>
+
 <body>
 
-  <!-- TOPBAR -->
   <header class="topbar">
     <div class="brand">
       <a class="logoLink" href="index.html" title="Back">
@@ -16,171 +27,53 @@
       </a>
       <div>
         <div class="title">Safari Stay</div>
-        <div class="subtitle">Mombasa Hotel + Puzzle</div>
+        <div class="subtitle">Mombasa Hotel</div>
       </div>
     </div>
 
     <div class="hud">
       <div class="pill">🪙 Coins: <span id="coins">0</span></div>
+      <div class="pill">🍪 Snacks: <span id="snacks">0</span></div>
+      <div class="pill">✅ Served: <span id="served">0</span></div>
+      <div class="pill">😡 Angry left: <span id="angry">0</span></div>
+      <div class="pill">👥 Queue: <span id="queueCount">0</span></div>
     </div>
   </header>
 
-  <!-- TABS -->
-  <div class="tabs">
-    <button class="tab active" data-tab="hotel" type="button">🏨 Hotel</button>
-    <button class="tab" data-tab="puzzle" type="button">🧩 Puzzle</button>
-    <button class="tab" data-tab="shop" type="button">🛍️ Shop</button>
-  </div>
-
   <main class="wrap">
 
-    <!-- HOTEL PANEL -->
-    <section id="tab-hotel" class="panel active">
-      <div class="card sceneHeader">
-        <div class="rowBetween">
-          <div>
-            <div class="hint" id="hint">Select a guest, then click an EMPTY room.</div>
-
-            <!-- ✅ UPDATED HUD LINE -->
-            <div class="smallMuted">
-              Level: <span id="levelNo">1</span> • Goal: <span id="levelGoal">10</span>
-              • Served: <span id="served">0</span>
-              • Angry left: <span id="angry">0</span>
-              • Queue: <span id="queueCount">0</span>
-            </div>
-          </div>
-
-          <div class="rowBetween">
-            <button class="btn primary" id="btnSpawnGuest" type="button">➕ Spawn Guest</button>
-            <button class="btn" id="btnAutoSpawn" type="button">👤 Auto Spawn: ON</button>
-            <button class="btn danger" id="btnResetMombasa" type="button">Reset</button>
+    <section class="card sceneHeader">
+      <div class="rowBetween">
+        <div>
+          <div class="hint" id="hint">Guests will spawn automatically. Click a guest, then click an EMPTY room.</div>
+          <div class="smallMuted" id="subhint">
+            Tip: Some guests will ask for snacks 🍪 while in the room. Not all.
           </div>
         </div>
-      </div>
 
-      <div class="layout">
-        <!-- LEFT: QUEUE + ROOMS -->
-        <div class="card">
-          <div class="grid2">
-            <div>
-              <h3 style="margin:0 0 8px;">Queue</h3>
-              <div id="queueList"></div>
-
-              <div class="divider"></div>
-
-              <h3 style="margin:0 0 8px;">Rooms</h3>
-              <div id="hotelGrid" class="hotelGrid"></div>
-            </div>
-
-            <div class="side">
-              <h3>Selected Guest</h3>
-              <div id="guestCard" class="roomCard">
-                <div class="muted">No guest selected. Click one in the queue.</div>
-              </div>
-
-              <div class="divider"></div>
-
-              <h3>Room Actions</h3>
-              <div id="roomCard" class="roomCard"></div>
-
-              <div class="bottomBar">
-                <button class="btn" id="btnDeliverSnack" type="button">🛎️ Prep Snack</button>
-                <button class="btn" id="btnCheckout" type="button">✅ Checkout</button>
-                <button class="btn" id="btnClean" type="button">🧽 Detergent</button>
-              </div>
-
-              <div class="tip">
-                <b>How to play:</b>
-                <ul class="list">
-                  <li>Click a guest in the queue (green outline).</li>
-                  <li>Click an <b>EMPTY</b> room to check-in.</li>
-                  <li>Checkout is automatic ✅</li>
-                  <li>Room becomes 🟥 Dirty → click 🧽 then click the dirty room.</li>
-                  <li>Snacks: click 🛎️ to prep, then click a room that needs snack.</li>
-                </ul>
-              </div>
-            </div>
-          </div>
+        <div class="row" style="gap:10px;">
+          <button class="btn" id="resetRunBtn" type="button">Reset Run</button>
         </div>
       </div>
     </section>
 
-    <!-- PUZZLE PANEL -->
-    <section id="tab-puzzle" class="panel">
-      <div class="puzzlePanel">
-        <div class="puzzleTop">
-          <div>
-            <h2>Match-3 Puzzle</h2>
-            <div class="msg" id="msg">Make a match!</div>
-          </div>
-          <div class="puzzleStats">
-            <div class="stat">🪙 Coins: <span id="coinsPuzzle">0</span></div>
-            <button class="btn" id="resetPuzzle" type="button">Reset Puzzle</button>
-          </div>
-        </div>
+    <section class="grid2">
+      <!-- QUEUE -->
+      <section class="card">
+        <div class="cardTitle">Queue</div>
+        <div class="smallMuted">Mood changes slowly: 🙂 calm → 😐 impatient → 😡 angry (may leave)</div>
+        <div id="queueList" class="queueList"></div>
+      </section>
 
-        <div id="board" class="board"></div>
-
-        <div class="puzzleBottom">
-          <div class="smallMuted">Tip: Click 2 adjacent tiles to swap.</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- SHOP PANEL -->
-    <section id="tab-shop" class="panel">
-      <div class="card">
-        <h2 style="margin-top:0;">Shop</h2>
-        <div class="shopGrid">
-          <div class="shopItem">
-            <div class="shopTop">
-              <div class="shopIcon">🧹</div>
-              <div>
-                <div class="shopTitle">Cleaner Upgrade</div>
-                <div class="price">Cost: 120 coins</div>
-              </div>
-            </div>
-            <button class="btn primary" id="buyCleaner" type="button">Buy Cleaner</button>
-          </div>
-
-          <div class="shopItem">
-            <div class="shopTop">
-              <div class="shopIcon">🛎️</div>
-              <div>
-                <div class="shopTitle">Bellboy Upgrade</div>
-                <div class="price">Cost: 160 coins</div>
-              </div>
-            </div>
-            <button class="btn primary" id="buyBellboy" type="button">Buy Bellboy</button>
-          </div>
-        </div>
-      </div>
+      <!-- ROOMS -->
+      <section class="card">
+        <div class="cardTitle">Rooms</div>
+        <div class="smallMuted">4 rooms • Checkout is automatic • Cleaning is manual</div>
+        <div id="roomsGrid" class="roomsGrid"></div>
+      </section>
     </section>
 
   </main>
 
-  <!-- ✅ LEVEL COMPLETE MODAL -->
-  <div id="levelModal" class="modalOverlay" aria-hidden="true">
-    <div class="modalBox">
-      <div class="modalTitle">Level <span id="modalLevelNo">1</span> Complete 🎉</div>
-
-      <div id="modalStars" class="starsRow" aria-label="stars"></div>
-
-      <div class="modalStats">
-        <div>Guests served: <b id="modalServed">0</b></div>
-        <div>Angry left: <b id="modalAngry">0</b></div>
-        <div>Time: <b id="modalTime">0</b>s</div>
-      </div>
-
-      <div class="modalBtns">
-        <button class="btn" id="btnRetryLevel" type="button">🔁 Retry</button>
-        <button class="btn primary" id="btnNextLevel" type="button">➡️ Next Level</button>
-      </div>
-    </div>
-  </div>
-
-  <script src="mombasa.js"></script>
 </body>
 </html>
-
-
