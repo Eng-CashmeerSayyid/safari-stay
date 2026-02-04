@@ -1,9 +1,9 @@
 // ===============================
-// SAFARI STAY – mombasa.js (FULL v6)
-// - Pick snacks ANYTIME at Snack Bar (pre-carry)
+// SAFARI STAY – mombasa.js (FULL v7)
+// - Pick specific snacks anytime (Soda/Coconut/Sandwich)
 // - Sandwich preps 5s WHILE in hand
-// - Guest orders are scheduled (guaranteed chance)
-// - Delivery is MANUAL (2 taps on room to confirm)
+// - Guests request snacks (scheduled chance)
+// - Delivery is MANUAL (tap room twice)
 // - Cleaning is manual: pick detergent -> click dirty room
 // - Bellboy has 2 hands; Level 2+ disables dropping
 // ===============================
@@ -31,19 +31,17 @@ function ensureInventoryInitialized() {
     localStorage.getItem(INV_KEYS.coconut) !== null &&
     localStorage.getItem(INV_KEYS.sandwich) !== null;
 
-  // If keys missing OR everything is zero -> seed stock
   const allZero =
     getInv("soda") === 0 &&
     getInv("coconut") === 0 &&
     getInv("sandwich") === 0;
 
   if (!hasKeys || allZero) {
-    setInv("soda", 5);
-    setInv("coconut", 5);
-    setInv("sandwich", 5);
+    setInv("soda", 6);
+    setInv("coconut", 6);
+    setInv("sandwich", 4);
   }
 }
-
 function totalSnacksCount() {
   return getInv("soda") + getInv("coconut") + getInv("sandwich");
 }
@@ -60,10 +58,15 @@ const roomsGridEl = document.getElementById("roomsGrid");
 const hintEl = document.getElementById("hint");
 const resetRunBtn = document.getElementById("resetRunBtn");
 
-// Stations
-const snackStationBtn = document.getElementById("snackStation");
-snackStationBtn?.addEventListener("click", () => alert("SNACK BAR CLICK ✅"));
+// Snack buttons
+const pickSodaBtn = document.getElementById("pickSoda");
+const pickCoconutBtn = document.getElementById("pickCoconut");
+const pickSandwichBtn = document.getElementById("pickSandwich");
+
+// Detergent
 const cleanToolBtn = document.getElementById("cleanTool");
+
+// Stock line
 const stockLineEl = document.getElementById("stockLine");
 
 // Carry HUD
@@ -124,10 +127,7 @@ let pendingDeliveryRoom = null;
 let handL = null;
 let handR = null;
 
-/* ---------- Snack Bar pick cycles ---------- */
-const SNACK_CYCLE = ["soda", "coconut", "sandwich"];
 const SNACK_EMOJI = { soda: "🥤", coconut: "🥥", sandwich: "🥪" };
-let cycleIndex = 0;
 
 /* ---------- Helpers for hands ---------- */
 function hasFreeHand() { return !handL || !handR; }
@@ -354,7 +354,7 @@ function tryCheckIn(roomNo) {
   pendingDeliveryRoom = null;
 
   addCoins(COINS_CHECKIN);
-  hintEl.textContent = "Checked in! You can pre-pick snacks at 🍹 Snack Bar.";
+  hintEl.textContent = "Checked in! Pick snacks at the station anytime.";
   renderAll();
 }
 
@@ -387,50 +387,37 @@ cleanToolBtn?.addEventListener("click", () => {
   renderHands();
 });
 
-// pick snacks anytime (pre-carry)
-snackStationBtn?.addEventListener("click", () => {
+// pick a specific snack into free hand (consume stock now)
+function pickSnack(item) {
   if (!hasFreeHand()) { hintEl.textContent = "Hands full 😅"; return; }
+  if (getInv(item) <= 0) { hintEl.textContent = `No ${item} left 😭`; return; }
 
-  // pick next snack in cycle that has stock
-  let tries = 0;
-  let chosen = null;
-  while (tries < SNACK_CYCLE.length) {
-    const item = SNACK_CYCLE[cycleIndex % SNACK_CYCLE.length];
-    cycleIndex++;
-    tries++;
-    if (getInv(item) > 0) { chosen = item; break; }
-  }
-  if (!chosen) { hintEl.textContent = "No snacks in stock 😭"; return; }
-
-  // consume stock now (picked)
-  setInv(chosen, getInv(chosen) - 1);
+  setInv(item, getInv(item) - 1);
 
   let obj;
-  if (chosen === "sandwich") {
-    obj = { type: "snack", item: "sandwich", emoji: "🥪", ready: false, prepLeft: SANDWICH_PREP };
+  if (item === "sandwich") {
+    obj = { type: "snack", item, emoji: "🥪", ready: false, prepLeft: SANDWICH_PREP };
     hintEl.textContent = "🥪 Making sandwich… (5s) — it will be ready in your hand.";
   } else {
-    obj = { type: "snack", item: chosen, emoji: SNACK_EMOJI[chosen], ready: true, prepLeft: 0 };
-    hintEl.textContent = `Picked ${SNACK_EMOJI[chosen]} ${chosen} into your hand.`;
+    obj = { type: "snack", item, emoji: SNACK_EMOJI[item], ready: true, prepLeft: 0 };
+    hintEl.textContent = `Picked ${SNACK_EMOJI[item]} ${item} into your hand.`;
   }
 
-  const placed = putInFreeHand(obj);
-  if (!placed) {
-    // refund if no hand (safety)
-    setInv(chosen, getInv(chosen) + 1);
-    hintEl.textContent = "Hands full 😅";
-    return;
-  }
-
+  putInFreeHand(obj);
+  pendingDeliveryRoom = null;
   renderAll();
-});
+}
+
+pickSodaBtn?.addEventListener("click", () => pickSnack("soda"));
+pickCoconutBtn?.addEventListener("click", () => pickSnack("coconut"));
+pickSandwichBtn?.addEventListener("click", () => pickSnack("sandwich"));
 
 /* ---------- Room clicks ---------- */
 function handleRoomClick(roomNo) {
   const r = rooms.find(x => x.no === roomNo);
   if (!r) return;
 
-  // If you click a different room, clear pending delivery
+  // Clicking a different room cancels pending delivery
   if (pendingDeliveryRoom !== null && pendingDeliveryRoom !== r.no) {
     pendingDeliveryRoom = null;
   }
@@ -456,7 +443,7 @@ function handleRoomClick(roomNo) {
     const snackHand = findHandWithSnack(needed);
 
     if (!snackHand) {
-      hintEl.textContent = `Need ${r.order.emoji} ${needed}. Pick it at 🍹 Snack Bar first.`;
+      hintEl.textContent = `Need ${r.order.emoji} ${needed}. Pick it at the station.`;
       pendingDeliveryRoom = null;
       renderAll();
       return;
@@ -464,7 +451,7 @@ function handleRoomClick(roomNo) {
 
     const h = (snackHand === "L") ? handL : handR;
     if (needed === "sandwich" && h && !h.ready) {
-      hintEl.textContent = "🥪 Sandwich is still being made… wait!";
+      hintEl.textContent = "🥪 Sandwich still preparing… wait!";
       pendingDeliveryRoom = null;
       renderAll();
       return;
@@ -564,7 +551,6 @@ function renderRooms() {
     const box = document.createElement("div");
     box.className = "roomCard";
 
-    // pending delivery highlight
     if (pendingDeliveryRoom === r.no) box.classList.add("pending");
 
     if (r.status === "empty") {
