@@ -544,22 +544,95 @@ function renderQueue() {
   });
 }
 
-function renderRooms() {
+   function renderRooms() {
   roomsGridEl.innerHTML = "";
 
   rooms.forEach((r) => {
     const box = document.createElement("div");
-    box.className = "roomCard";
+    box.classList.add("roomCard");
 
-    // Visual feedback: glow if room has an active order
-if (r.status === "occupied" && r.order) {
-  box.classList.add("hasOrder");
+    // pending delivery highlight (already in your CSS)
+    if (pendingDeliveryRoom === r.no) box.classList.add("pending");
 
-  // urgent when order wait is low (about to turn angry)
-  if (r.orderWaitLeft <= 5) {
-    box.classList.add("orderUrgent");
-  }
+    // ✅ Glow when there is an active order
+    if (r.status === "occupied" && r.order) {
+      box.classList.add("hasOrder");
+      if (r.orderWaitLeft <= 5) box.classList.add("orderUrgent");
+    }
+
+    // EMPTY
+    if (r.status === "empty") {
+      box.classList.add("clickable");
+      box.onclick = () => handleRoomClick(r.no);
+      box.innerHTML = `
+        <div class="rowBetween">
+          <div class="roomTitle">Room ${r.no}</div>
+          <div class="roomState">EMPTY</div>
+        </div>
+        <div class="roomBody smallMuted">Click to check-in selected guest</div>
+      `;
+    }
+
+    // OCCUPIED
+    if (r.status === "occupied") {
+      let orderBlock = `<div class="smallMuted">No snack request right now</div>`;
+
+      if (r.order) {
+        const mood = snackMood(r.orderWaitLeft);
+        orderBlock = `
+          <div class="snackLine">${mood} Order: ${r.order.emoji} <b>${r.order.item}</b></div>
+          <div class="smallMuted">Wait left: <b>${Math.max(0, r.orderWaitLeft)}s</b></div>
+          <div class="smallMuted">Carry it, then tap room twice to deliver.</div>
+        `;
+      }
+
+      box.onclick = () => handleRoomClick(r.no);
+      box.innerHTML = `
+        <div class="rowBetween">
+          <div class="roomTitle">Room ${r.no}</div>
+          <div class="roomState">OCCUPIED</div>
+        </div>
+        <div class="roomBody">
+          <div class="guestLine">👤 ${escapeHtml(r.guest.label)}</div>
+          <div class="smallMuted">Checkout in: <b>${Math.max(0, r.stayLeft)}s</b></div>
+          ${orderBlock}
+        </div>
+      `;
+    }
+
+    // DIRTY
+    if (r.status === "dirty") {
+      box.classList.add("dirty");
+      box.onclick = () => handleRoomClick(r.no);
+      box.innerHTML = `
+        <div class="rowBetween">
+          <div class="roomTitle">Room ${r.no}</div>
+          <div class="roomState">DIRTY</div>
+        </div>
+        <div class="roomBody">
+          <div class="smallMuted">Pick 🧴 Detergent, then click room.</div>
+        </div>
+      `;
+    }
+
+    // CLEANING
+    if (r.status === "cleaning") {
+      box.classList.add("cleaning");
+      box.innerHTML = `
+        <div class="rowBetween">
+          <div class="roomTitle">Room ${r.no}</div>
+          <div class="roomState">CLEANING</div>
+        </div>
+        <div class="roomBody">
+          <div class="smallMuted">Cleaning… <b>${Math.max(0, r.cleanLeft)}s</b></div>
+        </div>
+      `;
+    }
+
+    roomsGridEl.appendChild(box);
+  });
 }
+
 
     if (pendingDeliveryRoom === r.no) box.classList.add("pending");
 
