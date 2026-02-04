@@ -1,6 +1,7 @@
 <!-- =========================
 File: mombasa.html
 Safari Stay – Mombasa Hotel (FULL – FIXED)
+Lowercase filenames: mombasa.html / mombasa.js / style.css
 ========================= -->
 <!DOCTYPE html>
 <html lang="en">
@@ -16,7 +17,6 @@ Safari Stay – Mombasa Hotel (FULL – FIXED)
 
 <body>
 
-  <!-- ================= HEADER ================= -->
   <header class="topbar">
     <div class="brand">
       <a class="logoLink" href="index.html" title="Back">
@@ -39,7 +39,6 @@ Safari Stay – Mombasa Hotel (FULL – FIXED)
 
   <main class="wrap">
 
-    <!-- ================= HINT ================= -->
     <section class="card sceneHeader">
       <div class="rowBetween">
         <div>
@@ -47,7 +46,7 @@ Safari Stay – Mombasa Hotel (FULL – FIXED)
             Guests will spawn automatically. Click a guest, then click an EMPTY room.
           </div>
           <div class="smallMuted">
-            Tip: Guests may request snacks 🥤🥥🥪 while inside rooms.
+            Tip: Pick snacks anytime at 🍹 Snack Bar. Deliver is manual: click room twice to confirm.
           </div>
         </div>
 
@@ -57,24 +56,22 @@ Safari Stay – Mombasa Hotel (FULL – FIXED)
       </div>
     </section>
 
-    <!-- ================= STATIONS ================= -->
+    <!-- STATIONS -->
     <section class="card">
       <div class="cardTitle">Stations</div>
-      <div class="smallMuted">Pick a tool or order, then click a room.</div>
+      <div class="smallMuted">Pick snacks/tools, then click rooms (delivery requires 2 taps).</div>
 
       <div class="stationsRow">
 
-        <!-- Snack Bar (ONLY ONE) -->
         <button class="stationBtn" id="snackStation" type="button">
           🍹 Snack Bar <span class="tiny" id="stockLine">stock...</span>
         </button>
 
-        <!-- Detergent -->
         <button class="stationBtn" id="cleanTool" type="button">
           🧴 Detergent
         </button>
 
-        <!-- Bellboy Carry HUD -->
+        <!-- Bellboy carry HUD -->
         <div class="carryHud" style="margin-left:auto;">
           <div class="bellboy">🧍🏾‍♂️</div>
 
@@ -83,7 +80,7 @@ Safari Stay – Mombasa Hotel (FULL – FIXED)
             <div class="hand">🤚 R: <span id="handR">Empty</span></div>
           </div>
 
-          <!-- Drop buttons (LEVEL 1 only; auto-hidden in LEVEL 2+) -->
+          <!-- Drop buttons (Level 1 only; auto-hidden in Level 2+) -->
           <div class="dropRow" id="dropRow">
             <button class="btn mini" id="dropL" type="button">Drop L</button>
             <button class="btn mini" id="dropR" type="button">Drop R</button>
@@ -93,24 +90,19 @@ Safari Stay – Mombasa Hotel (FULL – FIXED)
       </div>
     </section>
 
-    <!-- ================= MAIN GRID ================= -->
     <section class="grid2">
 
       <!-- QUEUE -->
       <section class="card">
         <div class="cardTitle">Queue</div>
-        <div class="smallMuted">
-          Mood changes slowly: 🙂 calm → 😐 impatient → 😡 angry (may leave)
-        </div>
+        <div class="smallMuted">Mood: 🙂 → 😐 → 😡 (may leave)</div>
         <div id="queueList" class="queueList"></div>
       </section>
 
       <!-- ROOMS -->
       <section class="card">
         <div class="cardTitle">Rooms</div>
-        <div class="smallMuted">
-          4 rooms • Checkout is automatic • Cleaning is manual
-        </div>
+        <div class="smallMuted">4 rooms • Auto checkout • Manual cleaning</div>
         <div id="roomsGrid" class="roomsGrid"></div>
       </section>
 
