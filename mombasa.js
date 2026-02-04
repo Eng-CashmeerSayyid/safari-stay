@@ -1,16 +1,20 @@
 // ===============================
-// SAFARI STAY – mombasa.js (FULL v3 TOOL-BASED)
-// - Snack: click room with order to PICK -> click Snack Bar to SERVE
-// - Cleaning: click Detergent -> click dirty room to clean
-// Lowercase filenames
+// SAFARI STAY – mombasa.js (FULL v4)
+// FIX: snack requests guaranteed (scheduled per guest)
+// ADD: bellboy tray (two hands)
+// - L/R hands can carry detergent + snack order or two snack orders
+// - Level 2+ can disable dropping items
 // ===============================
 
-// ---------- LocalStorage helpers ----------
+/* ---------- LEVEL CONTROL ---------- */
+const LEVEL = 1; // set to 2 later to DISABLE dropping items
+
+/* ---------- LocalStorage helpers ---------- */
 function getCoins() { return Number(localStorage.getItem("coins")) || 0; }
 function setCoins(n) { localStorage.setItem("coins", String(Math.max(0, Math.floor(n)))); }
 function addCoins(n) { setCoins(getCoins() + Number(n || 0)); }
 
-// Inventory keys
+/* ---------- Inventory ---------- */
 const INV_KEYS = {
   soda: "snacks_soda",
   coconut: "snacks_coconut",
@@ -19,7 +23,6 @@ const INV_KEYS = {
 function getInv(item) { return Number(localStorage.getItem(INV_KEYS[item])) || 0; }
 function setInv(item, n) { localStorage.setItem(INV_KEYS[item], String(Math.max(0, Math.floor(n)))); }
 
-// starter stock if none
 function ensureInventoryInitialized() {
   const hasAny =
     localStorage.getItem(INV_KEYS.soda) !== null ||
@@ -32,8 +35,11 @@ function ensureInventoryInitialized() {
     setInv("sandwich", 2);
   }
 }
+function totalSnacksCount() {
+  return getInv("soda") + getInv("coconut") + getInv("sandwich");
+}
 
-// ---------- UI elements ----------
+/* ---------- UI elements ---------- */
 const coinsEl = document.getElementById("coins");
 const snacksEl = document.getElementById("snacks");
 const servedEl = document.getElementById("served");
@@ -45,13 +51,19 @@ const roomsGridEl = document.getElementById("roomsGrid");
 const hintEl = document.getElementById("hint");
 const resetRunBtn = document.getElementById("resetRunBtn");
 
-// Stations UI
+// Stations
 const snackStationBtn = document.getElementById("snackStation");
 const cleanToolBtn = document.getElementById("cleanTool");
-const holdingEl = document.getElementById("holding");
 const stockLineEl = document.getElementById("stockLine");
 
-// ---------- Game constants ----------
+// Carry HUD
+const handLEl = document.getElementById("handL");
+const handREl = document.getElementById("handR");
+const dropRowEl = document.getElementById("dropRow");
+const dropLBtn = document.getElementById("dropL");
+const dropRBtn = document.getElementById("dropR");
+
+/* ---------- Game constants ---------- */
 const MAX_QUEUE = 6;
 const SPAWN_EVERY_MS = 8000;
 const SPAWN_JITTER_MS = 2000;
@@ -60,25 +72,24 @@ const PATIENCE_TOTAL = 50;
 const MOOD_IMPATIENT_AT = 0.55;
 const MOOD_ANGRY_AT = 0.25;
 
-// stay time (Hotel Mania vibe)
 const STAY_MIN = 12;
 const STAY_MAX = 20;
 
-// snack
-const SNACK_REQUEST_CHANCE = 0.55;
+// Snack system
+const SNACK_REQUEST_CHANCE = 0.65; // increase so you SEE it more
 const SNACK_WAIT_TOTAL = 18;
 const SANDWICH_PREP = 5;
 
-// cleaning
+// Cleaning
 const CLEAN_TIME = 5;
 
-// coins
+// Coins
 const COINS_CHECKIN = 1;
 const COINS_CHECKOUT = 3;
 const COINS_SNACK_FAST = 3;
 const COINS_SNACK_LATE = 1;
 
-// ---------- State ----------
+/* ---------- State ---------- */
 let served = 0;
 let angryLeft = 0;
 
@@ -92,11 +103,41 @@ let spawnTimer = null;
 
 let guestCounter = 0;
 
-// Tool / interaction state
-let holding = "none"; // none | detergent | order
-let heldOrder = null; // { roomNo, item, emoji }
+/* ---------- Bellboy two-hand carry ---------- */
+// Each hand can hold: null OR { type:'detergent' } OR { type:'order', roomNo, item, emoji }
+let handL = null;
+let handR = null;
 
-// ---------- Models ----------
+// helper: can carry new item?
+function hasFreeHand() { return !handL || !handR; }
+function putInFreeHand(obj) {
+  if (!handL) { handL = obj; return "L"; }
+  if (!handR) { handR = obj; return "R"; }
+  return null;
+}
+function clearHand(which) {
+  if (which === "L") handL = null;
+  if (which === "R") handR = null;
+}
+function describeHand(h) {
+  if (!h) return "Empty";
+  if (h.type === "detergent") return "🧴 Detergent";
+  if (h.type === "order") return `${h.emoji} ${h.item} (R${h.roomNo})`;
+  return "Empty";
+}
+function renderHands() {
+  handLEl.textContent = describeHand(handL);
+  handREl.textContent = describeHand(handR);
+
+  // Level rule: dropping disabled at Level 2+
+  if (LEVEL >= 2) {
+    dropRowEl.style.display = "none";
+  } else {
+    dropRowEl.style.display = "flex";
+  }
+}
+
+/* ---------- Models ---------- */
 function uid() { return Math.random().toString(16).slice(2) + Date.now().toString(16); }
 
 function makeGuest() {
@@ -110,12 +151,18 @@ function makeRoom(no) {
     status: "empty", // empty | occupied | dirty | cleaning
     guest: null,
     stayLeft: 0,
+    stayTotal: 0,
 
-    // snack order state (in-room)
-    order: null,          // { item, emoji }
-    orderWaitLeft: 0,     // time before cancel
-    preparing: false,     // sandwich prep active
-    prepLeft: 0,          // seconds left in prep
+    // snack request scheduling (FIX)
+    willRequestSnack: false,
+    requestAt: 0,          // seconds into stay when they ask
+    requested: false,
+
+    // live order state
+    order: null,           // { item, emoji }
+    orderWaitLeft: 0,
+    preparing: false,
+    prepLeft: 0,
 
     cleanLeft: 0,
   };
@@ -137,24 +184,7 @@ function snackMood(waitLeft) {
   return "🙂";
 }
 
-function totalSnacksCount() {
-  return getInv("soda") + getInv("coconut") + getInv("sandwich");
-}
-
-function setHolding(newHolding, orderObj = null) {
-  holding = newHolding;
-  heldOrder = orderObj;
-
-  // UI
-  snackStationBtn?.classList.toggle("active", holding === "order");
-  cleanToolBtn?.classList.toggle("active", holding === "detergent");
-
-  if (holding === "detergent") holdingEl.textContent = "🧴 Detergent";
-  else if (holding === "order" && heldOrder) holdingEl.textContent = `${heldOrder.emoji} ${heldOrder.item} (from Room ${heldOrder.roomNo})`;
-  else holdingEl.textContent = "None";
-}
-
-// ---------- Core loop ----------
+/* ---------- Core loop ---------- */
 function start() {
   stop();
   ensureInventoryInitialized();
@@ -182,13 +212,14 @@ function scheduleNextSpawn() {
   }, delay);
 }
 
-// ---------- Tick ----------
+/* ---------- Tick ---------- */
 function tick() {
   updateQueueMoods();
   updateRooms();
   renderHUD();
   renderQueue();
   renderRooms();
+  renderHands();
 }
 
 function updateQueueMoods() {
@@ -215,36 +246,37 @@ function updateRooms() {
     if (r.status === "occupied") {
       r.stayLeft -= 1;
 
-      // snack order ticking
-      if (r.order) {
-        // if preparing sandwich, run prep timer too
-        if (r.preparing) {
-          r.prepLeft -= 1;
+      // FIX: trigger snack request at the scheduled time
+      if (r.willRequestSnack && !r.requested && !r.order) {
+        const secondsStayed = r.stayTotal - r.stayLeft;
+        if (secondsStayed >= r.requestAt) {
+          r.order = randomSnackItem();
+          r.orderWaitLeft = SNACK_WAIT_TOTAL;
+          r.preparing = false;
+          r.prepLeft = 0;
+          r.requested = true;
         }
+      }
 
+      // order countdown
+      if (r.order) {
         r.orderWaitLeft -= 1;
+
+        // sandwich prep countdown (only after served at snack bar)
+        if (r.preparing) r.prepLeft -= 1;
 
         // cancel if angry
         if (r.orderWaitLeft <= 0) {
           cancelOrder(r, "Guest got angry and canceled the order 😡");
         }
 
-        // finish sandwich prep automatically ONLY AFTER you started it at snack bar
+        // finish prep -> deliver
         if (r.preparing && r.prepLeft <= 0 && r.order) {
-          // prep done -> deliver
           completeDelivery(r);
-        }
-      } else {
-        // maybe request snack (one at a time)
-        const canRequest = r.stayLeft > 5 && r.stayLeft < (r.guest._stayTotal - 3);
-        if (canRequest && Math.random() < (SNACK_REQUEST_CHANCE / 18)) {
-          r.order = randomSnackItem();
-          r.orderWaitLeft = SNACK_WAIT_TOTAL;
-          r.preparing = false;
-          r.prepLeft = 0;
         }
       }
 
+      // checkout
       if (r.stayLeft <= 0) checkoutRoom(r.no);
     }
 
@@ -258,7 +290,7 @@ function updateRooms() {
   }
 }
 
-// ---------- Actions ----------
+/* ---------- Actions ---------- */
 function selectGuest(id) {
   selectedGuestId = id;
   queue.forEach(g => (g.selected = (g.id === id)));
@@ -285,15 +317,21 @@ function tryCheckIn(roomNo) {
 
   const stay = randInt(STAY_MIN, STAY_MAX);
   r.stayLeft = stay;
-  r.guest._stayTotal = stay;
+  r.stayTotal = stay;
 
+  // scheduled snack request (FIX)
+  r.willRequestSnack = (Math.random() < SNACK_REQUEST_CHANCE);
+  r.requested = false;
+  r.requestAt = r.willRequestSnack ? randInt(4, Math.max(5, stay - 5)) : 0;
+
+  // order reset
   r.order = null;
   r.orderWaitLeft = 0;
   r.preparing = false;
   r.prepLeft = 0;
 
   addCoins(COINS_CHECKIN);
-  hintEl.textContent = "Checked in! Guests may request snacks 🥤🥥🥪.";
+  hintEl.textContent = "Checked in! Watch for snack requests 🥤🥥🥪.";
   renderAll();
 }
 
@@ -308,39 +346,48 @@ function checkoutRoom(roomNo) {
   r.guest = null;
   r.stayLeft = 0;
 
+  // clear order
   r.order = null;
   r.orderWaitLeft = 0;
   r.preparing = false;
   r.prepLeft = 0;
 
-  // if you were holding an order from this room, drop it
-  if (holding === "order" && heldOrder && heldOrder.roomNo === roomNo) {
-    setHolding("none", null);
-  }
+  // If hands were carrying order from this room, keep it (your rule),
+  // but serving it later will fail because room is gone.
+  // That’s fine: player learns to manage hands.
 
   renderAll();
 }
 
-// TOOL: click detergent
+/* ---------- Tool-based interactions ---------- */
+// Click detergent tool: pick up detergent into a free hand
 cleanToolBtn?.addEventListener("click", () => {
-  setHolding(holding === "detergent" ? "none" : "detergent", null);
-  hintEl.textContent = holding === "detergent"
-    ? "Holding detergent. Click a DIRTY room to clean."
-    : "Tool cleared.";
+  if (!hasFreeHand()) {
+    hintEl.textContent = "Hands full 😅 You can’t pick detergent right now.";
+    return;
+  }
+  const placed = putInFreeHand({ type: "detergent" });
+  hintEl.textContent = `Picked detergent in hand ${placed}. Click a DIRTY room.`;
+  renderHands();
 });
 
-// TOOL: click snack bar (serve held order)
+// Click snack bar: serve an order you’re holding in either hand
 snackStationBtn?.addEventListener("click", () => {
-  if (holding !== "order" || !heldOrder) {
+  // find an order in hands (prefer L then R)
+  const orderHand = (handL && handL.type === "order") ? "L" :
+                    (handR && handR.type === "order") ? "R" : null;
+
+  if (!orderHand) {
     hintEl.textContent = "Pick an order first: click a room with an order.";
     return;
   }
 
-  const r = rooms.find(x => x.no === heldOrder.roomNo);
+  const carried = orderHand === "L" ? handL : handR;
+  const r = rooms.find(x => x.no === carried.roomNo);
+
   if (!r || r.status !== "occupied" || !r.order) {
-    hintEl.textContent = "That order is gone. Pick another order.";
-    setHolding("none", null);
-    renderAll();
+    hintEl.textContent = "That order is gone. (Room checked out).";
+    // in Level 1 you can drop; Level 2 you’re stuck (as you want later)
     return;
   }
 
@@ -348,66 +395,71 @@ snackStationBtn?.addEventListener("click", () => {
 
   if (getInv(item) <= 0) {
     hintEl.textContent = `No ${item} left 😭`;
-    setHolding("none", null);
-    renderAll();
     return;
   }
 
-  // consume inventory at snack bar time
+  // consume inventory at serving time
   setInv(item, getInv(item) - 1);
 
   if (item === "sandwich") {
-    // start preparing; delivery completes after 5s while guest wait keeps counting
     r.preparing = true;
     r.prepLeft = SANDWICH_PREP;
-    hintEl.textContent = "Sandwich started… 🥪 (5s). Guest is waiting!";
+    hintEl.textContent = "Sandwich started 🥪 (5s). Guest is waiting!";
   } else {
-    // instant deliver
     completeDelivery(r);
   }
 
-  setHolding("none", null);
+  // clear the hand used to carry that order
+  clearHand(orderHand);
   renderAll();
 });
 
-// Click a room: handle tool interactions + check-in + picking order
+// Click room: check-in OR pick order OR clean
 function handleRoomClick(roomNo) {
   const r = rooms.find(x => x.no === roomNo);
   if (!r) return;
 
-  // If holding detergent, click dirty room to start cleaning
-  if (holding === "detergent") {
-    if (r.status !== "dirty") {
-      hintEl.textContent = "Detergent can only be used on a DIRTY room.";
+  // Cleaning: if you have detergent in any hand, use it on dirty room
+  if (r.status === "dirty") {
+    const detHand = (handL && handL.type === "detergent") ? "L" :
+                    (handR && handR.type === "detergent") ? "R" : null;
+
+    if (!detHand) {
+      hintEl.textContent = "Pick 🧴 Detergent first, then click the dirty room.";
       return;
     }
+
     r.status = "cleaning";
     r.cleanLeft = CLEAN_TIME;
     hintEl.textContent = `Cleaning Room ${roomNo}… (${CLEAN_TIME}s)`;
-    setHolding("none", null);
+
+    clearHand(detHand);
     renderAll();
     return;
   }
 
-  // If occupied and has an order -> pick the order (hold it), then go to snack bar
+  // Picking order: if room has an order, pick it into a free hand
   if (r.status === "occupied" && r.order && !r.preparing) {
-    setHolding("order", { roomNo: r.no, item: r.order.item, emoji: r.order.emoji });
-    hintEl.textContent = `Picked order from Room ${roomNo}. Now click 🍹 Snack Bar to serve.`;
-    renderRooms();
+    if (!hasFreeHand()) {
+      hintEl.textContent = "Hands full 😅 You can’t pick this order.";
+      return;
+    }
+    const placed = putInFreeHand({ type: "order", roomNo: r.no, item: r.order.item, emoji: r.order.emoji });
+    hintEl.textContent = `Picked order in hand ${placed}. Now click 🍹 Snack Bar to serve.`;
+    renderHands();
     return;
   }
 
-  // Normal check-in flow for empty rooms
+  // Normal check-in flow
   if (r.status === "empty") {
     tryCheckIn(roomNo);
     return;
   }
 
-  // Otherwise do nothing
   hintEl.textContent = "Nothing to do here right now.";
 }
 
-// delivery finish
+// Delivery finish
 function completeDelivery(room) {
   const deliveredFast = room.orderWaitLeft > Math.floor(SNACK_WAIT_TOTAL * 0.35);
   addCoins(deliveredFast ? COINS_SNACK_FAST : COINS_SNACK_LATE);
@@ -418,6 +470,8 @@ function completeDelivery(room) {
   room.orderWaitLeft = 0;
   room.preparing = false;
   room.prepLeft = 0;
+
+  renderAll();
 }
 
 function cancelOrder(room, msg) {
@@ -428,13 +482,10 @@ function cancelOrder(room, msg) {
   room.preparing = false;
   room.prepLeft = 0;
 
-  // if you were holding that order, drop it
-  if (holding === "order" && heldOrder && heldOrder.roomNo === room.no) {
-    setHolding("none", null);
-  }
+  renderAll();
 }
 
-// ---------- Rendering ----------
+/* ---------- Render ---------- */
 function renderHUD() {
   coinsEl.textContent = String(getCoins());
   snacksEl.textContent = String(totalSnacksCount());
@@ -501,20 +552,16 @@ function renderRooms() {
 
       if (r.order) {
         const mood = snackMood(r.orderWaitLeft);
-        const item = r.order.item;
-        const emoji = r.order.emoji;
-
         if (r.preparing) {
           orderBlock = `
-            <div class="snackLine">${mood} Preparing ${emoji} ${item}… <b>${Math.max(0, r.prepLeft)}s</b></div>
+            <div class="snackLine">${mood} Preparing ${r.order.emoji} <b>${r.order.item}</b>… <b>${Math.max(0, r.prepLeft)}s</b></div>
             <div class="smallMuted">Guest wait: <b>${Math.max(0, r.orderWaitLeft)}s</b></div>
-            <div class="smallMuted">You started this at the Snack Bar.</div>
           `;
         } else {
           orderBlock = `
-            <div class="snackLine">${mood} Order: ${emoji} <b>${item}</b></div>
+            <div class="snackLine">${mood} Order: ${r.order.emoji} <b>${r.order.item}</b></div>
             <div class="smallMuted">Wait left: <b>${Math.max(0, r.orderWaitLeft)}s</b></div>
-            <div class="smallMuted">Click this room to pick the order, then click 🍹 Snack Bar.</div>
+            <div class="smallMuted">Click room to pick order (needs free hand)</div>
           `;
         }
       }
@@ -543,7 +590,7 @@ function renderRooms() {
           <div class="roomState">DIRTY</div>
         </div>
         <div class="roomBody">
-          <div class="smallMuted">Click 🧴 Detergent, then click this room to clean.</div>
+          <div class="smallMuted">Pick 🧴 Detergent (needs free hand), then click room.</div>
         </div>
       `;
     }
@@ -569,9 +616,22 @@ function renderAll() {
   renderHUD();
   renderQueue();
   renderRooms();
+  renderHands();
 }
 
-// ---------- Reset Run (keeps coins + inventory) ----------
+/* ---------- Drop buttons (Level 1 only) ---------- */
+dropLBtn?.addEventListener("click", () => {
+  if (LEVEL >= 2) return;
+  handL = null;
+  renderHands();
+});
+dropRBtn?.addEventListener("click", () => {
+  if (LEVEL >= 2) return;
+  handR = null;
+  renderHands();
+});
+
+/* ---------- Reset Run ---------- */
 resetRunBtn.addEventListener("click", () => {
   served = 0;
   angryLeft = 0;
@@ -580,12 +640,14 @@ resetRunBtn.addEventListener("click", () => {
   queue = [];
   rooms = [makeRoom(1), makeRoom(2), makeRoom(3), makeRoom(4)];
 
-  setHolding("none", null);
+  handL = null;
+  handR = null;
+
   hintEl.textContent = "Run reset. Guests will spawn automatically. Click a guest, then an EMPTY room.";
   start();
 });
 
-// ---------- utils ----------
+/* ---------- utils ---------- */
 function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (m) => ({
@@ -593,6 +655,5 @@ function escapeHtml(s) {
   }[m]));
 }
 
-// ---------- boot ----------
-setHolding("none", null);
+/* ---------- boot ---------- */
 start();
