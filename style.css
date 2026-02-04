@@ -492,4 +492,9 @@ Uses:
   transform: translateY(-1px);
 }
 .tiny{ font-size:12px; opacity:.8; margin-left:8px; font-weight:700; }
+.carryHud{ display:flex; align-items:center; gap:12px; }
+.bellboy{ font-size:22px; }
+.hands{ display:flex; flex-direction:column; gap:4px; }
+.hand{ font-weight:800; font-size:13px; opacity:.95; }
+.dropRow{ display:flex; gap:8px; }
 
