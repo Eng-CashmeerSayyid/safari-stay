@@ -62,6 +62,7 @@ const resetRunBtn = document.getElementById("resetRunBtn");
 
 // Stations
 const snackStationBtn = document.getElementById("snackStation");
+snackStationBtn?.addEventListener("click", () => alert("SNACK BAR CLICK ✅"));
 const cleanToolBtn = document.getElementById("cleanTool");
 const stockLineEl = document.getElementById("stockLine");
 
