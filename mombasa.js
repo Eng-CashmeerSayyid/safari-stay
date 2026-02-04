@@ -1,11 +1,17 @@
 // ===============================
-// SAFARI STAY – Mombasa Hotel (FULL)
-// Auto spawn + patience + moods
-// Manual check-in
-// Auto checkout -> dirty
-// Manual cleaning
-// Optional snack requests
-// localStorage keys: coins, snacks
+// SAFARI STAY – mombasa.js (FULL v2)
+// Lowercase filenames
+// - Auto guest spawn + patience moods (queue)
+// - Manual check-in (click guest -> click empty room)
+// - SHORTER stay time (Hotel Mania vibe)
+// - Auto checkout -> dirty room
+// - Manual cleaning
+// - Snacks: soda/coconut/sandwich
+//   * Sandwich takes 5s to prepare
+//   * While waiting, mood drops; if angry -> cancels order
+// - Inventory stored in localStorage:
+//   snacks_soda, snacks_coconut, snacks_sandwich
+//   coins in localStorage: coins
 // ===============================
 
 // ---------- LocalStorage helpers ----------
@@ -19,19 +25,41 @@ function addCoins(n) {
   setCoins(getCoins() + Number(n || 0));
 }
 
-function getSnacks() {
-  return Number(localStorage.getItem("snacks")) || 0;
+// Inventory keys
+const INV_KEYS = {
+  soda: "snacks_soda",
+  coconut: "snacks_coconut",
+  sandwich: "snacks_sandwich",
+};
+
+function getInv(item) {
+  return Number(localStorage.getItem(INV_KEYS[item])) || 0;
 }
-function setSnacks(n) {
-  localStorage.setItem("snacks", String(Math.max(0, Math.floor(n))));
+function setInv(item, n) {
+  localStorage.setItem(INV_KEYS[item], String(Math.max(0, Math.floor(n))));
 }
-function addSnacks(n) {
-  setSnacks(getSnacks() + Number(n || 0));
+function addInv(item, n) {
+  setInv(item, getInv(item) + Number(n || 0));
+}
+
+// ✅ Initialize stock if user has none (so snacks actually exist)
+function ensureInventoryInitialized() {
+  const hasAny =
+    localStorage.getItem(INV_KEYS.soda) !== null ||
+    localStorage.getItem(INV_KEYS.coconut) !== null ||
+    localStorage.getItem(INV_KEYS.sandwich) !== null;
+
+  if (!hasAny) {
+    // starter stock (tweak anytime)
+    setInv("soda", 3);
+    setInv("coconut", 3);
+    setInv("sandwich", 2);
+  }
 }
 
 // ---------- UI elements ----------
 const coinsEl = document.getElementById("coins");
-const snacksEl = document.getElementById("snacks");
+const snacksEl = document.getElementById("snacks"); // we'll show total of all items here
 const servedEl = document.getElementById("served");
 const angryEl = document.getElementById("angry");
 const queueCountEl = document.getElementById("queueCount");
@@ -42,25 +70,30 @@ const hintEl = document.getElementById("hint");
 
 const resetRunBtn = document.getElementById("resetRunBtn");
 
-// ---------- Game constants (tweak anytime) ----------
+// ---------- Game constants ----------
 const MAX_QUEUE = 6;
 
 // spawn
-const SPAWN_EVERY_MS = 8500; // slower = calmer
-const SPAWN_JITTER_MS = 2500;
+const SPAWN_EVERY_MS = 8000;
+const SPAWN_JITTER_MS = 2000;
 
-// queue patience
-const PATIENCE_TOTAL = 50;     // seconds total patience in queue
-const MOOD_IMPATIENT_AT = 0.55; // when timeLeft <= 55% => 😐
-const MOOD_ANGRY_AT = 0.25;     // when timeLeft <= 25% => 😡
+// queue patience (slower, nicer)
+const PATIENCE_TOTAL = 50;        // seconds
+const MOOD_IMPATIENT_AT = 0.55;   // 😐
+const MOOD_ANGRY_AT = 0.25;       // 😡
 
-// room stay
-const STAY_MIN = 28; // seconds
-const STAY_MAX = 50;
+// ✅ room stay (SHORTER like Hotel Mania)
+const STAY_MIN = 12; // seconds
+const STAY_MAX = 20;
 
-// snack requests (some guests only)
-const SNACK_REQUEST_CHANCE = 0.45; // not all guests
-const SNACK_GRACE = 18;            // seconds to deliver snack once requested
+// snack request chance
+const SNACK_REQUEST_CHANCE = 0.55; // some guests (not all)
+
+// snack waiting timer (how long guest tolerates waiting for snack)
+const SNACK_WAIT_TOTAL = 18; // seconds until cancel
+
+// sandwich prep time
+const SANDWICH_PREP = 5; // seconds
 
 // cleaning
 const CLEAN_TIME = 5; // seconds
@@ -78,29 +111,26 @@ let angryLeft = 0;
 let queue = []; // guests waiting
 let selectedGuestId = null;
 
-let rooms = [
-  makeRoom(1),
-  makeRoom(2),
-  makeRoom(3),
-  makeRoom(4),
-];
+let rooms = [makeRoom(1), makeRoom(2), makeRoom(3), makeRoom(4)];
 
 let tickTimer = null;
 let spawnTimer = null;
+
+let guestCounter = 0;
 
 // ---------- Models ----------
 function uid() {
   return Math.random().toString(16).slice(2) + Date.now().toString(16);
 }
 
+// ✅ Generic Hotel Mania-style guests (no names)
 function makeGuest() {
-  const names = ["Amina", "Zuri", "Maya", "Imani", "Kato", "Jabari", "Nia", "Tala", "Safi", "Kesi"];
-  const name = names[Math.floor(Math.random() * names.length)];
+  guestCounter += 1;
   return {
     id: uid(),
-    name,
+    label: `Guest ${guestCounter}`,
     patienceLeft: PATIENCE_TOTAL,
-    mood: "🙂", // 🙂 😐 😡
+    mood: "🙂", // queue mood
     selected: false,
   };
 }
@@ -109,22 +139,44 @@ function makeRoom(no) {
   return {
     no,
     status: "empty", // empty | occupied | dirty | cleaning
-    guest: null,     // guest object when occupied
+
+    guest: null,
     stayLeft: 0,
-    wantsSnack: false,
-    snackLeft: 0,
-    snackResolved: true,  // false when requesting
-    willRequestSnack: false,
-    requestAt: 0,         // seconds into stay to request snack
+
+    // snack order state
+    order: null,          // { item: 'soda'|'coconut'|'sandwich', emoji }
+    orderWaitLeft: 0,     // countdown until cancel
+    preparing: false,     // sandwich prep in progress
+    prepLeft: 0,          // seconds left to prep sandwich
+
     cleanLeft: 0,
   };
+}
+
+function randomSnackItem() {
+  const items = [
+    { item: "soda", emoji: "🥤" },
+    { item: "coconut", emoji: "🥥" },
+    { item: "sandwich", emoji: "🥪" },
+  ];
+  return items[Math.floor(Math.random() * items.length)];
+}
+
+// Mood for snack waiting (in-room)
+function snackMood(waitLeft) {
+  const ratio = waitLeft / SNACK_WAIT_TOTAL;
+  if (ratio <= MOOD_ANGRY_AT) return "😡";
+  if (ratio <= MOOD_IMPATIENT_AT) return "😐";
+  return "🙂";
 }
 
 // ---------- Core loop ----------
 function start() {
   stop();
 
-  // initial spawn so screen isn't empty
+  ensureInventoryInitialized();
+
+  // starter queue so it isn't empty
   if (queue.length === 0) {
     for (let i = 0; i < 2; i++) queue.push(makeGuest());
   }
@@ -150,9 +202,7 @@ function scheduleNextSpawn() {
 }
 
 function spawnGuest() {
-  // only spawn if queue has space and at least one room can eventually accept
   if (queue.length >= MAX_QUEUE) return;
-
   queue.push(makeGuest());
   renderQueue();
   renderHUD();
@@ -168,7 +218,6 @@ function tick() {
 }
 
 function updateQueueMoods() {
-  // patience decreases for everyone in queue
   for (let i = queue.length - 1; i >= 0; i--) {
     const g = queue[i];
     g.patienceLeft -= 1;
@@ -178,50 +227,55 @@ function updateQueueMoods() {
     else if (ratio <= MOOD_IMPATIENT_AT) g.mood = "😐";
     else g.mood = "🙂";
 
-    // if patience finishes -> leaves angry
     if (g.patienceLeft <= 0) {
-      // if selected, unselect
       if (selectedGuestId === g.id) selectedGuestId = null;
       queue.splice(i, 1);
       angryLeft += 1;
     }
   }
 
-  // keep selection consistent
   queue.forEach(qg => (qg.selected = (qg.id === selectedGuestId)));
 }
 
 function updateRooms() {
   for (const r of rooms) {
     if (r.status === "occupied") {
+      // stay countdown
       r.stayLeft -= 1;
 
-      // handle snack request moment
-      if (r.willRequestSnack && r.snackResolved && r.stayLeft > 0) {
-        const secondsStayed = (r.guest._stayTotal - r.stayLeft);
-        if (secondsStayed >= r.requestAt) {
-          r.wantsSnack = true;
-          r.snackResolved = false;
-          r.snackLeft = SNACK_GRACE;
-        }
-      }
+      // If they have an active order, countdown waiting
+      if (r.order) {
+        // If preparing sandwich, countdown prep
+        if (r.preparing) {
+          r.prepLeft -= 1;
 
-      // if snack is requested and not resolved, countdown
-      if (r.wantsSnack && !r.snackResolved) {
-        r.snackLeft -= 1;
+          // While preparing, also their wait time ticks
+          r.orderWaitLeft -= 1;
 
-        // if snack timer ends -> guest gets angry, may reduce reward
-        if (r.snackLeft <= 0) {
-          // they "give up" on snack; could ask again later (small chance)
-          r.wantsSnack = false;
-          r.snackResolved = true;
-
-          // 30% chance they request again after some time
-          if (Math.random() < 0.3 && r.stayLeft > 10) {
-            r.willRequestSnack = true;
-            r.requestAt = (r.guest._stayTotal - r.stayLeft) + 6; // try again in 6s
-            r.snackResolved = true;
+          // If becomes angry (wait finished), cancel order immediately
+          if (r.orderWaitLeft <= 0) {
+            cancelOrder(r, "Guest got angry and canceled the order 😡");
+          } else if (r.prepLeft <= 0) {
+            // prep done -> auto deliver sandwich (if still waiting)
+            completeDelivery(r, true);
           }
+        } else {
+          // not preparing (soda/coconut waiting)
+          r.orderWaitLeft -= 1;
+          if (r.orderWaitLeft <= 0) {
+            cancelOrder(r, "Guest got angry and canceled the order 😡");
+          }
+        }
+      } else {
+        // maybe create a snack request during stay (one order max at a time)
+        // chance each second is small; overall about SNACK_REQUEST_CHANCE
+        // and not too late in the stay
+        const canRequest = r.stayLeft > 5 && r.stayLeft < (r.guest._stayTotal - 3);
+        if (canRequest && Math.random() < (SNACK_REQUEST_CHANCE / 18)) {
+          r.order = randomSnackItem();
+          r.orderWaitLeft = SNACK_WAIT_TOTAL;
+          r.preparing = false;
+          r.prepLeft = 0;
         }
       }
 
@@ -274,7 +328,6 @@ function tryCheckIn(roomNo) {
   const guest = queue.splice(idx, 1)[0];
   selectedGuestId = null;
 
-  // set up room stay
   r.status = "occupied";
   r.guest = guest;
 
@@ -282,21 +335,14 @@ function tryCheckIn(roomNo) {
   r.stayLeft = stay;
   r.guest._stayTotal = stay;
 
-  // snack plan for this guest
-  r.willRequestSnack = (Math.random() < SNACK_REQUEST_CHANCE);
-  r.snackResolved = true;
-  r.wantsSnack = false;
-  r.snackLeft = 0;
-
-  if (r.willRequestSnack) {
-    // ask sometime after check-in (not immediately)
-    r.requestAt = randInt(6, Math.max(7, stay - 8));
-  } else {
-    r.requestAt = 0;
-  }
+  // reset snack state
+  r.order = null;
+  r.orderWaitLeft = 0;
+  r.preparing = false;
+  r.prepLeft = 0;
 
   addCoins(COINS_CHECKIN);
-  hintEl.textContent = "Nice! A guest checked in. Watch for snack requests 🍪.";
+  hintEl.textContent = "Checked in! Guests may request snacks 🥤🥥🥪.";
   renderAll();
 }
 
@@ -305,24 +351,17 @@ function checkoutRoom(roomNo) {
   if (!r || r.status !== "occupied") return;
 
   served += 1;
-
-  // base checkout reward
   addCoins(COINS_CHECKOUT);
 
-  // if snack request was active and never resolved, reduce vibe (we won’t subtract coins, just no bonus)
-  // (keeps gameplay positive)
-
-  // go dirty
   r.status = "dirty";
   r.guest = null;
   r.stayLeft = 0;
 
-  // reset snack state
-  r.wantsSnack = false;
-  r.snackLeft = 0;
-  r.snackResolved = true;
-  r.willRequestSnack = false;
-  r.requestAt = 0;
+  // clear snack order
+  r.order = null;
+  r.orderWaitLeft = 0;
+  r.preparing = false;
+  r.prepLeft = 0;
 
   renderAll();
 }
@@ -336,36 +375,75 @@ function startCleaning(roomNo) {
   renderRooms();
 }
 
+// Deliver snack button
 function deliverSnack(roomNo) {
   const r = rooms.find(x => x.no === roomNo);
   if (!r || r.status !== "occupied") return;
+  if (!r.order) return;
 
-  if (!r.wantsSnack || r.snackResolved) return;
+  const item = r.order.item;
 
-  const snacks = getSnacks();
-  if (snacks <= 0) {
-    hintEl.textContent = "No snacks left 😭 Play puzzle to earn snacks, or add snacks from your puzzle rewards.";
+  // Check inventory
+  if (getInv(item) <= 0) {
+    hintEl.textContent = `No ${item} left 😭 Earn more from puzzle or increase starter stock.`;
     return;
   }
 
-  // consume snack
-  setSnacks(snacks - 1);
+  // Consume inventory
+  setInv(item, getInv(item) - 1);
 
-  // reward based on remaining time
-  const deliveredFast = r.snackLeft > Math.floor(SNACK_GRACE * 0.35);
+  // Sandwich: start preparing (5s)
+  if (item === "sandwich") {
+    r.preparing = true;
+    r.prepLeft = SANDWICH_PREP;
+    hintEl.textContent = "Preparing sandwich… 🥪 (5s)";
+    renderAll();
+    return;
+  }
+
+  // Soda/coconut: instant deliver
+  completeDelivery(r, false);
+}
+
+// Called when delivery finishes
+function completeDelivery(room, wasPrepared) {
+  // reward based on how much wait time left
+  const deliveredFast = room.orderWaitLeft > Math.floor(SNACK_WAIT_TOTAL * 0.35);
   addCoins(deliveredFast ? COINS_SNACK_FAST : COINS_SNACK_LATE);
 
-  r.wantsSnack = false;
-  r.snackResolved = true;
+  hintEl.textContent = deliveredFast
+    ? "Snack delivered fast! Bonus coins ✅"
+    : "Snack delivered (late) 😅";
 
-  hintEl.textContent = deliveredFast ? "Snack delivered fast! Bonus coins ✅" : "Snack delivered (late) 😅";
+  // clear order
+  room.order = null;
+  room.orderWaitLeft = 0;
+  room.preparing = false;
+  room.prepLeft = 0;
+
+  renderAll();
+}
+
+function cancelOrder(room, msg) {
+  hintEl.textContent = msg;
+
+  // order canceled, do not refund inventory (we only consumed on clicking Deliver)
+  room.order = null;
+  room.orderWaitLeft = 0;
+  room.preparing = false;
+  room.prepLeft = 0;
+
   renderAll();
 }
 
 // ---------- Rendering ----------
+function totalSnacksCount() {
+  return getInv("soda") + getInv("coconut") + getInv("sandwich");
+}
+
 function renderHUD() {
   coinsEl.textContent = String(getCoins());
-  snacksEl.textContent = String(getSnacks());
+  snacksEl.textContent = String(totalSnacksCount());
   servedEl.textContent = String(served);
   angryEl.textContent = String(angryLeft);
   queueCountEl.textContent = String(queue.length);
@@ -388,12 +466,11 @@ function renderQueue() {
     card.className = "queueItem" + (g.selected ? " selected" : "");
     card.onclick = () => selectGuest(g.id);
 
-    // patience bar percent
     const pct = Math.max(0, Math.min(100, Math.round((g.patienceLeft / PATIENCE_TOTAL) * 100)));
 
     card.innerHTML = `
       <div class="rowBetween">
-        <div class="qName">${g.mood} ${escapeHtml(g.name)}</div>
+        <div class="qName">${g.mood} ${escapeHtml(g.label)}</div>
         <div class="qTime">${Math.max(0, g.patienceLeft)}s</div>
       </div>
       <div class="bar"><div class="barFill" style="width:${pct}%"></div></div>
@@ -423,13 +500,29 @@ function renderRooms() {
     }
 
     if (r.status === "occupied") {
-      const snackLine = (r.wantsSnack && !r.snackResolved)
-        ? `<div class="snackLine">🍪 Snack needed: <b>${Math.max(0, r.snackLeft)}s</b></div>`
-        : `<div class="smallMuted">No snack request right now</div>`;
+      let orderBlock = `<div class="smallMuted">No snack request right now</div>`;
+      let btnHtml = `<button class="btn mini ghost" type="button" disabled>Deliver Snack</button>`;
 
-      const snackBtn = (r.wantsSnack && !r.snackResolved)
-        ? `<button class="btn mini" type="button" data-room="${r.no}">Deliver Snack</button>`
-        : `<button class="btn mini ghost" type="button" disabled>Deliver Snack</button>`;
+      if (r.order) {
+        const mood = snackMood(r.orderWaitLeft);
+        const item = r.order.item;
+        const emoji = r.order.emoji;
+
+        if (r.preparing) {
+          orderBlock = `
+            <div class="snackLine">${mood} Preparing ${emoji} ${item}… <b>${Math.max(0, r.prepLeft)}s</b></div>
+            <div class="smallMuted">Guest wait: <b>${Math.max(0, r.orderWaitLeft)}s</b></div>
+          `;
+          btnHtml = `<button class="btn mini ghost" type="button" disabled>Preparing…</button>`;
+        } else {
+          orderBlock = `
+            <div class="snackLine">${mood} Order: ${emoji} <b>${item}</b></div>
+            <div class="smallMuted">Wait time left: <b>${Math.max(0, r.orderWaitLeft)}s</b></div>
+            <div class="smallMuted">Stock — 🥤${getInv("soda")} • 🥥${getInv("coconut")} • 🥪${getInv("sandwich")}</div>
+          `;
+          btnHtml = `<button class="btn mini" type="button" data-room="${r.no}">Deliver</button>`;
+        }
+      }
 
       box.innerHTML = `
         <div class="rowBetween">
@@ -438,14 +531,13 @@ function renderRooms() {
         </div>
 
         <div class="roomBody">
-          <div class="guestLine">👤 ${escapeHtml(r.guest.name)}</div>
+          <div class="guestLine">👤 ${escapeHtml(r.guest.label)}</div>
           <div class="smallMuted">Checkout in: <b>${Math.max(0, r.stayLeft)}s</b></div>
-          ${snackLine}
-          <div class="roomActions">${snackBtn}</div>
+          ${orderBlock}
+          <div class="roomActions">${btnHtml}</div>
         </div>
       `;
 
-      // bind snack button
       const btn = box.querySelector("button[data-room]");
       if (btn) {
         btn.addEventListener("click", (e) => {
@@ -497,9 +589,8 @@ function renderAll() {
   renderRooms();
 }
 
-// ---------- Reset run (keeps coins/snacks) ----------
+// ---------- Reset run (keeps coins + inventory) ----------
 resetRunBtn.addEventListener("click", () => {
-  // only reset the hotel run counters + state, NOT coins/snacks
   served = 0;
   angryLeft = 0;
   selectedGuestId = null;
