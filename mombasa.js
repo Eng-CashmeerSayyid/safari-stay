@@ -655,4 +655,3 @@ function escapeHtml(s) {
 
 /* ---------- boot ---------- */
 start();
-
