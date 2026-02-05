@@ -1,11 +1,11 @@
 // ===============================
-// SAFARI STAY – mombasa.js (FULL v7)
-// - Pick specific snacks anytime (Soda/Coconut/Sandwich)
-// - Sandwich preps 5s WHILE in hand
-// - Guests request snacks (scheduled chance)
-// - Delivery is MANUAL (tap room twice)
-// - Cleaning is manual: pick detergent -> click dirty room
-// - Bellboy has 2 hands; Level 2+ disables dropping
+// SAFARI STAY – mombasa.js (FULL v8)
+// - Pick specific snacks anytime
+// - Sandwich preps 5s while in hand
+// - Guest snack requests + countdown
+// - Manual delivery (tap room twice)
+// - Manual cleaning (detergent -> dirty room)
+// - VISUAL FEEDBACK: glow/pulse + urgent shake for orders
 // ===============================
 
 /* ---------- LEVEL CONTROL ---------- */
@@ -116,20 +116,16 @@ let spawnTimer = null;
 
 let guestCounter = 0;
 
-// Manual delivery confirmation: click room twice
+// Manual delivery confirmation: tap room twice
 let pendingDeliveryRoom = null;
 
 /* ---------- Bellboy two-hand carry ---------- */
-// Each hand can hold:
-// null
-// { type:'detergent' }
-// { type:'snack', item, emoji, ready:true|false, prepLeft }
 let handL = null;
 let handR = null;
 
 const SNACK_EMOJI = { soda: "🥤", coconut: "🥥", sandwich: "🥪" };
 
-/* ---------- Helpers for hands ---------- */
+/* ---------- Helpers ---------- */
 function hasFreeHand() { return !handL || !handR; }
 function putInFreeHand(obj) {
   if (!handL) { handL = obj; return "L"; }
@@ -165,8 +161,8 @@ function renderHands() {
   dropRowEl.style.display = (LEVEL >= 2) ? "none" : "flex";
 }
 
-/* ---------- Models ---------- */
 function uid() { return Math.random().toString(16).slice(2) + Date.now().toString(16); }
+
 function makeGuest() {
   guestCounter += 1;
   return { id: uid(), label: `Guest ${guestCounter}`, patienceLeft: PATIENCE_TOTAL, mood: "🙂", selected: false };
@@ -211,7 +207,9 @@ function snackMood(waitLeft) {
 function start() {
   stop();
   ensureInventoryInitialized();
+
   if (queue.length === 0) for (let i = 0; i < 2; i++) queue.push(makeGuest());
+
   tickTimer = setInterval(tick, 1000);
   scheduleNextSpawn();
   renderAll();
@@ -233,11 +231,11 @@ function scheduleNextSpawn() {
   }, delay);
 }
 
-/* ---------- Tick ---------- */
 function tick() {
   updateQueueMoods();
   updateHandsPrep();
   updateRooms();
+
   renderHUD();
   renderQueue();
   renderRooms();
@@ -354,7 +352,7 @@ function tryCheckIn(roomNo) {
   pendingDeliveryRoom = null;
 
   addCoins(COINS_CHECKIN);
-  hintEl.textContent = "Checked in! Pick snacks at the station anytime.";
+  hintEl.textContent = "Checked in! Pick snacks anytime at the station.";
   renderAll();
 }
 
@@ -378,8 +376,6 @@ function checkoutRoom(roomNo) {
 }
 
 /* ---------- Stations ---------- */
-
-// pick detergent into free hand
 cleanToolBtn?.addEventListener("click", () => {
   if (!hasFreeHand()) { hintEl.textContent = "Hands full 😅"; return; }
   const placed = putInFreeHand({ type: "detergent" });
@@ -387,7 +383,6 @@ cleanToolBtn?.addEventListener("click", () => {
   renderHands();
 });
 
-// pick a specific snack into free hand (consume stock now)
 function pickSnack(item) {
   if (!hasFreeHand()) { hintEl.textContent = "Hands full 😅"; return; }
   if (getInv(item) <= 0) { hintEl.textContent = `No ${item} left 😭`; return; }
@@ -417,12 +412,9 @@ function handleRoomClick(roomNo) {
   const r = rooms.find(x => x.no === roomNo);
   if (!r) return;
 
-  // Clicking a different room cancels pending delivery
-  if (pendingDeliveryRoom !== null && pendingDeliveryRoom !== r.no) {
-    pendingDeliveryRoom = null;
-  }
+  if (pendingDeliveryRoom !== null && pendingDeliveryRoom !== r.no) pendingDeliveryRoom = null;
 
-  // 1) Cleaning: detergent + dirty room
+  // Cleaning
   if (r.status === "dirty") {
     const detHand = findHandWithDetergent();
     if (!detHand) { hintEl.textContent = "Pick 🧴 Detergent first, then click the dirty room."; return; }
@@ -437,7 +429,7 @@ function handleRoomClick(roomNo) {
     return;
   }
 
-  // 2) Manual snack delivery: 2 taps to confirm
+  // Snack delivery (manual 2 taps)
   if (r.status === "occupied" && r.order) {
     const needed = r.order.item;
     const snackHand = findHandWithSnack(needed);
@@ -457,7 +449,6 @@ function handleRoomClick(roomNo) {
       return;
     }
 
-    // First tap arms delivery
     if (pendingDeliveryRoom !== r.no) {
       pendingDeliveryRoom = r.no;
       hintEl.textContent = "Tap the room again to DELIVER 🫴";
@@ -465,7 +456,6 @@ function handleRoomClick(roomNo) {
       return;
     }
 
-    // Second tap confirms delivery
     deliverSnackToRoom(r);
     clearHand(snackHand);
     pendingDeliveryRoom = null;
@@ -473,7 +463,7 @@ function handleRoomClick(roomNo) {
     return;
   }
 
-  // 3) Check-in for empty rooms
+  // Check-in
   if (r.status === "empty") {
     pendingDeliveryRoom = null;
     tryCheckIn(roomNo);
@@ -486,9 +476,7 @@ function handleRoomClick(roomNo) {
 function deliverSnackToRoom(room) {
   const deliveredFast = room.orderWaitLeft > Math.floor(SNACK_WAIT_TOTAL * 0.35);
   addCoins(deliveredFast ? COINS_SNACK_FAST : COINS_SNACK_LATE);
-
   hintEl.textContent = deliveredFast ? "Snack delivered fast! Bonus ✅" : "Snack delivered (late) 😅";
-
   room.order = null;
   room.orderWaitLeft = 0;
 }
@@ -544,97 +532,21 @@ function renderQueue() {
   });
 }
 
-   function renderRooms() {
+/* ✅ CLEAN renderRooms (NO duplicates, includes glow classes) */
+function renderRooms() {
   roomsGridEl.innerHTML = "";
 
   rooms.forEach((r) => {
     const box = document.createElement("div");
     box.classList.add("roomCard");
 
-    // pending delivery highlight (already in your CSS)
     if (pendingDeliveryRoom === r.no) box.classList.add("pending");
 
-    // ✅ Glow when there is an active order
+    // glow/pulse for active order
     if (r.status === "occupied" && r.order) {
       box.classList.add("hasOrder");
       if (r.orderWaitLeft <= 5) box.classList.add("orderUrgent");
     }
-
-    // EMPTY
-    if (r.status === "empty") {
-      box.classList.add("clickable");
-      box.onclick = () => handleRoomClick(r.no);
-      box.innerHTML = `
-        <div class="rowBetween">
-          <div class="roomTitle">Room ${r.no}</div>
-          <div class="roomState">EMPTY</div>
-        </div>
-        <div class="roomBody smallMuted">Click to check-in selected guest</div>
-      `;
-    }
-
-    // OCCUPIED
-    if (r.status === "occupied") {
-      let orderBlock = `<div class="smallMuted">No snack request right now</div>`;
-
-      if (r.order) {
-        const mood = snackMood(r.orderWaitLeft);
-        orderBlock = `
-          <div class="snackLine">${mood} Order: ${r.order.emoji} <b>${r.order.item}</b></div>
-          <div class="smallMuted">Wait left: <b>${Math.max(0, r.orderWaitLeft)}s</b></div>
-          <div class="smallMuted">Carry it, then tap room twice to deliver.</div>
-        `;
-      }
-
-      box.onclick = () => handleRoomClick(r.no);
-      box.innerHTML = `
-        <div class="rowBetween">
-          <div class="roomTitle">Room ${r.no}</div>
-          <div class="roomState">OCCUPIED</div>
-        </div>
-        <div class="roomBody">
-          <div class="guestLine">👤 ${escapeHtml(r.guest.label)}</div>
-          <div class="smallMuted">Checkout in: <b>${Math.max(0, r.stayLeft)}s</b></div>
-          ${orderBlock}
-        </div>
-      `;
-    }
-
-    // DIRTY
-    if (r.status === "dirty") {
-      box.classList.add("dirty");
-      box.onclick = () => handleRoomClick(r.no);
-      box.innerHTML = `
-        <div class="rowBetween">
-          <div class="roomTitle">Room ${r.no}</div>
-          <div class="roomState">DIRTY</div>
-        </div>
-        <div class="roomBody">
-          <div class="smallMuted">Pick 🧴 Detergent, then click room.</div>
-        </div>
-      `;
-    }
-
-    // CLEANING
-    if (r.status === "cleaning") {
-      box.classList.add("cleaning");
-      box.innerHTML = `
-        <div class="rowBetween">
-          <div class="roomTitle">Room ${r.no}</div>
-          <div class="roomState">CLEANING</div>
-        </div>
-        <div class="roomBody">
-          <div class="smallMuted">Cleaning… <b>${Math.max(0, r.cleanLeft)}s</b></div>
-        </div>
-      `;
-    }
-
-    roomsGridEl.appendChild(box);
-  });
-}
-
-
-    if (pendingDeliveryRoom === r.no) box.classList.add("pending");
 
     if (r.status === "empty") {
       box.classList.add("clickable");
@@ -729,7 +641,7 @@ resetRunBtn.addEventListener("click", () => {
   handR = null;
   pendingDeliveryRoom = null;
 
-  hintEl.textContent = "Run reset. Guests will spawn automatically. Click guest → empty room.";
+  hintEl.textContent = "Run reset. Guests spawn automatically. Click guest → empty room.";
   start();
 });
 
@@ -743,3 +655,4 @@ function escapeHtml(s) {
 
 /* ---------- boot ---------- */
 start();
+
