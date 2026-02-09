@@ -78,6 +78,12 @@ Safari Stay – puzzle.js (MATCH-3 - UPDATED & SAFEST)
   if (coins >= TARGET_COINS) showWin();
 }
 
+  function unlockBoost(name){
+  const boosts = JSON.parse(localStorage.getItem("hotelBoosts") || "{}");
+  boosts[name] = true;
+  localStorage.setItem("hotelBoosts", JSON.stringify(boosts));
+}
+
   function randomType() {
     return Math.floor(Math.random() * NAMES.length);
   }
