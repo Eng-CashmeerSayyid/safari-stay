@@ -11,6 +11,8 @@
 /* ---------- LEVEL CONTROL ---------- */
 const LEVEL = 1; // set to 2 later to DISABLE dropping items
 
+const hotelBoosts = JSON.parse(localStorage.getItem("hotelBoosts") || "{}");
+
 /* ---------- LocalStorage helpers ---------- */
 function getCoins() { return Number(localStorage.getItem("coins")) || 0; }
 function setCoins(n) { localStorage.setItem("coins", String(Math.max(0, Math.floor(n)))); }
