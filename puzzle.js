@@ -66,27 +66,17 @@ Safari Stay – puzzle.js (MATCH-3 - UPDATED & SAFEST)
   }
 
   function addCoins(tileCount) {
-    coins += tileCount * COINS_PER_TILE;
-    saveCoins(coins);
-    if (coinsEl) coinsEl.textContent = String(coins);
-    if (coins >= TARGET_COINS) showWin();
-  }
+  coins += tileCount * COINS_PER_TILE;
+  saveCoins(coins);
+  if (coinsEl) coinsEl.textContent = String(coins);
 
-  function showWin() {
-    if (document.querySelector(".winOverlay")) return;
+  // ===== PUZZLE → HOTEL BOOSTS =====
+  if (tileCount >= 4) unlockBoost("snackBoost");
+  if (tileCount >= 5) unlockBoost("cleanerBoost");
+  if (tileCount >= 6) unlockBoost("patienceBoost");
 
-    const overlay = document.createElement("div");
-    overlay.className = "winOverlay";
-    overlay.innerHTML = `
-      <div class="winCard">
-        <div class="winTitle">Level Complete! 🎉</div>
-        <div class="winText">You reached <b>${coins}</b> coins.</div>
-        <button class="btn" id="winClose">Continue</button>
-      </div>
-    `;
-    document.body.appendChild(overlay);
-    overlay.querySelector("#winClose").onclick = () => overlay.remove();
-  }
+  if (coins >= TARGET_COINS) showWin();
+}
 
   function randomType() {
     return Math.floor(Math.random() * NAMES.length);
