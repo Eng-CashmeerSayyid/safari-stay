@@ -1,43 +1,29 @@
 /* =========================
-Safari Stay – mombasa.js (PUZZLE MATCH-3 - FINAL)
-Matches your HTML/CSS:
-- <div id="board" class="board"></div>
-- <span id="coins"></span>, <span id="target"></span>
-- <button id="resetPuzzle"></button>
-- <div id="msg"></div>
-
-Rules:
+Safari Stay – puzzle.js (MATCH-3 - UPDATED & SAFEST)
 - 5×5 board
 - Swap adjacent tiles
 - Match 3+ clears + cascades
 - Earn coins per cleared tile
 - Invalid swap = shake + vibrate
-- Uses IMAGES at: images/tiles/*.png (from your screenshot)
+- Uses <img> inside tiles (prevents "?" reveal issues)
+- Tries both asset paths: assets/puzzle/* OR images/tiles/*
 ========================= */
 
 (() => {
   "use strict";
 
   // ---------- SETTINGS ----------
-  const SIZE = 5;                 // 5×5
-  const TYPES = 6;                // number of tile types
-  const TARGET_COINS = 300;       // win target
-  const COINS_PER_TILE = 5;       // coins per tile cleared
+  const SIZE = 5;
+  const TARGET_COINS = 300;
+  const COINS_PER_TILE = 5;
   const ANIM_MS = 220;
   const CASCADE_DELAY = 80;
 
-  // Your repo screenshot showed: images/tiles/
-  const TILE_ASSETS = [
-    "images/tiles/palm.png",
-    "images/tiles/shell.png",
-    "images/tiles/fish.png",
-    "images/tiles/coconut.png",
-    "images/tiles/wave.png",
-    "images/tiles/sun.png",
-  ];
-
-  // Fallback if images fail
+  const NAMES = ["palm","shell","fish","coconut","wave","sun"];
   const TILE_EMOJI = ["🌴","🐚","🐟","🥥","🌊","☀️"];
+
+  // Try these base folders in order (GitHub Pages case-sensitive)
+  const BASE_PATHS = ["assets/puzzle", "images/tiles"];
 
   // ---------- DOM ----------
   const boardEl  = document.getElementById("board");
@@ -47,19 +33,18 @@ Rules:
   const resetBtn = document.getElementById("resetPuzzle");
 
   if (!boardEl) {
-    console.warn("Puzzle: #board not found. Add <div id='board' class='board'></div> in tab-puzzle.");
+    console.warn("Puzzle: #board not found. Add <div id='board' class='board'></div>.");
     return;
   }
-
   if (targetEl) targetEl.textContent = String(TARGET_COINS);
 
   // ---------- STATE ----------
-  let grid = [];          // 2D: SIZE×SIZE, each cell is 0..TYPES-1, -1 = empty
-  let selected = null;    // {r,c} or null
+  let grid = [];
+  let selected = null;   // {r,c}
   let locked = false;
   let coins = 0;
 
-  // ---------- STORAGE (optional but nice) ----------
+  // ---------- STORAGE ----------
   function loadCoins() {
     const v = Number(localStorage.getItem("coins") || "0");
     return Number.isFinite(v) ? v : 0;
@@ -84,12 +69,10 @@ Rules:
     coins += tileCount * COINS_PER_TILE;
     saveCoins(coins);
     if (coinsEl) coinsEl.textContent = String(coins);
-
     if (coins >= TARGET_COINS) showWin();
   }
 
   function showWin() {
-    // Avoid stacking multiple overlays
     if (document.querySelector(".winOverlay")) return;
 
     const overlay = document.createElement("div");
@@ -106,20 +89,17 @@ Rules:
   }
 
   function randomType() {
-    return Math.floor(Math.random() * TYPES);
+    return Math.floor(Math.random() * NAMES.length);
   }
 
-  // avoid immediate matches during fill
   function safeRandomType(r, c) {
     for (let tries = 0; tries < 30; tries++) {
       const t = randomType();
 
-      // horizontal: check two left
       const l1 = c - 1 >= 0 ? grid[r][c - 1] : null;
       const l2 = c - 2 >= 0 ? grid[r][c - 2] : null;
       if (l1 === t && l2 === t) continue;
 
-      // vertical: check two up
       const u1 = r - 1 >= 0 ? grid[r - 1][c] : null;
       const u2 = r - 2 >= 0 ? grid[r - 2][c] : null;
       if (u1 === t && u2 === t) continue;
@@ -131,6 +111,11 @@ Rules:
 
   function neighbors(a, b) {
     return (Math.abs(a.r - b.r) + Math.abs(a.c - b.c)) === 1;
+  }
+
+  // ---------- ASSET RESOLUTION ----------
+  function buildSrc(name, baseIndex) {
+    return `${BASE_PATHS[baseIndex]}/${name}.png`;
   }
 
   // ---------- BUILD BOARD DOM ----------
@@ -145,17 +130,48 @@ Rules:
         btn.className = "tile";
         btn.dataset.r = String(r);
         btn.dataset.c = String(c);
-        btn.setAttribute("aria-label", `tile ${r},${c}`);
+
+        // real image element (prevents "?" reveal issues)
+        const img = document.createElement("img");
+        img.alt = "";
+        img.draggable = false;
+        btn.appendChild(img);
+
+        // emoji fallback text (if you want to show it via CSS)
+        const span = document.createElement("span");
+        span.className = "emojiFallback";
+        btn.appendChild(span);
+
         boardEl.appendChild(btn);
       }
     }
 
-    // Event delegation: reliable clicking
     boardEl.addEventListener("click", onBoardClick);
   }
 
   function getTileEl(r,c) {
     return boardEl.querySelector(`.tile[data-r="${r}"][data-c="${c}"]`);
+  }
+
+  // Try base paths until one loads
+  function setImgWithFallback(imgEl, name, emoji) {
+    let baseTry = 0;
+
+    function tryNext() {
+      if (baseTry >= BASE_PATHS.length) {
+        // no image worked -> rely on emoji
+        imgEl.removeAttribute("src");
+        imgEl.style.display = "none";
+        return;
+      }
+      imgEl.style.display = "";
+      imgEl.src = buildSrc(name, baseTry);
+      baseTry++;
+    }
+
+    imgEl.onerror = () => tryNext();
+    imgEl.onload = () => { /* ok */ };
+    tryNext();
   }
 
   function paint() {
@@ -167,19 +183,25 @@ Rules:
 
       el.classList.toggle("selected", !!selected && selected.r === r && selected.c === c);
 
+      const img = el.querySelector("img");
+      const span = el.querySelector(".emojiFallback");
+
       if (t === -1) {
         el.classList.add("empty");
-        el.style.backgroundImage = "";
-        el.textContent = "";
+        if (img) { img.removeAttribute("src"); img.style.display = "none"; }
+        if (span) span.textContent = "";
         return;
       }
 
       el.classList.remove("empty");
-      el.style.backgroundImage = `url("${TILE_ASSETS[t]}")`;
+      const name = NAMES[t];
 
-      // Emoji fallback (hidden by your CSS if image loads)
-      el.textContent = TILE_EMOJI[t];
-      el.classList.add("hasEmoji");
+      if (span) span.textContent = TILE_EMOJI[t];
+
+      if (img) {
+        img.alt = name;
+        setImgWithFallback(img, name, TILE_EMOJI[t]);
+      }
     });
   }
 
@@ -308,7 +330,6 @@ Rules:
     const r = Number(tile.dataset.r);
     const c = Number(tile.dataset.c);
 
-    // Select first tile
     if (!selected) {
       selected = { r, c };
       paint();
@@ -316,22 +337,19 @@ Rules:
     }
 
     const prev = selected;
-    selected = null; // clear by default
+    selected = null;
 
-    // Same tile -> deselect
     if (prev.r === r && prev.c === c) {
       paint();
       return;
     }
 
-    // Not neighbors -> select new tile
     if (!neighbors(prev, { r, c })) {
       selected = { r, c };
       paint();
       return;
     }
 
-    // Try swap
     locked = true;
     setMsg("");
 
@@ -345,7 +363,6 @@ Rules:
       return;
     }
 
-    // invalid swap -> swap back + shake/vibrate
     await invalidSwapFeedback(prev, { r, c });
     swap(prev, { r, c });
     paint();
@@ -370,18 +387,15 @@ Rules:
     setMsg("New board ready ✅");
     initGrid();
     paint();
-    await resolveBoard(); // just in case
+    await resolveBoard();
     locked = false;
   }
 
-  // Hook reset button
   if (resetBtn) resetBtn.addEventListener("click", reset);
 
-  // Load coins from storage
   coins = loadCoins();
   if (coinsEl) coinsEl.textContent = String(coins);
 
-  // Start
   buildBoardDOM();
   reset();
 })();
