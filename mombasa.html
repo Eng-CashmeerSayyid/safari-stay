@@ -1,109 +1,65 @@
-<!-- =========================
-File: mombasa.html
-Safari Stay – Mombasa Hotel (FULL v8)
-========================= -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Safari Stay – Mombasa Hotel</title>
-
-  <link rel="stylesheet" href="style.css?v=20260208" />
-  <script src="mombasa.js?v=20260208" defer></script>
+  <link rel="stylesheet" href="style.css" />
+  <script src="hotel.js" defer></script>
 </head>
 
 <body>
+<header class="topbar">
+  <div class="brand">
+    <a class="logoLink" href="index.html" title="Back">
+      <div class="logo">🏝️</div>
+    </a>
+    <div>
+      <div class="title">Safari Stay</div>
+      <div class="subtitle">Mombasa Hotel</div>
+    </div>
+  </div>
 
-  <header class="topbar">
-    <div class="brand">
-      <a class="logoLink" href="index.html" title="Back">
-        <div class="logo">🏝️</div>
-      </a>
-      <div>
-        <div class="title">Safari Stay</div>
-        <div class="subtitle">Mombasa Hotel</div>
+  <div class="hud">
+    <div class="pill">🪙 Coins: <span id="coins">0</span></div>
+    <div class="pill">👥 Queue: <span id="queue">0</span></div>
+    <div class="pill">✅ Served: <span id="served">0</span></div>
+    <div class="pill" id="boostPill" style="display:none;">🎁 Boosts active</div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="card">
+    <div class="rowBetween" style="gap:12px;flex-wrap:wrap;">
+      <div class="muted" id="deliveryHint">Pick a snack then tap a room that ordered.</div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="btn" id="btnSpawnGuest">➕ Spawn Guest</button>
+        <a class="btn" href="puzzle.html">🧩 Go Puzzle</a>
+        <button class="btn" id="btnClear">♻️ Reset Save</button>
       </div>
     </div>
 
-    <div class="hud">
-      <div class="pill">🪙 Coins: <span id="coins">0</span></div>
-      <div class="pill">🍪 Snacks: <span id="snacks">0</span></div>
-      <div class="pill">✅ Served: <span id="served">0</span></div>
-      <div class="pill">😡 Angry left: <span id="angry">0</span></div>
-      <div class="pill">👥 Queue: <span id="queueCount">0</span></div>
+    <div style="height:10px"></div>
+
+    <div class="pill">Queue Visual: <span id="spawnPeople">✨</span></div>
+
+    <div style="height:12px"></div>
+
+    <div class="rowBetween" style="gap:12px; flex-wrap:wrap;">
+      <div class="smallMuted">Snack Corner</div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="btn snack" data-snack="🍟">🍟</button>
+        <button class="btn snack" data-snack="🍹">🍹</button>
+        <button class="btn snack" data-snack="🍉">🍉</button>
+        <button class="btn snack" data-snack="🍔">🍔</button>
+      </div>
     </div>
-  </header>
+  </section>
 
-  <main class="wrap">
-
-    <section class="card sceneHeader">
-      <div class="rowBetween">
-        <div>
-          <div class="hint" id="hint">
-            Guests spawn automatically. Click a guest, then click an EMPTY room.
-          </div>
-          <div class="smallMuted">
-            Snacks: pick anytime • Delivery is manual: tap room twice to deliver.
-          </div>
-        </div>
-
-        <div class="row" style="gap:10px;">
-          <button class="btn" id="resetRunBtn" type="button">Reset Run</button>
-        </div>
-      </div>
-    </section>
-
-    <!-- STATIONS -->
-    <section class="card">
-      <div class="cardTitle">Stations</div>
-      <div class="smallMuted">Pick snacks/tools, then click rooms.</div>
-
-      <div class="stationsRow" id="stationsRow">
-
-        <div class="snackBarGroup">
-          <button class="stationBtn" id="pickSoda" type="button">🥤 Soda</button>
-          <button class="stationBtn" id="pickCoconut" type="button">🥥 Coconut</button>
-          <button class="stationBtn" id="pickSandwich" type="button">🥪 Sandwich</button>
-          <span class="tiny" id="stockLine">stock...</span>
-        </div>
-
-        <button class="stationBtn" id="cleanTool" type="button">
-          🧴 Detergent
-        </button>
-
-        <div class="carryHud" style="margin-left:auto;">
-          <div class="bellboy">🧍🏾‍♂️</div>
-
-          <div class="hands">
-            <div class="hand">🤚 L: <span id="handL">Empty</span></div>
-            <div class="hand">🤚 R: <span id="handR">Empty</span></div>
-          </div>
-
-          <div class="dropRow" id="dropRow">
-            <button class="btn mini" id="dropL" type="button">Drop L</button>
-            <button class="btn mini" id="dropR" type="button">Drop R</button>
-          </div>
-        </div>
-
-      </div>
-    </section>
-
-    <section class="grid2">
-      <section class="card">
-        <div class="cardTitle">Queue</div>
-        <div class="smallMuted">Mood: 🙂 → 😐 → 😡 (may leave)</div>
-        <div id="queueList" class="queueList"></div>
-      </section>
-
-      <section class="card">
-        <div class="cardTitle">Rooms</div>
-        <div class="smallMuted">4 rooms • Auto checkout • Manual cleaning</div>
-        <div id="roomsGrid" class="roomsGrid"></div>
-      </section>
-    </section>
-
-  </main>
-
+  <section class="card">
+    <h2 style="margin:0 0 10px 0;">Rooms</h2>
+    <div id="rooms" class="roomsGrid"></div>
+  </section>
+</main>
 </body>
 </html>
