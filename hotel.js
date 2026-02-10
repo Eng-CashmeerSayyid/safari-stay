@@ -23,19 +23,43 @@ function getJSON(key, fallback) {
 function getCoins() { return getNum("coins", 0); }
 function setCoins(n) { setNum("coins", n); }
 
-// ================= BOOSTS (from Puzzle) =================
-function getBoosts() {
-  return getJSON("hotelBoosts", {});
-}
-function hasAnyBoost(b) {
-  return !!(b.snackBoost || b.cleanerBoost || b.patienceBoost);
-}
+// ================= BOOSTS (from puzzle) =================
+// puzzle writes: localStorage.hotelBoosts = { snackBoost, cleanerBoost, patienceBoost }
+function getBoosts() { return getJSON("hotelBoosts", {}); }
+function hasAnyBoost(b){ return !!(b.snackBoost || b.cleanerBoost || b.patienceBoost); }
 
-// ================= MOMBASA STATE (keep your existing keys!) =================
-let queue = getNum("mombasaQueue", 0);
+// ================= DOM =================
+const $ = (id) => document.getElementById(id);
+
+const hudCoins = $("coins");
+const hudQueue = $("queue");
+const hudServed = $("served");
+const boostPill = $("boostPill");
+
+const hintEl = $("hint");
+const spawnPeople = $("spawnPeople");
+
+const btnSpawnGuest = $("btnSpawnGuest");
+const btnResetHotel = $("btnResetHotel");
+
+const stationSnack = $("stationSnack");
+const stationDetergent = $("stationDetergent");
+
+const handFoodEl = $("handFood");
+const handToolEl = $("handTool");
+
+const snackRow = $("snackRow");
+const snackHint = $("snackHint");
+const snackButtons = Array.from(document.querySelectorAll(".snack"));
+
+const queueListEl = $("queueList");
+const roomsEl = $("rooms");
+
+// ================= STATE (hotel progress keys preserved) =================
+let queueCount = getNum("mombasaQueue", 0);
 let served = getNum("mombasaGuestsServed", 0);
 
-// 4 fixed rooms
+// rooms saved under this key (keep as you already used)
 let rooms = getJSON("mombasaRoomsV2", null);
 if (!rooms || !Array.isArray(rooms) || rooms.length !== 4) {
   rooms = Array.from({ length: 4 }, (_, i) => ({
@@ -51,310 +75,451 @@ if (!rooms || !Array.isArray(rooms) || rooms.length !== 4) {
 
     mood: "🏨",
     moodUntil: 0,
-    cleaningUntil: 0
+    cleaningUntil: 0,
+
+    // patience visuals
+    patienceStart: 0,
+    patienceEnd: 0
   }));
 }
 
-// ================= UI HELPERS =================
-const $ = (id) => document.getElementById(id);
+// New queue list (IDs) — persisted, but if missing we can rebuild from count
+let queueIds = getJSON("mombasaQueueIds", null);
+if (!queueIds || !Array.isArray(queueIds)) {
+  queueIds = [];
+  for (let i = 0; i < queueCount; i++) queueIds.push(makeGuestId());
+}
 
-const hudCoins = $("coins");
-const hudQueue = $("queue");
-const hudServed = $("served");
-const boostPill = $("boostPill");
+// selection
+let selectedGuest = null; // guestId string
 
-const roomsEl = $("rooms");
-const deliveryHint = $("deliveryHint");
-const spawnPeople = $("spawnPeople");
+// Two hands model
+// - foodHand holds snacks
+// - toolHand holds detergent
+let activeStation = "snack"; // "snack" | "detergent"
+let foodHand = null;         // one of SNACKS
+let toolHand = null;         // "🧼" or null
 
-const btnSpawnGuest = $("btnSpawnGuest");
-const btnResetHotel = $("btnResetHotel");
+// constants
+const SNACKS = ["🍟", "🍹", "🍉", "🍔"];
+const STAY_BASE_MS = 10000;
+const ORDER_DELAY_MIN = 2000;
+const ORDER_DELAY_MAX = 7000;
+const ORDER_PATIENCE_MS = 6500; // time to deliver after order before angry
 
-const snackButtons = Array.from(document.querySelectorAll(".snack"));
+function now(){ return Date.now(); }
 
-// ================= HOTEL LOGIC =================
-const SNACKS = ["🍟","🍹","🍉","🍔"];
-let heldSnack = null;
+function makeGuestId(){
+  return "G" + Math.floor(Math.random() * 9000 + 1000);
+}
 
-function now() { return Date.now(); }
+function saveAll(){
+  setNum("mombasaQueue", queueIds.length);
+  setJSON("mombasaQueueIds", queueIds);
 
-function saveAll() {
-  setNum("mombasaQueue", queue);
   setNum("mombasaGuestsServed", served);
   setJSON("mombasaRoomsV2", rooms);
-  // coins saved via setCoins already
+  // coins stored via setCoins
 }
 
-function setHint(msg) {
-  if (deliveryHint) deliveryHint.textContent = msg;
+// ================= UI HELPERS =================
+function setHint(t){
+  if (hintEl) hintEl.textContent = t || "";
 }
 
-function setHeldSnack(snack) {
-  heldSnack = snack;
-  snackButtons.forEach(b => b.classList.toggle("selected", b.dataset.snack === snack));
-  setHint(snack ? `Holding ${snack}. Tap the room that ordered.` : "No delivery selected.");
+function renderHands(){
+  if (handFoodEl) handFoodEl.textContent = foodHand || "—";
+  if (handToolEl) handToolEl.textContent = toolHand || "—";
 }
 
-snackButtons.forEach(btn => {
-  btn.addEventListener("click", () => {
-    const s = btn.dataset.snack;
-    setHeldSnack(heldSnack === s ? null : s);
-  });
-});
+function setActiveStation(st){
+  activeStation = st;
 
-btnSpawnGuest.addEventListener("click", () => {
-  queue += 1;
-  saveAll();
-  renderAll();
-});
+  stationSnack?.classList.toggle("active", st === "snack");
+  stationDetergent?.classList.toggle("active", st === "detergent");
 
-// ✅ Hotel-only reset (does NOT clear coins, boosts, puzzle)
-btnResetHotel.addEventListener("click", () => {
-  if (!confirm("Reset HOTEL only? (Keeps coins + boosts + puzzle)")) return;
+  // show/hide snack row
+  if (snackRow) snackRow.style.display = (st === "snack") ? "flex" : "none";
 
-  localStorage.removeItem("mombasaQueue");
-  localStorage.removeItem("mombasaGuestsServed");
-  localStorage.removeItem("mombasaRoomsV2");
-
-  location.reload();
-});
-
-function findFirstEmptyRoom() {
-  return rooms.find(r => r.status === "empty");
-}
-
-function setRoomMood(room, emoji, ms=1200) {
-  room.mood = emoji;
-  room.moodUntil = now() + ms;
-}
-
-function scheduleOrder(room) {
-  room.willOrder = Math.random() < 0.65;
-  if (!room.willOrder) return;
-
-  const delay = 2000 + Math.floor(Math.random() * 5000); // 2s to 7s
-  room.orderAt = now() + delay;
-  room.orderSnack = SNACKS[Math.floor(Math.random() * SNACKS.length)];
-  room.needsDelivery = false;
-}
-
-function checkInLoop() {
-  const boosts = getBoosts();
-
-  while (queue > 0) {
-    const room = findFirstEmptyRoom();
-    if (!room) break;
-
-    queue -= 1;
-    room.status = "occupied";
-    room.guestId = "G" + Math.floor(Math.random() * 9000 + 1000);
-
-    // ✅ Patience Boost: guests stay longer
-    const stayMs = boosts.patienceBoost ? 15000 : 10000;
-    room.checkoutAt = now() + stayMs;
-
-    room.orderSnack = null;
-    room.needsDelivery = false;
-    room.orderAt = 0;
-
-    setRoomMood(room, "😄", 900);
-    scheduleOrder(room);
+  if (st === "snack"){
+    toolHand = null;           // you’re not holding detergent in snack mode
+    renderHands();
+    setHint("Snack Station: pick a snack, then tap the room that ordered.");
+  } else {
+    foodHand = null;           // you’re not holding snacks in detergent mode
+    toolHand = "🧼";
+    // clear snack button selection UI
+    snackButtons.forEach(b => b.classList.remove("selected"));
+    renderHands();
+    setHint("Detergent Station: tap a DIRTY room to start cleaning.");
   }
 }
 
-function tickRooms() {
+function setFoodHand(snack){
+  if (activeStation !== "snack"){
+    setHint("Go to Snack Station first.");
+    return;
+  }
+  foodHand = (foodHand === snack) ? null : snack;
+  snackButtons.forEach(b => b.classList.toggle("selected", b.dataset.snack === foodHand));
+  renderHands();
+  setHint(foodHand ? `Holding ${foodHand}. Tap the room that ordered.` : "Pick a snack to deliver.");
+}
+
+// ================= BOOST EFFECTS =================
+function getStayMs(){
+  const boosts = getBoosts();
+  return STAY_BASE_MS + (boosts.patienceBoost ? 4000 : 0);
+}
+function getCleanMs(){
+  const boosts = getBoosts();
+  return boosts.cleanerBoost ? 1500 : 3000;
+}
+function deliveryReward(){
+  const boosts = getBoosts();
+  return boosts.snackBoost ? 3 : 2;
+}
+
+// ================= HOTEL LOGIC =================
+function scheduleOrder(room){
+  room.willOrder = Math.random() < 0.65;
+  if (!room.willOrder) return;
+
+  const delay = ORDER_DELAY_MIN + Math.floor(Math.random() * (ORDER_DELAY_MAX - ORDER_DELAY_MIN));
+  room.orderAt = now() + delay;
+  room.orderSnack = SNACKS[Math.floor(Math.random() * SNACKS.length)];
+  room.needsDelivery = false;
+
+  room.patienceStart = 0;
+  room.patienceEnd = 0;
+}
+
+function tickRooms(){
   const t = now();
 
   rooms.forEach(room => {
-    if (room.moodUntil && t > room.moodUntil) {
-      room.mood = room.status === "occupied" ? "🙂" : (room.status === "empty" ? "🏨" : room.mood);
+    // clear mood
+    if (room.moodUntil && t > room.moodUntil){
       room.moodUntil = 0;
+      room.mood = room.status === "occupied" ? "🙂" : (room.status === "empty" ? "🏨" : room.mood);
     }
 
-    if (room.status === "occupied" && room.willOrder && room.orderAt && t >= room.orderAt && !room.needsDelivery) {
+    // trigger order
+    if (room.status === "occupied" && room.willOrder && room.orderAt && t >= room.orderAt && !room.needsDelivery){
       room.needsDelivery = true;
-      setRoomMood(room, room.orderSnack, 1200);
+      room.mood = room.orderSnack;
+      room.moodUntil = t + 900;
+
+      // start patience window
+      room.patienceStart = t;
+      room.patienceEnd = t + ORDER_PATIENCE_MS;
     }
 
-    if (room.status === "occupied" && t >= room.checkoutAt) {
+    // if order overdue → angry leaves (optional penalty)
+    if (room.status === "occupied" && room.needsDelivery && room.patienceEnd && t >= room.patienceEnd){
+      // guest gets angry and checks out immediately -> dirty
       room.status = "dirty";
       room.guestId = null;
+
       room.checkoutAt = 0;
       room.willOrder = false;
       room.orderSnack = null;
       room.orderAt = 0;
       room.needsDelivery = false;
-      setRoomMood(room, "🧺", 1200);
+
+      room.mood = "😡";
+      room.moodUntil = t + 1200;
+
+      room.patienceStart = 0;
+      room.patienceEnd = 0;
     }
 
-    if (room.status === "cleaning" && t >= room.cleaningUntil) {
+    // natural checkout
+    if (room.status === "occupied" && room.checkoutAt && t >= room.checkoutAt){
+      room.status = "dirty";
+      room.guestId = null;
+
+      room.checkoutAt = 0;
+      room.willOrder = false;
+      room.orderSnack = null;
+      room.orderAt = 0;
+      room.needsDelivery = false;
+
+      room.mood = "🧺";
+      room.moodUntil = t + 1200;
+
+      room.patienceStart = 0;
+      room.patienceEnd = 0;
+    }
+
+    // cleaning finish
+    if (room.status === "cleaning" && room.cleaningUntil && t >= room.cleaningUntil){
       room.status = "empty";
       room.cleaningUntil = 0;
-      setRoomMood(room, "✨", 900);
+      room.mood = "✨";
+      room.moodUntil = t + 900;
     }
   });
 }
 
-function deliverToRoom(roomId) {
+function checkInSelectedGuestToRoom(roomId){
   const room = rooms.find(r => r.id === roomId);
   if (!room) return;
 
-  if (room.status === "dirty") {
-    setHint(`Room ${roomId} is dirty. Tap CLEAN in the room card.`);
-    return;
-  }
-  if (room.status !== "occupied") {
-    setHint(`Room ${roomId} is empty.`);
+  if (!selectedGuest){
+    setHint("Select a guest in the queue first.");
     return;
   }
 
-  if (!heldSnack) {
-    if (room.needsDelivery) setHint(`Room ${roomId} ordered something. Pick a snack first.`);
-    else setHint(`Room ${roomId} has no snack order right now.`);
+  if (room.status !== "empty"){
+    setHint(`Room ${roomId} is not empty.`);
     return;
   }
 
-  if (!room.needsDelivery) {
-    setHint(`Wrong timing. Room ${roomId} didn’t order.`);
-    setRoomMood(room, "😐", 800);
-    return;
-  }
+  // Check-in
+  room.status = "occupied";
+  room.guestId = selectedGuest;
+  room.checkoutAt = now() + getStayMs();
 
-  if (heldSnack !== room.orderSnack) {
-    setHint(`Wrong snack. Room ${roomId} wanted ${room.orderSnack}.`);
-    setRoomMood(room, "😤", 800);
-    return;
-  }
-
-  // ✅ success
-  room.needsDelivery = false;
+  room.willOrder = false;
   room.orderSnack = null;
   room.orderAt = 0;
-  room.willOrder = false;
+  room.needsDelivery = false;
 
-  served += 1;
+  room.patienceStart = 0;
+  room.patienceEnd = 0;
 
-  // ✅ Snack Boost: extra coin reward on delivery
-  const boosts = getBoosts();
-  const reward = boosts.snackBoost ? 3 : 2;
-  setCoins(getCoins() + reward);
+  room.mood = "😄";
+  room.moodUntil = now() + 900;
 
-  setRoomMood(room, "😍", 1200);
-  setHint(`Delivered! +${reward} coins ✅`);
-  setHeldSnack(null);
+  // remove guest from queue
+  queueIds = queueIds.filter(id => id !== selectedGuest);
+  selectedGuest = null;
+
+  scheduleOrder(room);
 
   saveAll();
   renderAll();
+  setHint("Guest checked in ✅ Now watch for snack orders.");
 }
 
-function startCleaning(roomId) {
+function deliverSnack(roomId){
   const room = rooms.find(r => r.id === roomId);
   if (!room) return;
-  if (room.status !== "dirty") return;
 
-  room.status = "cleaning";
+  if (room.status !== "occupied"){
+    setHint(`Room ${roomId} is not occupied.`);
+    return;
+  }
+  if (!room.needsDelivery){
+    setHint(`Room ${roomId} didn’t order right now.`);
+    room.mood = "😐"; room.moodUntil = now() + 700;
+    return;
+  }
 
-  // ✅ Cleaner Boost: faster cleaning
-  const boosts = getBoosts();
-  const cleanMs = boosts.cleanerBoost ? 1500 : 3000;
-  room.cleaningUntil = now() + cleanMs;
+  if (activeStation !== "snack"){
+    setHint("Go to Snack Station to deliver food.");
+    return;
+  }
 
-  setRoomMood(room, "🧼", 900);
+  if (!foodHand){
+    setHint(`Pick a snack first. Room ${roomId} wants ${room.orderSnack}.`);
+    return;
+  }
+
+  if (foodHand !== room.orderSnack){
+    setHint(`Wrong snack. Room ${roomId} wants ${room.orderSnack}.`);
+    room.mood = "😤"; room.moodUntil = now() + 900;
+    return;
+  }
+
+  // success delivery
+  room.needsDelivery = false;
+  room.willOrder = false;
+  room.orderSnack = null;
+  room.orderAt = 0;
+
+  room.patienceStart = 0;
+  room.patienceEnd = 0;
+
+  served += 1;
+  const reward = deliveryReward();
+  setCoins(getCoins() + reward);
+
+  room.mood = "😍"; room.moodUntil = now() + 1200;
+
+  // clear food hand after delivery
+  foodHand = null;
+  snackButtons.forEach(b => b.classList.remove("selected"));
+  renderHands();
 
   saveAll();
   renderAll();
+  setHint(`Delivered correctly! +${reward} coins ✅`);
 }
 
-function renderHUD() {
-  if (hudCoins) hudCoins.textContent = String(getCoins());
-  if (hudQueue) hudQueue.textContent = String(queue);
-  if (hudServed) hudServed.textContent = String(served);
+function startCleaning(roomId){
+  const room = rooms.find(r => r.id === roomId);
+  if (!room) return;
 
-  const heads = Math.max(1, Math.min(queue, 7));
-  if (spawnPeople) spawnPeople.textContent = queue === 0 ? "✨" : "👤".repeat(heads);
-
-  const boosts = getBoosts();
-  if (boostPill) boostPill.style.display = hasAnyBoost(boosts) ? "inline-flex" : "none";
-}
-
-function roomStatusTag(room) {
-  if (room.status === "empty") return `<span class="tag">Empty</span>`;
-  if (room.status === "occupied") {
-    if (room.needsDelivery) return `<span class="tag warn">Ordered</span>`;
-    return `<span class="tag">Occupied</span>`;
+  if (room.status !== "dirty"){
+    setHint("Only DIRTY rooms can be cleaned.");
+    return;
   }
+
+  if (activeStation !== "detergent"){
+    setHint("Go to Detergent Station to clean.");
+    return;
+  }
+
+  // detergent hand is always 🧼 in that station
+  room.status = "cleaning";
+  room.cleaningUntil = now() + getCleanMs();
+  room.mood = "🧼"; room.moodUntil = now() + 900;
+
+  saveAll();
+  renderAll();
+  setHint("Cleaning started ✅");
+}
+
+// ================= RENDER =================
+function renderHUD(){
+  const boosts = getBoosts();
+
+  hudCoins.textContent = String(getCoins());
+  hudQueue.textContent = String(queueIds.length);
+  hudServed.textContent = String(served);
+
+  const heads = Math.max(1, Math.min(queueIds.length, 7));
+  spawnPeople.textContent = queueIds.length === 0 ? "✨" : "👤".repeat(heads);
+
+  boostPill.style.display = hasAnyBoost(boosts) ? "inline-flex" : "none";
+}
+
+function renderQueue(){
+  queueListEl.innerHTML = "";
+
+  if (queueIds.length === 0){
+    const empty = document.createElement("div");
+    empty.className = "smallMuted";
+    empty.textContent = "Queue is empty. Tap Spawn Guest.";
+    queueListEl.appendChild(empty);
+    return;
+  }
+
+  queueIds.forEach((id) => {
+    const btn = document.createElement("button");
+    btn.className = "queueItem";
+    btn.type = "button";
+    btn.textContent = `${id}  •  Tap to select`;
+    btn.classList.toggle("selected", selectedGuest === id);
+
+    btn.addEventListener("click", () => {
+      selectedGuest = (selectedGuest === id) ? null : id;
+      setHint(selectedGuest ? `Selected ${selectedGuest}. Now tap an EMPTY room.` : "Select a guest, then tap an empty room.");
+      renderQueue();
+      renderRooms();
+    });
+
+    queueListEl.appendChild(btn);
+  });
+}
+
+function tag(room){
+  if (room.status === "empty") return `<span class="tag">Empty</span>`;
+  if (room.status === "occupied") return room.needsDelivery ? `<span class="tag warn">Ordered</span>` : `<span class="tag">Occupied</span>`;
   if (room.status === "dirty") return `<span class="tag danger">Dirty</span>`;
   if (room.status === "cleaning") return `<span class="tag warn">Cleaning…</span>`;
   return `<span class="tag">?</span>`;
 }
 
-function renderRoomsList() {
-  if (!roomsEl) return;
+function renderRooms(){
   roomsEl.innerHTML = "";
 
   rooms.forEach(room => {
     const el = document.createElement("div");
-    el.className = "room";
+    el.className = "roomCard";
     el.dataset.room = String(room.id);
+
+    // visual for orders/urgency
+    if (room.status === "occupied" && room.needsDelivery) {
+      el.classList.add("hasOrder");
+      if (room.patienceEnd && now() > room.patienceEnd - 1200) el.classList.add("orderUrgent");
+    }
 
     const emoji = room.needsDelivery ? (room.orderSnack || "🛎️") : room.mood;
 
-    const extra =
-      room.status === "occupied" && room.needsDelivery
-        ? `<span class="tag warn">Wants ${room.orderSnack}</span>`
-        : "";
-
-    const cleanBtn =
-      room.status === "dirty"
-        ? `<button class="smallBtn clean" data-clean="${room.id}">🧼 Clean</button>`
-        : `<button class="smallBtn clean" disabled>🧼 Clean</button>`;
-
     el.innerHTML = `
       <div class="roomTop">
-        <div>Room ${room.id}</div>
-        <div class="roomBadge">${roomStatusTag(room)}</div>
+        <div class="roomTitle">Room ${room.id}</div>
+        <div>${tag(room)}</div>
       </div>
 
       <div class="roomEmoji">${emoji}</div>
 
       <div class="roomInfo">
-        ${extra}
-        ${room.status === "occupied" ? `<span class="tag">Stay</span>` : ""}
+        ${room.status === "occupied" ? `<span class="tag">Guest: ${room.guestId}</span>` : ""}
+        ${room.status === "occupied" && room.needsDelivery ? `<span class="tag warn">Wants ${room.orderSnack}</span>` : ""}
       </div>
 
       <div class="roomButtons">
-        ${cleanBtn}
+        <button class="smallBtn" data-action="roomTap" data-room="${room.id}">Tap Room</button>
       </div>
     `;
 
-    el.addEventListener("click", (e) => {
-      const target = e.target;
-      if (target && target.dataset && target.dataset.clean) return;
-      deliverToRoom(room.id);
+    // whole card click
+    el.addEventListener("click", () => {
+      if (room.status === "empty") return checkInSelectedGuestToRoom(room.id);
+      if (room.status === "occupied") return deliverSnack(room.id);
+      if (room.status === "dirty") return startCleaning(room.id);
+      if (room.status === "cleaning") return setHint("Cleaning… wait a moment.");
     });
 
     roomsEl.appendChild(el);
   });
-
-  Array.from(document.querySelectorAll("[data-clean]")).forEach(btn => {
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      startCleaning(Number(btn.dataset.clean));
-    });
-  });
 }
 
-function renderAll() {
+function renderAll(){
   renderHUD();
-  renderRoomsList();
+  renderQueue();
+  renderRooms();
+  renderHands();
 }
 
-// loop
+// ================= EVENTS =================
+btnSpawnGuest.addEventListener("click", () => {
+  queueIds.push(makeGuestId());
+  saveAll();
+  renderAll();
+  setHint("Guest spawned. Select them in the queue, then tap an empty room.");
+});
+
+btnResetHotel.addEventListener("click", () => {
+  if (!confirm("Reset HOTEL only? (Keeps coins + puzzle + boosts)")) return;
+  localStorage.removeItem("mombasaQueue");
+  localStorage.removeItem("mombasaQueueIds");
+  localStorage.removeItem("mombasaGuestsServed");
+  localStorage.removeItem("mombasaRoomsV2");
+  location.reload();
+});
+
+// Station switching
+stationSnack.addEventListener("click", () => setActiveStation("snack"));
+stationDetergent.addEventListener("click", () => setActiveStation("detergent"));
+
+// Snack picking
+snackButtons.forEach(btn => {
+  btn.addEventListener("click", () => setFoodHand(btn.dataset.snack));
+});
+
+// ================= LOOP =================
 setInterval(() => {
-  checkInLoop();
   tickRooms();
   saveAll();
   renderAll();
 }, 500);
 
+// init
+setActiveStation("snack");
 renderAll();
+saveAll();
