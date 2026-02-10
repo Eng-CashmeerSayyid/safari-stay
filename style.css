@@ -1,9 +1,15 @@
-/* =========================
-Safari Stay – style.css (REVISED - FINAL)
-Works for: index.html + Mombasa.html
-========================= */
+/* =====================================================
+Safari Stay – style.css (CLEAN FINAL)
+Works for:
+- index.html
+- Mombasa.html (hotel)
+- puzzle.html
+FIXES:
+- ❌ double images
+- ❌ CSS overrides
+===================================================== */
 
-/* ---------- base reset ---------- */
+/* ---------- RESET ---------- */
 *{ box-sizing:border-box; }
 html,body{ height:100%; }
 body{
@@ -16,750 +22,174 @@ body{
     linear-gradient(180deg, #0b1220 0%, #070b14 100%);
 }
 a{ color:inherit; text-decoration:none; }
+button{ font-family:inherit; }
 
-/* ---------- layout helpers ---------- */
+/* ---------- LAYOUT ---------- */
 .wrap{ max-width:1100px; margin:18px auto; padding:0 14px; }
-.rowBetween{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
-.grid2{ display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+.rowBetween{ display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+.grid2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
 @media (max-width:700px){ .grid2{ grid-template-columns:1fr; } }
 
-.muted{ color: rgba(238,242,255,.72); }
-.smallMuted{ font-size:12px; color: rgba(238,242,255,.68); }
+.muted{ opacity:.8; }
+.smallMuted{ font-size:12px; opacity:.7; }
 
-/* ---------- topbar ---------- */
+/* ---------- TOPBAR ---------- */
 .topbar{
-  position: sticky;
-  top: 0;
-  z-index: 50;
+  position:sticky;
+  top:0;
+  z-index:50;
   backdrop-filter: blur(10px);
   background: rgba(7,11,20,.72);
-  border-bottom: 1px solid rgba(255,255,255,.08);
-  padding: 12px 14px;
+  border-bottom:1px solid rgba(255,255,255,.08);
+  padding:12px 14px;
   display:flex;
-  align-items:center;
   justify-content:space-between;
-  gap:12px;
+  align-items:center;
 }
 .brand{ display:flex; align-items:center; gap:12px; }
 .logo{
   width:44px; height:44px;
-  display:grid; place-items:center;
   border-radius:14px;
+  display:grid; place-items:center;
   background: rgba(255,255,255,.08);
   border:1px solid rgba(255,255,255,.10);
-  box-shadow: 0 10px 30px rgba(0,0,0,.25);
 }
-.logoLink{ display:inline-flex; }
-.title{ font-weight:800; letter-spacing:.2px; }
-.subtitle{ font-size:12px; color: rgba(238,242,255,.66); margin-top:2px; }
+.title{ font-weight:900; }
+.subtitle{ font-size:12px; opacity:.7; }
 
-.hud{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.hud{ display:flex; gap:10px; flex-wrap:wrap; }
 .pill{
-  padding:10px 12px;
+  padding:8px 12px;
   border-radius:999px;
-  background: rgba(255,255,255,.07);
-  border:1px solid rgba(255,255,255,.10);
-  font-weight:700;
+  background: rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.12);
+  font-weight:800;
   font-size:13px;
 }
 
-/* ---------- cards ---------- */
+/* ---------- CARDS & BUTTONS ---------- */
 .card{
   background: rgba(255,255,255,.06);
   border:1px solid rgba(255,255,255,.10);
   border-radius:20px;
   padding:16px;
-  box-shadow: 0 18px 50px rgba(0,0,0,.35);
+  box-shadow:0 18px 50px rgba(0,0,0,.35);
 }
 
-/* ---------- buttons ---------- */
 .btn{
-  appearance:none;
-  border:1px solid rgba(255,255,255,.12);
+  border:1px solid rgba(255,255,255,.14);
   background: rgba(255,255,255,.08);
   color:#eef2ff;
   padding:10px 12px;
   border-radius:14px;
-  font-weight:800;
+  font-weight:900;
   cursor:pointer;
-  transition: transform .08s ease, background .2s ease, border-color .2s ease, opacity .2s ease, filter .2s ease;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  gap:8px;
-  user-select:none;
 }
-.btn:hover{ background: rgba(255,255,255,.11); border-color: rgba(255,255,255,.18); }
-.btn:active{ transform: translateY(1px) scale(.99); }
-.btn:disabled{ opacity:.45; cursor:not-allowed; }
 .btn.primary{
   background: linear-gradient(135deg, rgba(99,102,241,.85), rgba(16,185,129,.75));
-  border-color: rgba(255,255,255,.18);
-}
-.btn.primary:hover{ filter: brightness(1.05); }
-.btn.danger{
-  background: rgba(239,68,68,.18);
-  border-color: rgba(239,68,68,.28);
-}
-.btn.danger:hover{ background: rgba(239,68,68,.24); }
-.bottomBar{
-  margin-top:12px;
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
 }
 
-/* ---------- tabs / panels ---------- */
-.tabs{
-  display:flex;
-  gap:10px;
-  justify-content:center;
-  padding:12px 14px 0;
-}
-.tab{
-  border:1px solid rgba(255,255,255,.12);
-  background: rgba(255,255,255,.06);
-  color:#eef2ff;
-  padding:10px 14px;
-  border-radius:999px;
-  cursor:pointer;
-  font-weight:900;
-  transition: background .2s ease, transform .08s ease, border-color .2s ease;
-}
-.tab:hover{ background: rgba(255,255,255,.10); }
-.tab:active{ transform: translateY(1px); }
-.tab.active{
-  background: rgba(255,255,255,.12);
-  border-color: rgba(255,255,255,.20);
-}
-.panel{ display:none; }
-.panel.active{ display:block; }
+/* =====================================================
+HOTEL (ROOMS)
+===================================================== */
 
-/* ---------- Mombasa layout ---------- */
-.layout{
+.roomsGrid{
   display:grid;
-  grid-template-columns: 1.2fr .8fr;
-  gap:14px;
-}
-@media (max-width:900px){
-  .layout{ grid-template-columns: 1fr; }
-}
-.sceneHeader{ margin-bottom:10px; }
-.hint{
-  font-size:18px;
-  font-weight:900;
-  margin-bottom:4px;
-}
-
-/* ---------- hotel grid + rooms ---------- */
-.hotelGrid{
-  display:grid;
-  grid-template-columns: repeat(2, minmax(140px, 1fr));
+  grid-template-columns: repeat(2, minmax(0,1fr));
   gap:12px;
-  padding:8px 0 4px;
-}
-@media (max-width:460px){
-  .hotelGrid{ grid-template-columns:1fr; }
 }
 
-.roomBtn{
-  white-space:pre-line;
-  text-align:left;
-  padding:14px;
-  border-radius:18px;
-  border:1px solid rgba(255,255,255,.12);
-  background: rgba(255,255,255,.07);
-  color:#eef2ff;
-  font-weight:900;
-  cursor:pointer;
-  transition: transform .08s ease, background .2s ease, border-color .2s ease;
-  min-height:82px;
-  position:relative;
-  overflow:hidden;
-
-  /* ✅ click reliability */
-  pointer-events: auto;
-  z-index: 2;
-}
-.roomBtn:hover{ background: rgba(255,255,255,.10); border-color: rgba(255,255,255,.18); }
-.roomBtn:active{ transform: translateY(1px); }
-
-.roomBtn.selected{
-  border-color: rgba(99,102,241,.65);
-  box-shadow: 0 0 0 3px rgba(99,102,241,.18);
-}
-
-/* room states decorative blob */
-.roomBtn.state-empty::after,
-.roomBtn.state-occupied::after,
-.roomBtn.state-ready::after,
-.roomBtn.state-dirty::after,
-.roomBtn.state-cleaning::after{
-  content:"";
-  position:absolute;
-  inset:auto -40px -50px auto;
-  width:140px;
-  height:140px;
-  border-radius:999px;
-  opacity:.25;
-
-  /* ✅ IMPORTANT: never block clicks */
-  pointer-events: none;
-}
-.roomBtn.state-empty::after{ background: rgba(16,185,129,.55); }
-.roomBtn.state-occupied::after{ background: rgba(99,102,241,.60); }
-.roomBtn.state-ready::after{ background: rgba(236,72,153,.55); }
-.roomBtn.state-dirty::after{ background: rgba(245,158,11,.65); }
-.roomBtn.state-cleaning::after{ background: rgba(56,189,248,.60); }
-
-/* room mini layout */
-.rRow{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
-.rTitle{ font-size:16px; }
-.rState{ font-size:12px; color: rgba(238,242,255,.70); font-weight:800; margin-top:4px; }
-.rBadge{ font-size:22px; }
-
-/* ---------- side panel ---------- */
-.side h3{ margin:0 0 10px; }
-.roomCard{
-  padding:12px;
-  border-radius:16px;
-  background: rgba(255,255,255,.05);
+.room{
+  background: rgba(255,255,255,.04);
   border:1px solid rgba(255,255,255,.10);
-  min-height:80px;
+  border-radius:16px;
+  padding:12px;
 }
-.divider{
-  height:1px;
+.roomTop{ display:flex; justify-content:space-between; }
+.roomEmoji{ font-size:42px; text-align:center; padding:10px 0; }
+.roomButtons{ margin-top:10px; display:flex; gap:8px; }
+
+.smallBtn{
+  padding:8px 10px;
+  border-radius:12px;
+  border:0;
   background: rgba(255,255,255,.10);
-  margin:14px 0;
+  color:#eef2ff;
+  cursor:pointer;
 }
-.list{ margin:8px 0 0; padding-left:18px; }
-.list li{ margin:6px 0; color: rgba(238,242,255,.78); }
+.smallBtn:disabled{ opacity:.45; cursor:not-allowed; }
 
-.tip{
-  margin-top:14px;
-  padding:12px;
-  border-radius:16px;
-  background: rgba(255,255,255,.05);
-  border:1px dashed rgba(255,255,255,.14);
-  color: rgba(238,242,255,.78);
-}
-
-/* ---------- shop ---------- */
-.shopGrid{
-  display:grid;
-  grid-template-columns: 1fr 1fr;
-  gap:12px;
-}
-@media (max-width:700px){ .shopGrid{ grid-template-columns:1fr; } }
-.shopItem{
-  padding:14px;
-  border-radius:18px;
-  background: rgba(255,255,255,.05);
-  border:1px solid rgba(255,255,255,.10);
-}
-.shopTop{ display:flex; gap:10px; align-items:center; margin-bottom:10px; }
-.shopIcon{
-  width:40px; height:40px; border-radius:14px;
-  display:grid; place-items:center;
+.tag{
+  padding:4px 8px;
+  border-radius:999px;
   background: rgba(255,255,255,.08);
-  border:1px solid rgba(255,255,255,.12);
+  font-size:12px;
 }
-.shopTitle{ font-weight:950; }
-.price{ color: rgba(238,242,255,.78); }
+.tag.warn{ background: rgba(245,158,11,.20); }
+.tag.danger{ background: rgba(239,68,68,.20); }
 
-/* =========================================================
-MATCH-3 PUZZLE (REVISED)
-Uses:
-- <div id="board" class="board"></div>
-- Tiles are <button class="tile">
-========================================================= */
+/* =====================================================
+PUZZLE (MATCH-3) — SINGLE SOURCE
+===================================================== */
 
 .puzzlePanel{
-  margin: 6px auto 0;
-  max-width: 560px;
-  padding: 14px;
-  border-radius: 18px;
+  max-width:560px;
+  margin:0 auto;
+  padding:14px;
+  border-radius:18px;
   background: rgba(0,0,0,.18);
-  border: 1px solid rgba(255,255,255,.10);
-  backdrop-filter: blur(8px);
-}
-.puzzleTop{
-  display:flex;
-  align-items:flex-start;
-  justify-content:space-between;
-  gap:12px;
-  margin-bottom: 12px;
-}
-.puzzleTop h2{
-  margin:0;
-  font-size: 18px;
-  font-weight: 900;
-}
-.puzzleStats{
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-  justify-content:flex-end;
-}
-.puzzleStats .stat{
-  font-size: 13px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: rgba(255,255,255,.10);
-  border: 1px solid rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.10);
 }
 
 .board{
-  --size: 8; /* JS will override */
+  --size:5;
   display:grid;
   grid-template-columns: repeat(var(--size), 1fr);
-  gap: 8px;
-  padding: 10px;
-  border-radius: 16px;
-  background: rgba(255,255,255,.06);
-  border: 1px solid rgba(255,255,255,.08);
-}
-.tile{
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,.12);
-  background-color: rgba(0,0,0,.18);
-
-  cursor: pointer;
-  position: relative;
-  overflow:hidden;
-  transform: translateZ(0);
-  transition:
-    transform .15s ease,
-    filter .15s ease,
-    box-shadow .15s ease,
-    border-color .2s ease,
-    opacity .2s ease;
-}
-
-/* glossy overlay stays */
-.tile::after{
-  content:"";
-  position:absolute;
-  inset:0;
-  background: radial-gradient(
-    120px 80px at 20% 25%,
-    rgba(255,255,255,.12),
-    transparent 60%
-  );
-  pointer-events:none;
-}
-
-.tile:hover{
-  transform: scale(1.03);
-  box-shadow: 0 10px 25px rgba(0,0,0,.28);
-  filter: brightness(1.04);
-}
-
-.tile:active{ transform: scale(1.01); }
-
-.tile.selected{
-  outline: 3px solid rgba(255,255,255,.55);
-  box-shadow:
-    0 0 0 6px rgba(255,255,255,.12),
-    0 12px 26px rgba(0,0,0,.30);
-}
-
-/* animations (KEEP) */
-.tile.crush{ animation: crush .22s ease-in forwards; }
-@keyframes crush{
-  to{ transform: scale(.12); opacity: 0; }
-}
-
-.tile.shake{ animation: shake .22s ease-in-out; }
-@keyframes shake{
-  0%,100%{ transform: translateX(0); }
-  20%{ transform: translateX(-6px); }
-  40%{ transform: translateX(6px); }
-  60%{ transform: translateX(-4px); }
-  80%{ transform: translateX(4px); }
-}
-.tile img{
-  width: 78%;
-  height: 78%;
-  object-fit: contain;
-  pointer-events: none;
-  filter: drop-shadow(0 10px 18px rgba(0,0,0,.35));
-}
-
-/* ===== Level Modal ===== */
-.modalOverlay{
-  position:fixed; inset:0;
-  display:none; align-items:center; justify-content:center;
-  background:rgba(0,0,0,.55);
-  z-index:9999;
-  padding:16px;
-}
-.modalOverlay.show{ display:flex; }
-
-.modalBox{
-  width:min(420px, 92vw);
-  background:rgba(18, 24, 48, .95);
-  border:1px solid rgba(255,255,255,.14);
-  border-radius:18px;
-  padding:18px;
-  box-shadow: 0 20px 60px rgba(0,0,0,.55);
-}
-
-.modalTitle{
-  font-weight:800;
-  font-size:20px;
-  margin-bottom:12px;
-}
-
-.starsRow{
-  display:flex;
-  gap:6px;
-  font-size:22px;
-  margin:6px 0 12px;
-}
-
-.modalStats{
-  display:grid;
-  gap:6px;
-  font-size:14px;
-  opacity:.95;
-  padding:10px 0 14px;
-  border-top:1px solid rgba(255,255,255,.10);
-  border-bottom:1px solid rgba(255,255,255,.10);
-  margin-bottom:12px;
-}
-
-.modalBtns{
-  display:flex;
   gap:10px;
-  justify-content:flex-end;
+  padding:12px;
+  background: rgba(255,255,255,.06);
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,.10);
 }
-/* ===== Safari Stay – Hotel Add-on UI (paste at bottom) ===== */
-.wrap{ max-width:1100px; margin:18px auto; padding:0 14px; }
-.grid2{ display:grid; grid-template-columns: 1fr 1fr; gap:14px; }
-@media (max-width:900px){ .grid2{ grid-template-columns:1fr; } }
 
-.cardTitle{ font-weight:700; margin-bottom:10px; }
-.queueList{ display:flex; flex-direction:column; gap:10px; }
-
-.queueItem{
-  text-align:left;
-  border:1px solid rgba(255,255,255,.12);
-  background: rgba(255,255,255,.04);
-  color: inherit;
+/* 🔑 TILE: IMAGE ONLY (NO BACKGROUND IMAGE) */
+.tile{
+  aspect-ratio:1/1;
   border-radius:14px;
-  padding:12px;
-  cursor:pointer;
-}
-.queueItem.selected{
-  border-color: rgba(255,255,255,.28);
-  background: rgba(255,255,255,.07);
-  transform: translateY(-1px);
-}
-.rowBetween{ display:flex; justify-content:space-between; gap:10px; align-items:center; }
-.row{ display:flex; align-items:center; }
-.qName{ font-weight:700; }
-.qTime{ opacity:.85; font-weight:700; }
-
-.bar{ height:8px; border-radius:999px; background: rgba(255,255,255,.10); margin:8px 0; overflow:hidden; }
-.barFill{ height:100%; background: rgba(255,255,255,.35); }
-
-.roomsGrid{ display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
-@media (max-width:520px){ .roomsGrid{ grid-template-columns:1fr; } }
-
-.roomCard{
   border:1px solid rgba(255,255,255,.12);
-  background: rgba(255,255,255,.03);
-  border-radius:16px;
-  padding:12px;
-  min-height:120px;
-}
-.roomCard.clickable{ cursor:pointer; }
-.roomCard.clickable:hover{ background: rgba(255,255,255,.06); }
-
-.roomTitle{ font-weight:800; }
-.roomState{ font-weight:800; opacity:.85; }
-.roomBody{ margin-top:10px; }
-.guestLine{ font-weight:700; margin-bottom:6px; }
-.snackLine{ margin-top:8px; font-weight:700; }
-
-.roomActions{ margin-top:10px; display:flex; gap:10px; }
-
-.btn.mini{ padding:8px 10px; border-radius:12px; }
-.btn.mini.ghost{ opacity:.5; cursor:not-allowed; }
-
-.roomCard.dirty{ background: rgba(255,110,110,.06); }
-.roomCard.cleaning{ background: rgba(110,255,190,.06); }
-.stationsRow{ display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
-.stationBtn{
-  border:1px solid rgba(255,255,255,.14);
-  background: rgba(255,255,255,.05);
-  color: inherit;
-  border-radius: 14px;
-  padding: 10px 12px;
+  background: rgba(0,0,0,.18);
+  display:grid;
+  place-items:center;
   cursor:pointer;
-  font-weight:800;
-}
-.stationBtn.active{
-  background: rgba(255,255,255,.10);
-  border-color: rgba(255,255,255,.28);
-  transform: translateY(-1px);
-}
-.tiny{ font-size:12px; opacity:.8; margin-left:8px; font-weight:700; }
-.carryHud{ display:flex; align-items:center; gap:12px; }
-.bellboy{ font-size:22px; }
-.hands{ display:flex; flex-direction:column; gap:4px; }
-.hand{ font-weight:800; font-size:13px; opacity:.95; }
-.dropRow{ display:flex; gap:8px; }
-/* ===== Add these at the BOTTOM of style.css ===== */
-
-.stationsRow{ display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
-
-.stationBtn{
-  border:1px solid rgba(255,255,255,.14);
-  background: rgba(255,255,255,.05);
-  color: inherit;
-  border-radius: 14px;
-  padding: 10px 12px;
-  cursor:pointer;
-  font-weight:800;
   position:relative;
-  z-index:5;
-  pointer-events:auto;
-}
-.stationBtn.active{
-  background: rgba(255,255,255,.10);
-  border-color: rgba(255,255,255,.28);
-  transform: translateY(-1px);
-}
-.tiny{ font-size:12px; opacity:.8; margin-left:8px; font-weight:700; }
-
-.carryHud{ display:flex; align-items:center; gap:12px; }
-.bellboy{ font-size:22px; }
-.hands{ display:flex; flex-direction:column; gap:4px; }
-.hand{ font-weight:800; font-size:13px; opacity:.95; }
-.dropRow{ display:flex; gap:8px; }
-
-/* pending delivery glow */
-.roomCard.pending{
-  outline: 2px solid rgba(255,255,255,.28);
-  box-shadow: 0 0 0 4px rgba(255,255,255,.06);
-}
-#stationsRow{ position:relative; z-index:9999; pointer-events:auto; }
-#snackStation{ position:relative; z-index:10000; pointer-events:auto; }
-#cleanTool{ position:relative; z-index:10000; pointer-events:auto; }
-.snackBarGroup{
-  display:flex;
-  gap:8px;
-  align-items:center;
-}
-/* ===== Safari Stay – Visual Feedback (Step 1) ===== */
-
-/* Room has an order: glow + pulse */
-.roomCard.hasOrder{
-  outline: 2px solid rgba(255,255,255,.28);
-  box-shadow: 0 0 0 4px rgba(255,255,255,.06), 0 10px 30px rgba(0,0,0,.25);
-  animation: orderPulse 1.1s ease-in-out infinite;
-}
-
-@keyframes orderPulse{
-  0%,100%{ transform: translateY(0); }
-  50%{ transform: translateY(-2px); }
-}
-
-/* If order is close to angry: stronger shake */
-.roomCard.orderUrgent{
-  animation: urgentShake .25s ease-in-out infinite;
-}
-
-@keyframes urgentShake{
-  0%,100%{ transform: translateX(0); }
-  25%{ transform: translateX(-2px); }
-  75%{ transform: translateX(2px); }
-}
-.roomCard.hasOrder{
-  outline: 2px solid rgba(255,255,255,.28);
-  box-shadow: 0 0 0 4px rgba(255,255,255,.06), 0 10px 30px rgba(0,0,0,.25);
-  animation: orderPulse 1.1s ease-in-out infinite;
-}
-
-@keyframes orderPulse{
-  0%,100%{ transform: translateY(0); }
-  50%{ transform: translateY(-2px); }
-}
-
-.roomCard.orderUrgent{
-  animation: urgentShake .25s ease-in-out infinite;
-}
-
-@keyframes urgentShake{
-  0%,100%{ transform: translateX(0); }
-  25%{ transform: translateX(-2px); }
-  75%{ transform: translateX(2px); }
-}
-/* =========================
-PUZZLE BOARD (puzzle.html)
-========================= */
-.board{
-  display:grid;
-  grid-template-columns: repeat(5, 64px);
-  gap:10px;
-  justify-content:center;
-  padding: 18px 0;
-}
-.tile{
-  width:64px;
-  height:64px;
-  border-radius:16px;
-  background: rgba(255,255,255,.06);
-  border: 1px solid rgba(255,255,255,.10);
-  box-shadow: 0 12px 26px rgba(0,0,0,.22);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  cursor:pointer;
-  transition: transform .12s ease, box-shadow .12s ease;
   overflow:hidden;
+  transition: transform .15s ease, box-shadow .15s ease;
 }
-.tile:hover{ transform: translateY(-2px); }
+.tile:hover{ transform: scale(1.04); }
 .tile.selected{
-  outline:2px solid rgba(99,102,241,.75);
-  box-shadow: 0 0 0 6px rgba(99,102,241,.12);
-}
-.tile img{
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-/* feedback */
-.tile.shake{ animation: shake .28s ease-in-out; }
-@keyframes shake{
-  0%,100%{ transform: translateX(0); }
-  25%{ transform: translateX(-6px); }
-  50%{ transform: translateX(6px); }
-  75%{ transform: translateX(-4px); }
-}
-/* ===== PUZZLE BOARD (REQUIRED) ===== */
-.board{
-  display:grid;
-  grid-template-columns: repeat(5, 64px);
-  gap:10px;
-  justify-content:center;
-  padding: 16px 0;
-}
-
-.tile{
-  width:64px;
-  height:64px;
-  border-radius:16px;
-  border:2px solid rgba(255,255,255,.12);
-  background: rgba(255,255,255,.06);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  cursor:pointer;
-  overflow:hidden;
-}
-
-.tile.selected{
-  outline:2px solid rgba(255,211,110,.95);
+  outline:3px solid rgba(255,255,255,.55);
   outline-offset:2px;
 }
 
+/* ONLY image inside tile */
 .tile img{
-  width:90%;
-  height:90%;
+  width:78%;
+  height:78%;
   object-fit:contain;
   pointer-events:none;
+  filter: drop-shadow(0 10px 18px rgba(0,0,0,.35));
 }
 
-/* animations */
-.tile.shake{ animation: shake .28s ease-in-out; }
+/* effects */
+.tile.crush{ animation: crush .22s ease-in forwards; }
+@keyframes crush{ to{ transform: scale(.12); opacity:0; } }
+
+.tile.shake{ animation: shake .22s ease-in-out; }
 @keyframes shake{
   0%,100%{ transform: translateX(0); }
   25%{ transform: translateX(-6px); }
   50%{ transform: translateX(6px); }
   75%{ transform: translateX(-4px); }
-}
-
-.winOverlay{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.65);
-  display:grid;
-  place-items:center;
-  z-index:999;
-}
-.winCard{
-  background:#0b1220;
-  padding:24px;
-  border-radius:18px;
-  text-align:center;
-  box-shadow:0 30px 80px rgba(0,0,0,.6);
-}
-/* =========================
-PUZZLE UI (board + tiles)
-========================= */
-.board{
-  display:grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap:10px;
-}
-
-.tile{
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,.12);
-  background-color: rgba(0,0,0,.18);
-  cursor: pointer;
-  position: relative;
-  overflow:hidden;
-  transform: translateZ(0);
-  transition: transform .15s ease, filter .15s ease, box-shadow .15s ease, border-color .2s ease, opacity .2s ease;
-}
-.tile::after{
-  content:"";
-  position:absolute;
-  inset:0;
-  background: radial-gradient(120px 80px at 20% 25%, rgba(255,255,255,.12), transparent 60%);
-  pointer-events:none;
-}
-.tile:hover{
-  transform: scale(1.03);
-  box-shadow: 0 10px 25px rgba(0,0,0,.28);
-  filter: brightness(1.04);
-}
-.tile:active{ transform: scale(1.01); }
-.tile.selected{
-  outline: 3px solid rgba(255,255,255,.55);
-  box-shadow: 0 0 0 6px rgba(255,255,255,.12), 0 12px 26px rgba(0,0,0,.30);
-}
-
-.tile img{
-  width: 78%;
-  height: 78%;
-  object-fit: contain;
-  pointer-events:none;
-  filter: drop-shadow(0 10px 18px rgba(0,0,0,.35));
-}
-
-/* fallback emoji (hidden by default) */
-.tile .emojiFallback{ display:none; }
-
-.tile.crush{ animation: crush .22s ease-in forwards; }
-@keyframes crush{ to{ transform: scale(.12); opacity: 0; } }
-
-.tile.shake{ animation: shake .22s ease-in-out; }
-@keyframes shake{
-  0%,100%{ transform: translateX(0); }
-  20%{ transform: translateX(-6px); }
-  40%{ transform: translateX(6px); }
-  60%{ transform: translateX(-4px); }
-  80%{ transform: translateX(4px); }
 }
 
 /* win overlay */
@@ -776,32 +206,6 @@ PUZZLE UI (board + tiles)
   padding:24px;
   border-radius:18px;
   text-align:center;
-  box-shadow:0 30px 80px rgba(0,0,0,.6);
 }
-.winTitle{ font-size:20px; font-weight:900; margin-bottom:8px; }
-.winText{ opacity:.9; margin-bottom:12px; }
 
-/* hotel room grid helper (if you don’t already have it) */
-.roomsGrid{
-  display:grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap:12px;
-}
-.room{
-  background: rgba(255,255,255,.04);
-  border: 1px solid rgba(255,255,255,.10);
-  border-radius: 16px;
-  padding: 12px;
-  box-shadow: 0 12px 30px rgba(0,0,0,.25);
-}
-.roomTop{ display:flex; justify-content:space-between; align-items:center; }
-.roomEmoji{ font-size: 44px; text-align:center; padding: 10px 0; }
-.roomInfo{ display:flex; gap:8px; flex-wrap:wrap; }
-.roomButtons{ margin-top:10px; display:flex; gap:10px; }
-.smallBtn{ padding:8px 10px; border-radius:12px; border:0; cursor:pointer; }
-.smallBtn.clean{ background: rgba(255,255,255,.10); color:#eaf1ff; }
-.smallBtn:disabled{ opacity:.45; cursor:not-allowed; }
-.tag{ padding:4px 8px; border-radius:999px; background: rgba(255,255,255,.08); font-size:12px; }
-.tag.warn{ background: rgba(245,158,11,.18); }
-.tag.danger{ background: rgba(239,68,68,.18); }
 
