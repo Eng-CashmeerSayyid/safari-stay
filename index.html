@@ -1,7 +1,3 @@
-<!-- =========================
-File: index.html
-Safari Stay – Landing Page
-========================= -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -10,8 +6,8 @@ Safari Stay – Landing Page
   <title>Safari Stay</title>
   <link rel="stylesheet" href="style.css" />
 </head>
-<body class="landing">
 
+<body class="landing">
   <header class="topbar">
     <div class="brand">
       <div class="logo">🏝️</div>
@@ -34,12 +30,14 @@ Safari Stay – Landing Page
       </p>
 
       <div class="grid2">
-        <a class="btn primary" href="mombasa.html">▶️ Play Mombasa</a>
+        <a class="btn primary" href="mombasa.html">▶️ Play Hotel</a>
+        <a class="btn" href="puzzle.html">🧩 Play Puzzle</a>
         <button class="btn" id="resetAll">♻️ Reset Game</button>
       </div>
 
       <div class="tip">
-        <strong>Tip:</strong> Put your 6 puzzle images in <code>assets/puzzle/</code> with names:
+        <strong>Tip:</strong> Put your 6 puzzle images in either:
+        <code>assets/puzzle/</code> OR <code>images/tiles/</code> with names:
         <code>palm.png</code>, <code>shell.png</code>, <code>fish.png</code>, <code>coconut.png</code>, <code>wave.png</code>, <code>sun.png</code>
       </div>
     </section>
@@ -52,8 +50,8 @@ Safari Stay – Landing Page
           <div class="statValue" id="served">0</div>
         </div>
         <div class="stat">
-          <div class="statLabel">Upgrades</div>
-          <div class="statValue" id="upgrades">0</div>
+          <div class="statLabel">Boosts unlocked</div>
+          <div class="statValue" id="boosts">0</div>
         </div>
       </div>
     </section>
@@ -64,38 +62,22 @@ Safari Stay – Landing Page
       const v = Number(localStorage.getItem(k));
       return Number.isFinite(v) ? v : f;
     };
-    const getBool = (k) => localStorage.getItem(k) === "true";
-    const setNum = (k, v) => localStorage.setItem(k, String(v));
-    const setBool = (k, v) => localStorage.setItem(k, v ? "true" : "false");
 
-    // shared coins key (same as Mombasa.js)
-    const coins = getNum("coins", 0);
-    document.getElementById("coins").textContent = coins;
+    document.getElementById("coins").textContent = getNum("coins", 0);
+    document.getElementById("served").textContent = getNum("mombasaGuestsServed", 0);
 
-   document.getElementById("served").textContent = getNum("mombasaServed", 0);
-
-let upgradeCount = 0;
-try{
-  const up = JSON.parse(localStorage.getItem("mombasaUpgrades_full_v1") || "{}");
-  upgradeCount = (up.cleaner ? 1 : 0) + (up.bellboy ? 1 : 0);
-}catch{
-  upgradeCount = 0;
-}
-document.getElementById("upgrades").textContent = upgradeCount;
-
+    let boostCount = 0;
+    try{
+      const b = JSON.parse(localStorage.getItem("hotelBoosts") || "{}");
+      boostCount = (b.snackBoost?1:0) + (b.cleanerBoost?1:0) + (b.patienceBoost?1:0);
+    }catch{ boostCount = 0; }
+    document.getElementById("boosts").textContent = boostCount;
 
     document.getElementById("resetAll").addEventListener("click", () => {
       if (!confirm("Reset Safari Stay progress?")) return;
-      // wipe only our keys (safe-ish)
-      const keys = Object.keys(localStorage);
-      keys.forEach(k => {
-        if (k.startsWith("mombasa") || k === "coins") localStorage.removeItem(k);
-      });
-      // default starter coins
-      setNum("coins", 0);
+      localStorage.clear();
       location.reload();
     });
   </script>
 </body>
 </html>
-
