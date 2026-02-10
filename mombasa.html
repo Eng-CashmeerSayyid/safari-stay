@@ -30,33 +30,56 @@
 
 <main class="wrap">
   <section class="card">
-    <div class="rowBetween" style="gap:12px;flex-wrap:wrap;">
-      <div class="muted" id="deliveryHint">Pick a snack then tap a room that ordered.</div>
+    <div class="rowBetween">
+      <div class="muted" id="hint">Tap SPAWN. Then select a guest and click an EMPTY room.</div>
       <div style="display:flex; gap:10px; flex-wrap:wrap;">
         <button class="btn" id="btnSpawnGuest">➕ Spawn Guest</button>
-        <a class="btn" href="puzzle.html">🧩 Go Puzzle</a>
-        <button class="btn" id="btnResetHotel">♻️ Reset HOTEL</button>
+        <a class="btn" href="puzzle.html">🧩 Play Puzzle</a>
+        <button class="btn danger" id="btnResetHotel">♻️ Reset HOTEL</button>
+      </div>
+    </div>
+
+    <div style="height:12px"></div>
+
+    <!-- Stations + Hands -->
+    <div class="stationsBar" id="stationsBar">
+      <button class="stationBtn active" id="stationSnack" data-station="snack">🍔 Snack Station</button>
+      <button class="stationBtn" id="stationDetergent" data-station="detergent">🧼 Detergent Station</button>
+
+      <div class="carryHud">
+        <div class="hands">
+          <div class="hand">🖐️ Food hand: <span id="handFood">—</span></div>
+          <div class="hand">🖐️ Tool hand: <span id="handTool">—</span></div>
+        </div>
       </div>
     </div>
 
     <div style="height:10px"></div>
-    <div class="pill">Queue Visual: <span id="spawnPeople">✨</span></div>
 
-    <div style="height:12px"></div>
-    <div class="rowBetween" style="gap:12px; flex-wrap:wrap;">
-      <div class="smallMuted">Snack Corner</div>
-      <div style="display:flex; gap:10px; flex-wrap:wrap;">
-        <button class="btn snack" data-snack="🍟">🍟</button>
-        <button class="btn snack" data-snack="🍹">🍹</button>
-        <button class="btn snack" data-snack="🍉">🍉</button>
-        <button class="btn snack" data-snack="🍔">🍔</button>
-      </div>
+    <!-- Snack choices -->
+    <div class="snackRow" id="snackRow">
+      <button class="btn snack" data-snack="🍟">🍟</button>
+      <button class="btn snack" data-snack="🍹">🍹</button>
+      <button class="btn snack" data-snack="🍉">🍉</button>
+      <button class="btn snack" data-snack="🍔">🍔</button>
+      <span class="tiny" id="snackHint">Pick a snack, then tap the room that ordered.</span>
     </div>
+
+    <div style="height:10px"></div>
+    <div class="pill">Queue Visual: <span id="spawnPeople">✨</span></div>
   </section>
 
-  <section class="card">
-    <h2 style="margin:0 0 10px 0;">Rooms</h2>
-    <div id="rooms" class="roomsGrid"></div>
+  <!-- Queue + Rooms -->
+  <section class="card gridHotel">
+    <div class="queueCol">
+      <div class="cardTitle">Queue (tap to select)</div>
+      <div id="queueList" class="queueList"></div>
+    </div>
+
+    <div class="roomsCol">
+      <div class="cardTitle">Rooms (tap an EMPTY room to check-in selected guest)</div>
+      <div id="rooms" class="roomsGrid"></div>
+    </div>
   </section>
 </main>
 </body>
