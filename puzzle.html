@@ -9,22 +9,6 @@
   <script src="puzzle.js" defer></script>
 
   <style>
-    /* keep only layout-related styles here */
-    .tabsBar{
-      display:flex; gap:10px; padding:10px 14px;
-      max-width:1100px; margin:0 auto;
-    }
-    .tabLink{
-      text-decoration:none; color:#eaf1ff;
-      background:rgba(255,255,255,.08);
-      padding:8px 12px; border-radius:999px;
-      font-weight:800;
-    }
-    .tabLink.active{
-      outline:2px solid rgba(255,211,110,.9);
-      outline-offset:2px;
-    }
-
     .pwrap{max-width:1100px;margin:0 auto;padding:14px;}
     .pcard{
       background: rgba(255,255,255,.04);
@@ -34,30 +18,11 @@
       display:grid;
       gap:12px;
     }
-
-    .prow{
-      display:flex;
-      flex-wrap:wrap;
-      gap:10px;
-      align-items:center;
-      justify-content:space-between;
-    }
-
-    .smallhint{
-      color:#9fb3d6;
-      font-size:13px;
-    }
-
-    #msg{
-      font-size:13px;
-      color:#ffd36e;
-      min-height:1.2em;
-    }
+    #msg{ font-size:13px; opacity:.92; min-height:1.2em; }
   </style>
 </head>
 
 <body>
-
 <header class="topbar">
   <div class="brand">
     <a class="logoLink" href="index.html" title="Back">
@@ -71,38 +36,23 @@
 
   <div class="hud">
     <div class="pill">🪙 Coins: <span id="coins">0</span></div>
+    <div class="pill">Target: <span id="target">300</span></div>
     <button class="btn" id="resetPuzzle">♻️ Reset</button>
+    <a class="btn" href="mombasa.html">🏨 Back Hotel</a>
   </div>
 </header>
 
-<nav class="tabsBar">
-  <a class="tabLink" href="index.html">🏨 Hotel</a>
-  <a class="tabLink active" href="puzzle.html">🧩 Puzzle</a>
-</nav>
-
 <main class="pwrap">
   <section class="pcard">
-
-    <div class="prow">
-      <div class="smallhint">
-        Match <b>3 or more</b> tiles to earn coins for your hotel.
-      </div>
-      <div class="pill">Target: <span id="target">300</span> 🪙</div>
+    <div class="muted">
+      Match <b>3+</b> tiles to earn coins. Big matches unlock boosts:
+      <b>4=Snack</b>, <b>5=Cleaner</b>, <b>6=Patience</b>.
     </div>
 
-    <!-- puzzle board (JS fills this) -->
     <div id="board" class="board"></div>
 
-    <div class="prow">
-      <div id="msg"></div>
-      <div class="smallhint">
-        Tip: Bigger cascades = more coins 💰
-      </div>
-    </div>
-
+    <div id="msg"></div>
   </section>
 </main>
-
 </body>
 </html>
-
