@@ -36,6 +36,7 @@
     localStorage.setItem("coins", String(n));
   }
 
+  // ---- boosts bridge ----
   function getBoosts(){
     try { return JSON.parse(localStorage.getItem("hotelBoosts") || "{}"); }
     catch { return {}; }
@@ -43,10 +44,19 @@
   function setBoosts(b){
     localStorage.setItem("hotelBoosts", JSON.stringify(b));
   }
-  function unlockBoost(name){
+  function unlockBoostIfNeeded(matchCount){
     const b = getBoosts();
-    b[name] = true;
-    setBoosts(b);
+    let unlocked = [];
+
+    if (matchCount >= 4 && !b.snackBoost){ b.snackBoost = true; unlocked.push("Snack Boost 🍔"); }
+    if (matchCount >= 5 && !b.cleanerBoost){ b.cleanerBoost = true; unlocked.push("Cleaner Boost 🧼"); }
+    if (matchCount >= 6 && !b.patienceBoost){ b.patienceBoost = true; unlocked.push("Patience Boost 🙂"); }
+
+    if (unlocked.length){
+      b.lastEarned = Date.now();
+      setBoosts(b);
+      setMsg("Unlocked: " + unlocked.join(" • "));
+    }
   }
 
   function addCoins(tileCount) {
@@ -54,10 +64,7 @@
     saveCoins(coins);
     if (coinsEl) coinsEl.textContent = String(coins);
 
-    // boosts per “crush step”
-    if (tileCount >= 4) { unlockBoost("snackBoost"); setMsg("🍔 Snack Boost unlocked!"); }
-    if (tileCount >= 5) { unlockBoost("cleanerBoost"); setMsg("🧼 Cleaner Boost unlocked!"); }
-    if (tileCount >= 6) { unlockBoost("patienceBoost"); setMsg("🙂 Patience Boost unlocked!"); }
+    unlockBoostIfNeeded(tileCount);
 
     if (coins >= TARGET_COINS) showWin();
   }
@@ -102,6 +109,7 @@
   }
 
   function buildBoardDOM(){
+    boardEl.style.setProperty("--size", SIZE);
     boardEl.innerHTML = "";
 
     for(let r=0;r<SIZE;r++){
@@ -112,7 +120,6 @@
         btn.dataset.r = String(r);
         btn.dataset.c = String(c);
 
-        // ✅ ONE image only (no background images)
         const img = document.createElement("img");
         img.alt = "";
         img.draggable = false;
@@ -155,7 +162,6 @@
       el.classList.toggle("selected", !!selected && selected.r===r && selected.c===c);
 
       const img = el.querySelector("img");
-
       if (t === -1){
         el.classList.add("empty");
         if (img) img.removeAttribute("src");
