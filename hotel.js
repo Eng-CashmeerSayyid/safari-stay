@@ -23,6 +23,12 @@ function getJSON(key, fallback) {
 function getCoins() { return getNum("coins", 0); }
 function setCoins(n) { setNum("coins", n); }
 
+// ================= BOOSTS FROM PUZZLE =================
+const hotelBoosts = getJSON("hotelBoosts", {});
+// snackBoost: +1 extra coin on delivery
+// cleanerBoost: cleaning time faster
+// patienceBoost: guests stay longer before checkout
+
 // ================= MOMBASA STATE =================
 let queue = getNum("mombasaQueue", 0);
 let served = getNum("mombasaGuestsServed", 0);
@@ -57,41 +63,9 @@ const spawnPeople = $("spawnPeople");
 
 const btnSpawnGuest = $("btnSpawnGuest");
 const btnClear = $("btnClear");
+const boostPill = $("boostPill");
 
 const snackButtons = Array.from(document.querySelectorAll(".snack"));
-const stageRoomSpots = Array.from(document.querySelectorAll(".roomSpot"));
-const stageStationSpots = Array.from(document.querySelectorAll(".stationSpot"));
-const stageReception = document.querySelector(".receptionSpot");
-
-// stage icons
-const spotIcons = {
-  1: $("spotI1"),
-  2: $("spotI2"),
-  3: $("spotI3"),
-  4: $("spotI4"),
-};
-
-// ================= TABS =================
-(function tabSwitcher(){
-  const tabHotel = $("tabHotel");
-  const tabPuzzle = $("tabPuzzle");
-  const viewHotel = $("viewHotel");
-  const viewPuzzle = $("viewPuzzle");
-
-  tabHotel.addEventListener("click", () => {
-    tabHotel.classList.add("active");
-    tabPuzzle.classList.remove("active");
-    viewHotel.classList.add("active");
-    viewPuzzle.classList.remove("active");
-  });
-
-  tabPuzzle.addEventListener("click", () => {
-    tabPuzzle.classList.add("active");
-    tabHotel.classList.remove("active");
-    viewPuzzle.classList.add("active");
-    viewHotel.classList.remove("active");
-  });
-})();
 
 // ================= HOTEL LOGIC =================
 const SNACKS = ["🍟","🍹","🍉","🍔"];
@@ -107,7 +81,7 @@ function saveAll() {
 }
 
 function setHint(msg) {
-  deliveryHint.textContent = msg;
+  if (deliveryHint) deliveryHint.textContent = msg;
 }
 
 function setHeldSnack(snack) {
@@ -130,7 +104,7 @@ btnSpawnGuest.addEventListener("click", () => {
 });
 
 btnClear.addEventListener("click", () => {
-  if (!confirm("Reset save? This clears coins + hotel + puzzle stats.")) return;
+  if (!confirm("Reset save? This clears coins + hotel + puzzle rewards.")) return;
   localStorage.clear();
   location.reload();
 });
@@ -162,7 +136,10 @@ function checkInLoop() {
     queue -= 1;
     room.status = "occupied";
     room.guestId = "G" + Math.floor(Math.random() * 9000 + 1000);
-    room.checkoutAt = now() + 10000; // 10s stay
+
+    // PATIENCE BOOST: guests stay longer before checkout
+    const stayMs = hotelBoosts.patienceBoost ? 15000 : 10000;
+    room.checkoutAt = now() + stayMs;
 
     room.orderSnack = null;
     room.needsDelivery = false;
@@ -244,10 +221,14 @@ function deliverToRoom(roomId) {
   room.willOrder = false;
 
   served += 1;
-  setCoins(getCoins() + 2);
+
+  // SNACK BOOST: extra coin when delivering correctly
+  const reward = hotelBoosts.snackBoost ? 3 : 2;
+  setCoins(getCoins() + reward);
+
   setRoomMood(room, "😍", 1200);
 
-  setHint(`Delivered! +2 coins ✅`);
+  setHint(`Delivered! +${reward} coins ✅`);
   setHeldSnack(null);
 
   saveAll();
@@ -260,7 +241,11 @@ function startCleaning(roomId) {
   if (room.status !== "dirty") return;
 
   room.status = "cleaning";
-  room.cleaningUntil = now() + 3000; // 3 sec
+
+  // CLEANER BOOST: faster cleaning
+  const cleanMs = hotelBoosts.cleanerBoost ? 1500 : 3000;
+  room.cleaningUntil = now() + cleanMs;
+
   setRoomMood(room, "🧼", 900);
 
   saveAll();
@@ -268,12 +253,16 @@ function startCleaning(roomId) {
 }
 
 function renderHUD() {
-  hudCoins.textContent = String(getCoins());
-  hudQueue.textContent = String(queue);
-  hudServed.textContent = String(served);
+  if (hudCoins) hudCoins.textContent = String(getCoins());
+  if (hudQueue) hudQueue.textContent = String(queue);
+  if (hudServed) hudServed.textContent = String(served);
 
   const heads = Math.max(1, Math.min(queue, 7));
-  spawnPeople.textContent = queue === 0 ? "✨" : "👤".repeat(heads);
+  if (spawnPeople) spawnPeople.textContent = queue === 0 ? "✨" : "👤".repeat(heads);
+
+  const hasBoost =
+    !!hotelBoosts.snackBoost || !!hotelBoosts.cleanerBoost || !!hotelBoosts.patienceBoost;
+  if (boostPill) boostPill.style.display = hasBoost ? "inline-flex" : "none";
 }
 
 function roomStatusTag(room) {
@@ -288,6 +277,7 @@ function roomStatusTag(room) {
 }
 
 function renderRoomsList() {
+  if (!roomsEl) return;
   roomsEl.innerHTML = "";
 
   rooms.forEach(room => {
@@ -304,7 +294,7 @@ function renderRoomsList() {
 
     const cleanBtn =
       room.status === "dirty"
-        ? `<button class="smallBtn clean" data-clean="${room.id}">🧼 Clean (3s)</button>`
+        ? `<button class="smallBtn clean" data-clean="${room.id}">🧼 Clean</button>`
         : `<button class="smallBtn clean" disabled>🧼 Clean</button>`;
 
     el.innerHTML = `
@@ -317,7 +307,7 @@ function renderRoomsList() {
 
       <div class="roomInfo">
         ${extra}
-        ${room.status === "occupied" ? `<span class="tag">Stay: 10s</span>` : ""}
+        ${room.status === "occupied" ? `<span class="tag">Stay</span>` : ""}
       </div>
 
       <div class="roomButtons">
@@ -342,42 +332,9 @@ function renderRoomsList() {
   });
 }
 
-function renderStageIcons() {
-  rooms.forEach(room => {
-    const iconEl = spotIcons[room.id];
-    if (!iconEl) return;
-
-    let icon = "";
-    if (room.status === "empty") icon = "";
-    if (room.status === "occupied") icon = room.needsDelivery ? (room.orderSnack || "🛎️") : "🙂";
-    if (room.status === "dirty") icon = "🧺";
-    if (room.status === "cleaning") icon = "🧼";
-    iconEl.textContent = icon;
-  });
-}
-
-stageRoomSpots.forEach(btn => {
-  btn.addEventListener("click", () => deliverToRoom(Number(btn.dataset.room)));
-});
-
-stageStationSpots.forEach(btn => {
-  btn.addEventListener("click", () => {
-    const st = btn.dataset.station;
-    if (st === "snack") setHint("Pick a snack from the Snack Corner, then tap the room that ordered.");
-    if (st === "cleaning") setHint("To clean: tap a DIRTY room, then press CLEAN in the room card.");
-  });
-});
-
-if (stageReception) {
-  stageReception.addEventListener("click", () => {
-    setHint("Reception: Guests spawn in queue. Rooms auto check-in when free.");
-  });
-}
-
 function renderAll() {
   renderHUD();
   renderRoomsList();
-  renderStageIcons();
 }
 
 // loop
@@ -390,194 +347,3 @@ setInterval(() => {
 
 renderAll();
 
-// ===================== PUZZLE (MATCH-3) =====================
-const boardEl = $("board");
-const pMovesEl = $("pMoves");
-const pMatchesEl = $("pMatches");
-const btnShuffle = $("btnShuffle");
-const btnNewPuzzle = $("btnNewPuzzle");
-
-const SIZE = 6;
-const TYPES = [
-  { emoji: "🌴", cls: "t-palm" },
-  { emoji: "🐚", cls: "t-shell" },
-  { emoji: "🐠", cls: "t-fish" },
-  { emoji: "🥥", cls: "t-coconut" },
-  { emoji: "🌊", cls: "t-wave" },
-  { emoji: "☀️", cls: "t-sun" },
-];
-
-let grid = [];
-let selected = null;
-let pMoves = getNum("pMoves", 0);
-let pMatches = getNum("pMatches", 0);
-
-function savePuzzle(){
-  setNum("pMoves", pMoves);
-  setNum("pMatches", pMatches);
-}
-
-function randType(){ return Math.floor(Math.random() * TYPES.length); }
-
-function makeGrid(){
-  grid = Array.from({length: SIZE}, () => Array.from({length: SIZE}, randType));
-  for (let r=0;r<SIZE;r++){
-    for (let c=0;c<SIZE;c++){
-      while (createsMatchAt(r,c)) grid[r][c] = randType();
-    }
-  }
-}
-
-function createsMatchAt(r,c){
-  const t = grid[r][c];
-  if (c>=2 && grid[r][c-1]===t && grid[r][c-2]===t) return true;
-  if (r>=2 && grid[r-1][c]===t && grid[r-2][c]===t) return true;
-  return false;
-}
-
-function renderBoard(){
-  boardEl.innerHTML = "";
-  for (let r=0;r<SIZE;r++){
-    for (let c=0;c<SIZE;c++){
-      const tIndex = grid[r][c];
-      const t = TYPES[tIndex];
-      const tile = document.createElement("button");
-      tile.className = `tile ${t.cls}`;
-      tile.type = "button";
-      tile.textContent = t.emoji;
-      tile.addEventListener("click", () => onTileClick(r,c));
-      boardEl.appendChild(tile);
-    }
-  }
-  pMovesEl.textContent = String(pMoves);
-  pMatchesEl.textContent = String(pMatches);
-}
-
-function onTileClick(r,c){
-  if (!selected){
-    selected = {r,c};
-    // highlight via re-render quick add
-    const idx = r*SIZE + c;
-    boardEl.children[idx].classList.add("selected");
-    return;
-  }
-
-  const prev = selected;
-  selected = null;
-  Array.from(boardEl.children).forEach(x => x.classList.remove("selected"));
-
-  const dr = Math.abs(prev.r - r);
-  const dc = Math.abs(prev.c - c);
-  if (dr + dc !== 1) return;
-
-  swap(prev.r, prev.c, r, c);
-  const matches = findAllMatches();
-  if (matches.length === 0){
-    swap(prev.r, prev.c, r, c);
-    return;
-  }
-
-  pMoves += 1;
-  setCoins(getCoins() + 1);
-  resolveMatches(matches);
-
-  savePuzzle();
-  saveAll();
-  renderHUD();
-  renderBoard();
-}
-
-function swap(r1,c1,r2,c2){
-  const tmp = grid[r1][c1];
-  grid[r1][c1] = grid[r2][c2];
-  grid[r2][c2] = tmp;
-}
-
-function findAllMatches(){
-  const matches = [];
-
-  for (let r=0;r<SIZE;r++){
-    let runStart = 0;
-    for (let c=1;c<=SIZE;c++){
-      const same = c<SIZE && grid[r][c] === grid[r][c-1];
-      if (!same){
-        const runLen = c - runStart;
-        if (runLen >= 3){
-          for (let k=runStart;k<c;k++) matches.push([r,k]);
-        }
-        runStart = c;
-      }
-    }
-  }
-
-  for (let c=0;c<SIZE;c++){
-    let runStart = 0;
-    for (let r=1;r<=SIZE;r++){
-      const same = r<SIZE && grid[r][c] === grid[r-1][c];
-      if (!same){
-        const runLen = r - runStart;
-        if (runLen >= 3){
-          for (let k=runStart;k<r;k++) matches.push([k,c]);
-        }
-        runStart = r;
-      }
-    }
-  }
-
-  const seen = new Set();
-  const out = [];
-  for (const [rr,cc] of matches){
-    const k = rr + "-" + cc;
-    if (!seen.has(k)){ seen.add(k); out.push([rr,cc]); }
-  }
-  return out;
-}
-
-function resolveMatches(initial){
-  let matches = initial;
-  while (matches.length){
-    pMatches += matches.length;
-    matches.forEach(([r,c]) => grid[r][c] = null);
-    dropDown();
-    fillBlanks();
-    matches = findAllMatches();
-  }
-}
-
-function dropDown(){
-  for (let c=0;c<SIZE;c++){
-    let write = SIZE-1;
-    for (let r=SIZE-1;r>=0;r--){
-      if (grid[r][c] !== null){
-        grid[write][c] = grid[r][c];
-        if (write !== r) grid[r][c] = null;
-        write--;
-      }
-    }
-    for (;write>=0;write--) grid[write][c] = null;
-  }
-}
-
-function fillBlanks(){
-  for (let r=0;r<SIZE;r++){
-    for (let c=0;c<SIZE;c++){
-      if (grid[r][c] === null) grid[r][c] = randType();
-    }
-  }
-}
-
-btnShuffle.addEventListener("click", () => {
-  makeGrid();
-  renderBoard();
-});
-
-btnNewPuzzle.addEventListener("click", () => {
-  pMoves = 0; pMatches = 0;
-  savePuzzle();
-  makeGrid();
-  renderBoard();
-});
-
-makeGrid();
-renderBoard();
-renderHUD();
