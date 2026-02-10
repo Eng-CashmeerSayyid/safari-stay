@@ -8,8 +8,7 @@
   const CASCADE_DELAY = 80;
 
   const NAMES = ["palm","shell","fish","coconut","wave","sun"];
-  const TILE_EMOJI = ["🌴","🐚","🐟","🥥","🌊","☀️"];
-  const BASE_PATHS = ["assets/puzzle", "images/tiles"]; // supports both
+  const BASE_PATHS = ["assets/puzzle", "images/tiles"];
 
   const boardEl  = document.getElementById("board");
   const coinsEl  = document.getElementById("coins");
@@ -24,6 +23,10 @@
   let selected = null;
   let locked = false;
   let coins = 0;
+
+  const sleep = (ms) => new Promise(res => setTimeout(res, ms));
+  function setMsg(t){ if (msgEl) msgEl.textContent = t || ""; }
+  function vibrate(ms=50){ if (navigator.vibrate) navigator.vibrate(ms); }
 
   function loadCoins() {
     const v = Number(localStorage.getItem("coins") || "0");
@@ -46,20 +49,15 @@
     setBoosts(b);
   }
 
-  const sleep = (ms) => new Promise(res => setTimeout(res, ms));
-
-  function setMsg(t){ if (msgEl) msgEl.textContent = t || ""; }
-  function vibrate(ms=50){ if (navigator.vibrate) navigator.vibrate(ms); }
-
   function addCoins(tileCount) {
     coins += tileCount * COINS_PER_TILE;
     saveCoins(coins);
     if (coinsEl) coinsEl.textContent = String(coins);
 
-    // BOOSTS: 4/5/6+ match clear in a crush step
-    if (tileCount >= 4) { unlockBoost("snackBoost"); setMsg("🍔 Snack Boost unlocked! (Hotel deliveries pay more)"); }
-    if (tileCount >= 5) { unlockBoost("cleanerBoost"); setMsg("🧼 Cleaner Boost unlocked! (Faster cleaning in hotel)"); }
-    if (tileCount >= 6) { unlockBoost("patienceBoost"); setMsg("🙂 Patience Boost unlocked! (Guests stay longer)"); }
+    // boosts per “crush step”
+    if (tileCount >= 4) { unlockBoost("snackBoost"); setMsg("🍔 Snack Boost unlocked!"); }
+    if (tileCount >= 5) { unlockBoost("cleanerBoost"); setMsg("🧼 Cleaner Boost unlocked!"); }
+    if (tileCount >= 6) { unlockBoost("patienceBoost"); setMsg("🙂 Patience Boost unlocked!"); }
 
     if (coins >= TARGET_COINS) showWin();
   }
@@ -104,7 +102,6 @@
   }
 
   function buildBoardDOM(){
-    boardEl.style.setProperty("--size", SIZE);
     boardEl.innerHTML = "";
 
     for(let r=0;r<SIZE;r++){
@@ -115,14 +112,11 @@
         btn.dataset.r = String(r);
         btn.dataset.c = String(c);
 
+        // ✅ ONE image only (no background images)
         const img = document.createElement("img");
         img.alt = "";
         img.draggable = false;
         btn.appendChild(img);
-
-        const span = document.createElement("span");
-        span.className = "emojiFallback";
-        btn.appendChild(span);
 
         boardEl.appendChild(btn);
       }
@@ -140,10 +134,10 @@
     function tryNext(){
       if (baseTry >= BASE_PATHS.length){
         imgEl.removeAttribute("src");
-        imgEl.style.display = "none";
+        imgEl.style.opacity = "0.35";
         return;
       }
-      imgEl.style.display = "";
+      imgEl.style.opacity = "1";
       imgEl.src = buildSrc(name, baseTry);
       baseTry++;
     }
@@ -161,18 +155,15 @@
       el.classList.toggle("selected", !!selected && selected.r===r && selected.c===c);
 
       const img = el.querySelector("img");
-      const span = el.querySelector(".emojiFallback");
 
       if (t === -1){
         el.classList.add("empty");
-        if (img){ img.removeAttribute("src"); img.style.display="none"; }
-        if (span) span.textContent = "";
+        if (img) img.removeAttribute("src");
         return;
       }
 
       el.classList.remove("empty");
       const name = NAMES[t];
-      if (span) span.textContent = TILE_EMOJI[t];
       if (img){
         img.alt = name;
         setImgWithFallback(img, name);
