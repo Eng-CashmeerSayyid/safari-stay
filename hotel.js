@@ -23,29 +23,32 @@ function getJSON(key, fallback) {
 function getCoins() { return getNum("coins", 0); }
 function setCoins(n) { setNum("coins", n); }
 
-// ================= BOOSTS FROM PUZZLE =================
-const hotelBoosts = getJSON("hotelBoosts", {});
-// snackBoost: +1 extra coin on delivery
-// cleanerBoost: cleaning time faster
-// patienceBoost: guests stay longer before checkout
+// ================= BOOSTS (from Puzzle) =================
+function getBoosts() {
+  return getJSON("hotelBoosts", {});
+}
+function hasAnyBoost(b) {
+  return !!(b.snackBoost || b.cleanerBoost || b.patienceBoost);
+}
 
-// ================= MOMBASA STATE =================
+// ================= MOMBASA STATE (keep your existing keys!) =================
 let queue = getNum("mombasaQueue", 0);
 let served = getNum("mombasaGuestsServed", 0);
 
 // 4 fixed rooms
-// status: "empty" | "occupied" | "dirty" | "cleaning"
 let rooms = getJSON("mombasaRoomsV2", null);
 if (!rooms || !Array.isArray(rooms) || rooms.length !== 4) {
   rooms = Array.from({ length: 4 }, (_, i) => ({
     id: i + 1,
-    status: "empty",
+    status: "empty", // empty | occupied | dirty | cleaning
     guestId: null,
     checkoutAt: 0,
+
     willOrder: false,
     orderSnack: null,
     orderAt: 0,
     needsDelivery: false,
+
     mood: "🏨",
     moodUntil: 0,
     cleaningUntil: 0
@@ -54,16 +57,18 @@ if (!rooms || !Array.isArray(rooms) || rooms.length !== 4) {
 
 // ================= UI HELPERS =================
 const $ = (id) => document.getElementById(id);
+
 const hudCoins = $("coins");
 const hudQueue = $("queue");
 const hudServed = $("served");
+const boostPill = $("boostPill");
+
 const roomsEl = $("rooms");
 const deliveryHint = $("deliveryHint");
 const spawnPeople = $("spawnPeople");
 
 const btnSpawnGuest = $("btnSpawnGuest");
-const btnClear = $("btnClear");
-const boostPill = $("boostPill");
+const btnResetHotel = $("btnResetHotel");
 
 const snackButtons = Array.from(document.querySelectorAll(".snack"));
 
@@ -77,7 +82,7 @@ function saveAll() {
   setNum("mombasaQueue", queue);
   setNum("mombasaGuestsServed", served);
   setJSON("mombasaRoomsV2", rooms);
-  setCoins(getCoins());
+  // coins saved via setCoins already
 }
 
 function setHint(msg) {
@@ -103,9 +108,14 @@ btnSpawnGuest.addEventListener("click", () => {
   renderAll();
 });
 
-btnClear.addEventListener("click", () => {
-  if (!confirm("Reset save? This clears coins + hotel + puzzle rewards.")) return;
-  localStorage.clear();
+// ✅ Hotel-only reset (does NOT clear coins, boosts, puzzle)
+btnResetHotel.addEventListener("click", () => {
+  if (!confirm("Reset HOTEL only? (Keeps coins + boosts + puzzle)")) return;
+
+  localStorage.removeItem("mombasaQueue");
+  localStorage.removeItem("mombasaGuestsServed");
+  localStorage.removeItem("mombasaRoomsV2");
+
   location.reload();
 });
 
@@ -129,6 +139,8 @@ function scheduleOrder(room) {
 }
 
 function checkInLoop() {
+  const boosts = getBoosts();
+
   while (queue > 0) {
     const room = findFirstEmptyRoom();
     if (!room) break;
@@ -137,8 +149,8 @@ function checkInLoop() {
     room.status = "occupied";
     room.guestId = "G" + Math.floor(Math.random() * 9000 + 1000);
 
-    // PATIENCE BOOST: guests stay longer before checkout
-    const stayMs = hotelBoosts.patienceBoost ? 15000 : 10000;
+    // ✅ Patience Boost: guests stay longer
+    const stayMs = boosts.patienceBoost ? 15000 : 10000;
     room.checkoutAt = now() + stayMs;
 
     room.orderSnack = null;
@@ -214,7 +226,7 @@ function deliverToRoom(roomId) {
     return;
   }
 
-  // success
+  // ✅ success
   room.needsDelivery = false;
   room.orderSnack = null;
   room.orderAt = 0;
@@ -222,12 +234,12 @@ function deliverToRoom(roomId) {
 
   served += 1;
 
-  // SNACK BOOST: extra coin when delivering correctly
-  const reward = hotelBoosts.snackBoost ? 3 : 2;
+  // ✅ Snack Boost: extra coin reward on delivery
+  const boosts = getBoosts();
+  const reward = boosts.snackBoost ? 3 : 2;
   setCoins(getCoins() + reward);
 
   setRoomMood(room, "😍", 1200);
-
   setHint(`Delivered! +${reward} coins ✅`);
   setHeldSnack(null);
 
@@ -242,8 +254,9 @@ function startCleaning(roomId) {
 
   room.status = "cleaning";
 
-  // CLEANER BOOST: faster cleaning
-  const cleanMs = hotelBoosts.cleanerBoost ? 1500 : 3000;
+  // ✅ Cleaner Boost: faster cleaning
+  const boosts = getBoosts();
+  const cleanMs = boosts.cleanerBoost ? 1500 : 3000;
   room.cleaningUntil = now() + cleanMs;
 
   setRoomMood(room, "🧼", 900);
@@ -260,9 +273,8 @@ function renderHUD() {
   const heads = Math.max(1, Math.min(queue, 7));
   if (spawnPeople) spawnPeople.textContent = queue === 0 ? "✨" : "👤".repeat(heads);
 
-  const hasBoost =
-    !!hotelBoosts.snackBoost || !!hotelBoosts.cleanerBoost || !!hotelBoosts.patienceBoost;
-  if (boostPill) boostPill.style.display = hasBoost ? "inline-flex" : "none";
+  const boosts = getBoosts();
+  if (boostPill) boostPill.style.display = hasAnyBoost(boosts) ? "inline-flex" : "none";
 }
 
 function roomStatusTag(room) {
@@ -346,4 +358,3 @@ setInterval(() => {
 }, 500);
 
 renderAll();
-
