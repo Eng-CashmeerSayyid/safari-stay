@@ -6,8 +6,8 @@
   <title>Safari Stay</title>
   <link rel="stylesheet" href="style.css" />
 </head>
-
 <body class="landing">
+
   <header class="topbar">
     <div class="brand">
       <div class="logo">🏝️</div>
@@ -25,19 +25,17 @@
   <main class="wrap">
     <section class="card hero">
       <h1>Mombasa Hotel</h1>
-      <p class="muted">
-        Serve guests, deliver snacks, clean rooms, earn coins — then unlock upgrades.
-      </p>
+      <p class="muted">Serve guests, deliver snacks, clean rooms, earn coins — then unlock boosts from the puzzle.</p>
 
       <div class="grid2">
         <a class="btn primary" href="mombasa.html">▶️ Play Hotel</a>
         <a class="btn" href="puzzle.html">🧩 Play Puzzle</a>
-        <button class="btn" id="resetAll">♻️ Reset Game</button>
+        <button class="btn" id="resetAll">♻️ Reset ALL</button>
       </div>
 
       <div class="tip">
-        <strong>Tip:</strong> Put your 6 puzzle images in either:
-        <code>assets/puzzle/</code> OR <code>images/tiles/</code> with names:
+        <strong>Images:</strong> Put your 6 puzzle images in either
+        <code>assets/puzzle/</code> OR <code>images/tiles/</code> named:
         <code>palm.png</code>, <code>shell.png</code>, <code>fish.png</code>, <code>coconut.png</code>, <code>wave.png</code>, <code>sun.png</code>
       </div>
     </section>
@@ -67,14 +65,14 @@
     document.getElementById("served").textContent = getNum("mombasaGuestsServed", 0);
 
     let boostCount = 0;
-    try{
+    try {
       const b = JSON.parse(localStorage.getItem("hotelBoosts") || "{}");
       boostCount = (b.snackBoost?1:0) + (b.cleanerBoost?1:0) + (b.patienceBoost?1:0);
-    }catch{ boostCount = 0; }
+    } catch { boostCount = 0; }
     document.getElementById("boosts").textContent = boostCount;
 
     document.getElementById("resetAll").addEventListener("click", () => {
-      if (!confirm("Reset Safari Stay progress?")) return;
+      if (!confirm("Reset EVERYTHING? (Hotel + Puzzle + Coins + Boosts)")) return;
       localStorage.clear();
       location.reload();
     });
