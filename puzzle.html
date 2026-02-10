@@ -7,19 +7,6 @@
 
   <link rel="stylesheet" href="style.css" />
   <script src="puzzle.js" defer></script>
-
-  <style>
-    .pwrap{max-width:1100px;margin:0 auto;padding:14px;}
-    .pcard{
-      background: rgba(255,255,255,.04);
-      border-radius: 18px;
-      box-shadow: 0 12px 30px rgba(0,0,0,.35);
-      padding: 14px;
-      display:grid;
-      gap:12px;
-    }
-    #msg{ font-size:13px; opacity:.92; min-height:1.2em; }
-  </style>
 </head>
 
 <body>
@@ -42,16 +29,18 @@
   </div>
 </header>
 
-<main class="pwrap">
-  <section class="pcard">
+<main class="wrap">
+  <section class="card">
     <div class="muted">
-      Match <b>3+</b> tiles to earn coins. Big matches unlock boosts:
+      Match <b>3+</b> tiles to earn coins. Big clears unlock boosts:
       <b>4=Snack</b>, <b>5=Cleaner</b>, <b>6=Patience</b>.
     </div>
 
+    <div style="height:12px"></div>
     <div id="board" class="board"></div>
 
-    <div id="msg"></div>
+    <div style="height:10px"></div>
+    <div id="msg" class="msg"></div>
   </section>
 </main>
 </body>
