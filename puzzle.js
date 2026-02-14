@@ -1,357 +1,281 @@
-(() => {
-  "use strict";
+// ===============================
+// puzzle.js (Match-3 5x5)
+// Coins shared via ssAddCoins()
+// ===============================
 
+(function(){
   const SIZE = 5;
-  const TARGET_COINS = 300;
-  const COINS_PER_TILE = 5;
-  const ANIM_MS = 220;
-  const CASCADE_DELAY = 80;
+  const ITEMS = ["🍓","🥥","🌴","🐚","⭐","🍍","🐠"]; // feel free to change
 
-  const NAMES = ["palm","shell","fish","coconut","wave","sun"];
-  const BASE_PATHS = ["assets/puzzle", "images/tiles"];
-
-  const boardEl  = document.getElementById("board");
-  const coinsEl  = document.getElementById("coins");
-  const targetEl = document.getElementById("target");
-  const msgEl    = document.getElementById("msg");
-  const resetBtn = document.getElementById("resetPuzzle");
-
-  if (!boardEl) return;
-  if (targetEl) targetEl.textContent = String(TARGET_COINS);
-
-  let grid = [];
+  let board = []; // numbers 0..ITEMS-1
   let selected = null;
-  let locked = false;
-  let coins = 0;
+  let moves = 20;
+  let puzzleCoins = 0;
 
-  const sleep = (ms) => new Promise(res => setTimeout(res, ms));
-  function setMsg(t){ if (msgEl) msgEl.textContent = t || ""; }
-  function vibrate(ms=50){ if (navigator.vibrate) navigator.vibrate(ms); }
+  function el(id){ return document.getElementById(id); }
 
-  function loadCoins() {
-    const v = Number(localStorage.getItem("coins") || "0");
-    return Number.isFinite(v) ? v : 0;
-  }
-  function saveCoins(n) {
-    localStorage.setItem("coins", String(n));
+  function randItem(){
+    return Math.floor(Math.random() * ITEMS.length);
   }
 
-  // ---- boosts bridge ----
-  function getBoosts(){
-    try { return JSON.parse(localStorage.getItem("hotelBoosts") || "{}"); }
-    catch { return {}; }
-  }
-  function setBoosts(b){
-    localStorage.setItem("hotelBoosts", JSON.stringify(b));
-  }
-  function unlockBoostIfNeeded(matchCount){
-    const b = getBoosts();
-    let unlocked = [];
-
-    if (matchCount >= 4 && !b.snackBoost){ b.snackBoost = true; unlocked.push("Snack Boost 🍔"); }
-    if (matchCount >= 5 && !b.cleanerBoost){ b.cleanerBoost = true; unlocked.push("Cleaner Boost 🧼"); }
-    if (matchCount >= 6 && !b.patienceBoost){ b.patienceBoost = true; unlocked.push("Patience Boost 🙂"); }
-
-    if (unlocked.length){
-      b.lastEarned = Date.now();
-      setBoosts(b);
-      setMsg("Unlocked: " + unlocked.join(" • "));
-    }
-  }
-
-  function addCoins(tileCount) {
-    coins += tileCount * COINS_PER_TILE;
-    saveCoins(coins);
-    if (coinsEl) coinsEl.textContent = String(coins);
-
-    unlockBoostIfNeeded(tileCount);
-
-    if (coins >= TARGET_COINS) showWin();
-  }
-
-  function showWin(){
-    if (document.querySelector(".winOverlay")) return;
-    const overlay = document.createElement("div");
-    overlay.className = "winOverlay";
-    overlay.innerHTML = `
-      <div class="winCard">
-        <div class="winTitle">Level Complete! 🎉</div>
-        <div class="winText">You reached <b>${coins}</b> coins.</div>
-        <button class="btn" id="winClose">Continue</button>
-      </div>
-    `;
-    document.body.appendChild(overlay);
-    overlay.querySelector("#winClose").onclick = () => overlay.remove();
-  }
-
-  function randomType(){ return Math.floor(Math.random() * NAMES.length); }
-
-  function safeRandomType(r,c){
-    for(let tries=0; tries<30; tries++){
-      const t = randomType();
-      const l1 = c-1>=0 ? grid[r][c-1] : null;
-      const l2 = c-2>=0 ? grid[r][c-2] : null;
-      if (l1===t && l2===t) continue;
-      const u1 = r-1>=0 ? grid[r-1][c] : null;
-      const u2 = r-2>=0 ? grid[r-2][c] : null;
-      if (u1===t && u2===t) continue;
-      return t;
-    }
-    return randomType();
-  }
+  function idx(r,c){ return r*SIZE + c; }
 
   function neighbors(a,b){
-    return (Math.abs(a.r-b.r) + Math.abs(a.c-b.c)) === 1;
+    const ra = Math.floor(a/SIZE), ca = a%SIZE;
+    const rb = Math.floor(b/SIZE), cb = b%SIZE;
+    return (Math.abs(ra-rb)+Math.abs(ca-cb)) === 1;
   }
 
-  function buildSrc(name, baseIndex){
-    return `${BASE_PATHS[baseIndex]}/${name}.png`;
-  }
+  function render(){
+    const boardEl = el("board");
+    if (!boardEl) return;
 
-  function buildBoardDOM(){
-    boardEl.style.setProperty("--size", SIZE);
     boardEl.innerHTML = "";
-
-    for(let r=0;r<SIZE;r++){
-      for(let c=0;c<SIZE;c++){
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "tile";
-        btn.dataset.r = String(r);
-        btn.dataset.c = String(c);
-
-        const img = document.createElement("img");
-        img.alt = "";
-        img.draggable = false;
-        btn.appendChild(img);
-
-        boardEl.appendChild(btn);
-      }
+    for (let i=0;i<SIZE*SIZE;i++){
+      const t = document.createElement("div");
+      t.className = "tile";
+      t.dataset.i = String(i);
+      t.textContent = ITEMS[board[i]];
+      if (selected === i) t.classList.add("selected");
+      t.addEventListener("click", onTileClick);
+      boardEl.appendChild(t);
     }
 
-    boardEl.addEventListener("click", onBoardClick);
+    const m = el("pMoves"); if (m) m.textContent = String(moves);
+    const pc = el("pCoins"); if (pc) pc.textContent = String(puzzleCoins);
   }
 
-  function getTileEl(r,c){
-    return boardEl.querySelector(`.tile[data-r="${r}"][data-c="${c}"]`);
-  }
-
-  function setImgWithFallback(imgEl, name){
-    let baseTry = 0;
-    function tryNext(){
-      if (baseTry >= BASE_PATHS.length){
-        imgEl.removeAttribute("src");
-        imgEl.style.opacity = "0.35";
-        return;
+  function makeBoardNoInstantMatches(){
+    board = new Array(SIZE*SIZE).fill(0).map(()=>randItem());
+    // re-roll if there are existing matches at start
+    let guard = 0;
+    while (findMatches().length > 0 && guard < 200){
+      for (const m of findMatches()){
+        for (const i of m.cells){
+          board[i] = randItem();
+        }
       }
-      imgEl.style.opacity = "1";
-      imgEl.src = buildSrc(name, baseTry);
-      baseTry++;
+      guard++;
     }
-    imgEl.onerror = () => tryNext();
-    tryNext();
-  }
-
-  function paint(){
-    const tiles = boardEl.querySelectorAll(".tile");
-    tiles.forEach((el) => {
-      const r = Number(el.dataset.r);
-      const c = Number(el.dataset.c);
-      const t = grid[r][c];
-
-      el.classList.toggle("selected", !!selected && selected.r===r && selected.c===c);
-
-      const img = el.querySelector("img");
-      if (t === -1){
-        el.classList.add("empty");
-        if (img) img.removeAttribute("src");
-        return;
-      }
-
-      el.classList.remove("empty");
-      const name = NAMES[t];
-      if (img){
-        img.alt = name;
-        setImgWithFallback(img, name);
-      }
-    });
   }
 
   function findMatches(){
-    const toCrush = new Set();
+    const matches = [];
 
     // rows
-    for(let r=0;r<SIZE;r++){
-      let start=0;
-      while(start<SIZE){
-        const t = grid[r][start];
-        if (t===-1){ start++; continue; }
-        let end=start+1;
-        while(end<SIZE && grid[r][end]===t) end++;
-        if (end-start>=3){
-          for(let c=start;c<end;c++) toCrush.add(`${r},${c}`);
+    for (let r=0;r<SIZE;r++){
+      let runStart = idx(r,0);
+      let runVal = board[runStart];
+      let runLen = 1;
+
+      for (let c=1;c<SIZE;c++){
+        const i = idx(r,c);
+        if (board[i] === runVal){
+          runLen++;
+        } else {
+          if (runLen >= 3){
+            const cells = [];
+            for (let k=0;k<runLen;k++) cells.push(idx(r, c-1-k));
+            matches.push({cells});
+          }
+          runStart = i;
+          runVal = board[i];
+          runLen = 1;
         }
-        start=end;
+      }
+      if (runLen >= 3){
+        const cells = [];
+        for (let k=0;k<runLen;k++) cells.push(idx(r, SIZE-1-k));
+        matches.push({cells});
       }
     }
 
     // cols
-    for(let c=0;c<SIZE;c++){
-      let start=0;
-      while(start<SIZE){
-        const t = grid[start][c];
-        if (t===-1){ start++; continue; }
-        let end=start+1;
-        while(end<SIZE && grid[end][c]===t) end++;
-        if (end-start>=3){
-          for(let r=start;r<end;r++) toCrush.add(`${r},${c}`);
+    for (let c=0;c<SIZE;c++){
+      let runStart = idx(0,c);
+      let runVal = board[runStart];
+      let runLen = 1;
+
+      for (let r=1;r<SIZE;r++){
+        const i = idx(r,c);
+        if (board[i] === runVal){
+          runLen++;
+        } else {
+          if (runLen >= 3){
+            const cells = [];
+            for (let k=0;k<runLen;k++) cells.push(idx(r-1-k, c));
+            matches.push({cells});
+          }
+          runStart = i;
+          runVal = board[i];
+          runLen = 1;
         }
-        start=end;
+      }
+      if (runLen >= 3){
+        const cells = [];
+        for (let k=0;k<runLen;k++) cells.push(idx(SIZE-1-k, c));
+        matches.push({cells});
       }
     }
 
-    return [...toCrush].map(s => {
-      const [r,c] = s.split(",").map(Number);
-      return {r,c};
-    });
+    // merge overlaps
+    const set = new Set();
+    const merged = [];
+    for (const m of matches){
+      const unique = [];
+      for (const c of m.cells){
+        if (!set.has(c)){
+          unique.push(c);
+          set.add(c);
+        }
+      }
+      if (unique.length) merged.push({cells: unique});
+    }
+    return merged;
   }
-
-  function anyMatchExists(){ return findMatches().length > 0; }
 
   function swap(a,b){
-    const tmp = grid[a.r][a.c];
-    grid[a.r][a.c] = grid[b.r][b.c];
-    grid[b.r][b.c] = tmp;
+    const tmp = board[a];
+    board[a] = board[b];
+    board[b] = tmp;
   }
 
-  async function invalidSwapFeedback(a,b){
-    const elA = getTileEl(a.r,a.c);
-    const elB = getTileEl(b.r,b.c);
-    if (elA) elA.classList.add("shake");
-    if (elB) elB.classList.add("shake");
-    vibrate(70);
-    await sleep(ANIM_MS);
-    if (elA) elA.classList.remove("shake");
-    if (elB) elB.classList.remove("shake");
-  }
-
-  async function crush(matches){
-    matches.forEach(({r,c}) => {
-      const el = getTileEl(r,c);
-      if (el) el.classList.add("crush");
-    });
-
-    vibrate(35);
-    await sleep(ANIM_MS);
-
-    matches.forEach(({r,c}) => {
-      grid[r][c] = -1;
-      const el = getTileEl(r,c);
-      if (el) el.classList.remove("crush");
-    });
-
-    addCoins(matches.length);
-  }
-
-  function applyGravity(){
-    for(let c=0;c<SIZE;c++){
-      let writeRow = SIZE-1;
-      for(let r=SIZE-1;r>=0;r--){
-        if (grid[r][c] !== -1){
-          grid[writeRow][c] = grid[r][c];
-          if (writeRow !== r) grid[r][c] = -1;
-          writeRow--;
-        }
-      }
-      for(let r=writeRow;r>=0;r--) grid[r][c] = -1;
+  function animateCrush(cells){
+    const boardEl = el("board");
+    if (!boardEl) return;
+    for (const i of cells){
+      const tile = boardEl.querySelector(`.tile[data-i="${i}"]`);
+      if (tile) tile.classList.add("crush");
     }
   }
 
-  function refill(){
-    for(let r=0;r<SIZE;r++){
-      for(let c=0;c<SIZE;c++){
-        if (grid[r][c] === -1) grid[r][c] = safeRandomType(r,c);
+  function collapseAndRefill(cells){
+    const empty = new Set(cells);
+
+    // set to -1
+    for (const i of empty) board[i] = -1;
+
+    // drop down per column
+    for (let c=0;c<SIZE;c++){
+      const col = [];
+      for (let r=SIZE-1;r>=0;r--){
+        const i = idx(r,c);
+        if (board[i] !== -1) col.push(board[i]);
+      }
+      while (col.length < SIZE) col.push(randItem());
+      // write back bottom->top
+      for (let r=SIZE-1, k=0;r>=0;r--,k++){
+        board[idx(r,c)] = col[k];
       }
     }
   }
 
-  async function resolveBoard(){
-    while(true){
+  function shakeBoard(){
+    const boardEl = el("board");
+    if (!boardEl) return;
+    boardEl.classList.remove("shake");
+    void boardEl.offsetWidth;
+    boardEl.classList.add("shake");
+  }
+
+  function resolveMatchesCascade(){
+    let any = false;
+    let loopGuard = 0;
+
+    while (loopGuard < 10){
       const matches = findMatches();
       if (matches.length === 0) break;
-      await crush(matches);
-      applyGravity();
-      refill();
-      paint();
-      await sleep(CASCADE_DELAY);
+      any = true;
+
+      // flatten cells
+      const cells = [...new Set(matches.flatMap(m=>m.cells))];
+
+      // coins: +1 per 3 tiles cleared (min 1)
+      const gained = Math.max(1, Math.floor(cells.length / 3));
+      puzzleCoins += gained;
+      ssAddCoins(gained);
+
+      // crush animation
+      animateCrush(cells);
+
+      // wait a bit then collapse
+      // (sync feel: simple timeout)
+      // eslint-disable-next-line no-loop-func
+      setTimeout(() => {
+        collapseAndRefill(cells);
+        render();
+      }, 140);
+
+      // do immediate collapse for logic; UI updates after timeout
+      collapseAndRefill(cells);
+      loopGuard++;
     }
+
+    return any;
   }
 
-  async function onBoardClick(e){
-    if (locked) return;
-    const tile = e.target.closest(".tile");
-    if (!tile || !boardEl.contains(tile)) return;
+  function onTileClick(e){
+    if (moves <= 0) return;
 
-    const r = Number(tile.dataset.r);
-    const c = Number(tile.dataset.c);
-
-    if (!selected){
-      selected = {r,c};
-      paint();
+    const i = Number(e.currentTarget.dataset.i);
+    if (selected === null){
+      selected = i;
+      render();
       return;
     }
 
-    const prev = selected;
-    selected = null;
-
-    if (prev.r===r && prev.c===c){ paint(); return; }
-    if (!neighbors(prev,{r,c})){ selected={r,c}; paint(); return; }
-
-    locked = true;
-    setMsg("");
-
-    swap(prev,{r,c});
-    paint();
-
-    if (anyMatchExists()){
-      await resolveBoard();
-      locked = false;
-      paint();
+    if (selected === i){
+      selected = null;
+      render();
       return;
     }
 
-    await invalidSwapFeedback(prev,{r,c});
-    swap(prev,{r,c});
-    paint();
-
-    locked = false;
-    setMsg("No match ❌ Try a different swap.");
-  }
-
-  function initGrid(){
-    grid = Array.from({length: SIZE}, () => Array(SIZE).fill(-1));
-    for(let r=0;r<SIZE;r++){
-      for(let c=0;c<SIZE;c++){
-        grid[r][c] = safeRandomType(r,c);
-      }
+    if (!neighbors(selected, i)){
+      // not adjacent
+      selected = i;
+      render();
+      return;
     }
-  }
 
-  async function reset(){
-    locked = true;
+    // attempt swap
+    swap(selected, i);
+
+    const hasMatch = findMatches().length > 0;
+    if (!hasMatch){
+      // invalid move, swap back + shake
+      swap(selected, i);
+      shakeBoard();
+      selected = null;
+      render();
+      return;
+    }
+
+    // valid move: -1 move, +1 coin baseline
+    moves--;
+    puzzleCoins += 1;
+    ssAddCoins(1);
+
     selected = null;
-    setMsg("New board ready ✅");
-    initGrid();
-    paint();
-    await resolveBoard();
-    locked = false;
+    render();
+
+    // resolve cascades
+    resolveMatchesCascade();
   }
 
-  if (resetBtn) resetBtn.addEventListener("click", reset);
+  function resetPuzzle(){
+    moves = 20;
+    puzzleCoins = 0;
+    selected = null;
+    makeBoardNoInstantMatches();
+    render();
+  }
 
-  coins = loadCoins();
-  if (coinsEl) coinsEl.textContent = String(coins);
+  document.addEventListener("DOMContentLoaded", () => {
+    const boardEl = el("board");
+    if (!boardEl) return; // not on this page
+    resetPuzzle();
 
-  buildBoardDOM();
-  reset();
+    const btn = el("pReset");
+    if (btn) btn.addEventListener("click", resetPuzzle);
+  });
 })();
