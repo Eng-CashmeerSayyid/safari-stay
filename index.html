@@ -1,81 +1,70 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Safari Stay</title>
   <link rel="stylesheet" href="style.css" />
+  <script src="game.js" defer></script>
 </head>
-<body class="landing">
+<body>
 
   <header class="topbar">
     <div class="brand">
       <div class="logo">🏝️</div>
       <div>
         <div class="title">Safari Stay</div>
-        <div class="subtitle">Kenya Hotel Tycoon + Puzzle</div>
+        <div class="subtitle">Kenya Tour (Prototype)</div>
       </div>
     </div>
 
     <div class="hud">
-      <div class="pill">🪙 Coins: <span id="coins">0</span></div>
+      <div class="pill">🪙 Coins <b id="coinsTop">0</b></div>
+      <button class="btn ghost" id="resetBtn" title="Reset progress">Reset</button>
     </div>
   </header>
 
   <main class="wrap">
-    <section class="card hero">
-      <h1>Mombasa Hotel</h1>
-      <p class="muted">Serve guests, deliver snacks, clean rooms, earn coins — then unlock boosts from the puzzle.</p>
-
-      <div class="grid2">
-        <a class="btn primary" href="mombasa.html">▶️ Play Hotel</a>
-        <a class="btn" href="puzzle.html">🧩 Play Puzzle</a>
-        <button class="btn" id="resetAll">♻️ Reset ALL</button>
+    <section class="card">
+      <div class="cardTitleRow">
+        <div>
+          <h2 class="h2">Choose a Destination</h2>
+          <p class="muted">Mombasa is playable. Amboseli & Nairobi are coming next.</p>
+        </div>
+        <div class="badge">Prototype</div>
       </div>
 
-      <div class="tip">
-        <strong>Images:</strong> Put your 6 puzzle images in either
-        <code>assets/puzzle/</code> OR <code>images/tiles/</code> named:
-        <code>palm.png</code>, <code>shell.png</code>, <code>fish.png</code>, <code>coconut.png</code>, <code>wave.png</code>, <code>sun.png</code>
+      <div class="destGrid">
+        <a class="destCard active" href="mombasa.html">
+          <div class="destEmoji">🏝️</div>
+          <div class="destName">Mombasa</div>
+          <div class="destMeta">10 Levels • Hotel + Puzzle</div>
+        </a>
+
+        <div class="destCard locked">
+          <div class="destEmoji">🦁</div>
+          <div class="destName">Amboseli</div>
+          <div class="destMeta">Coming soon</div>
+        </div>
+
+        <div class="destCard locked">
+          <div class="destEmoji">🏙️</div>
+          <div class="destName">Nairobi</div>
+          <div class="destMeta">Coming soon</div>
+        </div>
       </div>
     </section>
 
     <section class="card">
-      <h2>Your Progress</h2>
-      <div class="stats">
-        <div class="stat">
-          <div class="statLabel">Guests served</div>
-          <div class="statValue" id="served">0</div>
-        </div>
-        <div class="stat">
-          <div class="statLabel">Boosts unlocked</div>
-          <div class="statValue" id="boosts">0</div>
-        </div>
+      <h2 class="h2">Your Progress</h2>
+      <div class="progressRow">
+        <div class="pill">Mombasa Level: <b id="mombasaLevel">1</b>/10</div>
+        <div class="pill">Upgrades: <b id="upgradesCount">0</b></div>
       </div>
+      <p class="muted small">Tip: Play the Puzzle tab to earn coins, then buy upgrades in the Hotel tab.</p>
     </section>
   </main>
 
-  <script>
-    const getNum = (k, f=0) => {
-      const v = Number(localStorage.getItem(k));
-      return Number.isFinite(v) ? v : f;
-    };
-
-    document.getElementById("coins").textContent = getNum("coins", 0);
-    document.getElementById("served").textContent = getNum("mombasaGuestsServed", 0);
-
-    let boostCount = 0;
-    try {
-      const b = JSON.parse(localStorage.getItem("hotelBoosts") || "{}");
-      boostCount = (b.snackBoost?1:0) + (b.cleanerBoost?1:0) + (b.patienceBoost?1:0);
-    } catch { boostCount = 0; }
-    document.getElementById("boosts").textContent = boostCount;
-
-    document.getElementById("resetAll").addEventListener("click", () => {
-      if (!confirm("Reset EVERYTHING? (Hotel + Puzzle + Coins + Boosts)")) return;
-      localStorage.clear();
-      location.reload();
-    });
-  </script>
 </body>
 </html>
+
