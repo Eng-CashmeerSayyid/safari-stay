@@ -877,3 +877,8 @@ button, .room, .guestCard, .itemBtn, .tabBtn{ cursor: pointer; }
   .board{ grid-template-columns: repeat(5, 50px); gap: 8px; }
   .tile{ width:50px; height:50px; font-size:24px; }
 }
+@keyframes ssPulse {
+  0%,100%{ transform: translateY(0); filter: brightness(1); }
+  50%{ transform: translateY(-1px); filter: brightness(1.08); }
+}
+.room.priority{ animation: ssPulse .8s ease-in-out infinite; }
