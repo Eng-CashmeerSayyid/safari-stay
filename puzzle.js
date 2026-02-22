@@ -1,282 +1,214 @@
-// =========================
-// puzzle.js — Safari Stay Match-3 (simple + stable)
-// Board: 5x5
-// Rewards: + coins per cleared tile
-// Syncs coins to #coins + localStorage
-// =========================
+/* =========================
+Safari Stay – puzzle.js
+- 5x5 match-3 swap neighbors
+- Earn coins per match
+- Saves coins to ss_coins (shared with hotel)
+========================= */
 
 (() => {
-  const BOARD_SIZE = 5;
-  const START_MOVES = 20;
+  const boardEl = document.getElementById("board");
+  if (!boardEl) return; // safety
 
-  // Use emojis for now (you can later swap to images)
-  const TILES = ["🌴", "🐚", "🐟", "🥥", "🌊", "☀️"];
+  const movesEl = document.getElementById("movesLeft");
+  const earnedEl = document.getElementById("puzzleEarned");
+  const btnNew = document.getElementById("btnPuzzleNew");
 
-  const $ = (id) => document.getElementById(id);
-
+  const N = 5;
+  const TILES = ["🐚","🐟","🌴","🥥","🌊","☀️"]; // your Mombasa vibe
   let grid = [];
-  let selected = null;
-  let movesLeft = START_MOVES;
+  let selected = null; // {r,c}
+  let moves = 20;
   let earned = 0;
 
-  function getCoins() {
-    const v = parseInt(localStorage.getItem("safaristay_coins") || "0", 10);
-    return Number.isFinite(v) ? v : 0;
+  function loadCoins(){
+    const v = localStorage.getItem("ss_coins");
+    return v==null ? 0 : (Number(v)||0);
+  }
+  function addCoins(x){
+    const c = loadCoins() + x;
+    localStorage.setItem("ss_coins", String(c));
   }
 
-  function setCoins(v) {
-    localStorage.setItem("safaristay_coins", String(v));
-    const coinsEl = $("coins");
-    if (coinsEl) coinsEl.textContent = String(v);
+  function randTile(){ return TILES[Math.floor(Math.random()*TILES.length)]; }
+  function inb(r,c){ return r>=0 && r<N && c>=0 && c<N; }
+  function neigh(a,b){ return Math.abs(a.r-b.r)+Math.abs(a.c-b.c)===1; }
+
+  function setHud(){
+    movesEl.textContent = moves;
+    earnedEl.textContent = earned;
   }
 
-  function addCoins(delta) {
-    setCoins(getCoins() + delta);
+  function makeGrid(){
+    grid = Array.from({length:N}, () => Array.from({length:N}, randTile));
+    // soften immediate matches by re-rolling a bit
+    for (let k=0;k<30;k++){
+      const matches = findMatches();
+      if (matches.size === 0) break;
+      for (const key of matches){
+        const [r,c] = key.split(",").map(Number);
+        grid[r][c] = randTile();
+      }
+    }
   }
 
-  function updateHud() {
-    const m = $("movesLeft");
-    const e = $("puzzleEarned");
-    if (m) m.textContent = String(movesLeft);
-    if (e) e.textContent = String(earned);
+  function render(){
+    boardEl.innerHTML = "";
+    boardEl.style.gridTemplateColumns = `repeat(${N}, 1fr)`;
+
+    for (let r=0;r<N;r++){
+      for (let c=0;c<N;c++){
+        const cell = document.createElement("div");
+        cell.className = "tile";
+        cell.textContent = grid[r][c];
+        cell.dataset.r = String(r);
+        cell.dataset.c = String(c);
+
+        if (selected && selected.r===r && selected.c===c){
+          cell.classList.add("selected");
+        }
+
+        cell.addEventListener("click", () => onTile(r,c));
+        boardEl.appendChild(cell);
+      }
+    }
   }
 
-  function randTile() {
-    return TILES[Math.floor(Math.random() * TILES.length)];
-  }
-
-  function buildEmpty() {
-    grid = Array.from({ length: BOARD_SIZE }, () =>
-      Array.from({ length: BOARD_SIZE }, () => randTile())
-    );
-  }
-
-  function inBounds(r, c) {
-    return r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE;
-  }
-
-  function neighbors(a, b) {
-    const dr = Math.abs(a.r - b.r);
-    const dc = Math.abs(a.c - b.c);
-    return (dr + dc) === 1;
-  }
-
-  function swap(a, b) {
-    const tmp = grid[a.r][a.c];
+  function swap(a,b){
+    const t = grid[a.r][a.c];
     grid[a.r][a.c] = grid[b.r][b.c];
-    grid[b.r][b.c] = tmp;
+    grid[b.r][b.c] = t;
   }
 
-  function findMatches() {
-    const matched = Array.from({ length: BOARD_SIZE }, () =>
-      Array.from({ length: BOARD_SIZE }, () => false)
-    );
+  function findMatches(){
+    const set = new Set();
 
     // rows
-    for (let r = 0; r < BOARD_SIZE; r++) {
+    for (let r=0;r<N;r++){
       let run = 1;
-      for (let c = 1; c <= BOARD_SIZE; c++) {
-        const same = c < BOARD_SIZE && grid[r][c] === grid[r][c - 1];
-        if (same) run++;
-        else {
-          if (run >= 3) {
-            for (let k = 0; k < run; k++) matched[r][c - 1 - k] = true;
+      for (let c=1;c<N;c++){
+        if (grid[r][c] === grid[r][c-1]) run++;
+        else{
+          if (run >= 3){
+            for (let k=0;k<run;k++) set.add(`${r},${c-1-k}`);
           }
           run = 1;
         }
+      }
+      if (run >= 3){
+        for (let k=0;k<run;k++) set.add(`${r},${N-1-k}`);
       }
     }
 
     // cols
-    for (let c = 0; c < BOARD_SIZE; c++) {
+    for (let c=0;c<N;c++){
       let run = 1;
-      for (let r = 1; r <= BOARD_SIZE; r++) {
-        const same = r < BOARD_SIZE && grid[r][c] === grid[r - 1][c];
-        if (same) run++;
-        else {
-          if (run >= 3) {
-            for (let k = 0; k < run; k++) matched[r - 1 - k][c] = true;
+      for (let r=1;r<N;r++){
+        if (grid[r][c] === grid[r-1][c]) run++;
+        else{
+          if (run >= 3){
+            for (let k=0;k<run;k++) set.add(`${r-1-k},${c}`);
           }
           run = 1;
         }
       }
-    }
-
-    return matched;
-  }
-
-  function hasAnyMatch(matched) {
-    for (let r = 0; r < BOARD_SIZE; r++) {
-      for (let c = 0; c < BOARD_SIZE; c++) {
-        if (matched[r][c]) return true;
-      }
-    }
-    return false;
-  }
-
-  function clearAndDrop(matched) {
-    let cleared = 0;
-
-    // clear
-    for (let r = 0; r < BOARD_SIZE; r++) {
-      for (let c = 0; c < BOARD_SIZE; c++) {
-        if (matched[r][c]) {
-          grid[r][c] = null;
-          cleared++;
-        }
+      if (run >= 3){
+        for (let k=0;k<run;k++) set.add(`${N-1-k},${c}`);
       }
     }
 
-    // drop per column
-    for (let c = 0; c < BOARD_SIZE; c++) {
+    return set;
+  }
+
+  function crushAndRefill(matches){
+    // remove
+    for (const key of matches){
+      const [r,c] = key.split(",").map(Number);
+      grid[r][c] = null;
+    }
+
+    // gravity + refill
+    for (let c=0;c<N;c++){
       const col = [];
-      for (let r = BOARD_SIZE - 1; r >= 0; r--) {
+      for (let r=N-1;r>=0;r--){
         if (grid[r][c] != null) col.push(grid[r][c]);
       }
-      // refill
-      while (col.length < BOARD_SIZE) col.push(randTile());
-
-      // write back
-      for (let r = BOARD_SIZE - 1, i = 0; r >= 0; r--, i++) {
-        grid[r][c] = col[i];
-      }
-    }
-
-    return cleared;
-  }
-
-  function stabilize() {
-    // keep clearing until no matches (prevents “instant match” board on start)
-    let loops = 0;
-    while (loops < 20) {
-      const matched = findMatches();
-      if (!hasAnyMatch(matched)) break;
-      clearAndDrop(matched);
-      loops++;
-    }
-  }
-
-  function render() {
-    const board = $("board");
-    if (!board) return;
-
-    board.innerHTML = "";
-    board.style.gridTemplateColumns = `repeat(${BOARD_SIZE}, 1fr)`;
-
-    for (let r = 0; r < BOARD_SIZE; r++) {
-      for (let c = 0; c < BOARD_SIZE; c++) {
-        const tile = document.createElement("button");
-        tile.className = "tile";
-        tile.type = "button";
-        tile.textContent = grid[r][c];
-        tile.dataset.r = String(r);
-        tile.dataset.c = String(c);
-
-        if (selected && selected.r === r && selected.c === c) {
-          tile.classList.add("selected");
-        }
-
-        tile.addEventListener("click", () => onTileClick(r, c));
-        board.appendChild(tile);
+      while (col.length < N) col.push(randTile());
+      for (let r=N-1;r>=0;r--){
+        grid[r][c] = col[N-1-r];
       }
     }
   }
 
-  function onTileClick(r, c) {
-    if (movesLeft <= 0) return;
+  function resolveBoard(){
+    let totalCrushed = 0;
+    while (true){
+      const matches = findMatches();
+      if (matches.size === 0) break;
+      totalCrushed += matches.size;
+      crushAndRefill(matches);
+    }
+    if (totalCrushed > 0){
+      // earn coins: 1 coin per 3 tiles, rounded down
+      const gain = Math.floor(totalCrushed / 3);
+      earned += gain;
+      addCoins(gain);
+    }
+  }
 
-    if (!selected) {
-      selected = { r, c };
+  function onTile(r,c){
+    if (moves <= 0) return;
+
+    const pos = {r,c};
+
+    if (!selected){
+      selected = pos;
       render();
       return;
     }
 
-    const next = { r, c };
-    if (!neighbors(selected, next)) {
-      // selecting another tile (not neighbor) just changes selection
-      selected = next;
-      render();
-      return;
-    }
-
-    // attempt swap
-    swap(selected, next);
-    const matched = findMatches();
-
-    if (!hasAnyMatch(matched)) {
-      // invalid move — swap back
-      swap(selected, next);
+    if (selected.r === r && selected.c === c){
       selected = null;
       render();
       return;
     }
 
-    // valid move
-    movesLeft--;
-    selected = null;
-
-    // clear chain reactions
-    let totalCleared = 0;
-    let safety = 0;
-    while (safety < 20) {
-      const m = findMatches();
-      if (!hasAnyMatch(m)) break;
-      totalCleared += clearAndDrop(m);
-      safety++;
+    if (!neigh(selected, pos)){
+      selected = pos;
+      render();
+      return;
     }
 
-    // reward: 1 coin per cleared tile (simple, feels good)
-    earned += totalCleared;
-    addCoins(totalCleared);
+    // attempt swap
+    swap(selected, pos);
+    const matchesAfter = findMatches();
+    if (matchesAfter.size === 0){
+      // invalid move: swap back
+      swap(selected, pos);
+      selected = null;
+      render();
+      return;
+    }
 
-    updateHud();
+    // valid
+    moves -= 1;
+    selected = null;
+
+    // resolve cascades
+    resolveBoard();
+    setHud();
     render();
   }
 
-  function newBoard() {
-    movesLeft = START_MOVES;
+  function resetPuzzle(){
+    moves = 20;
     earned = 0;
     selected = null;
-    buildEmpty();
-    stabilize();
-    updateHud();
+    makeGrid();
+    setHud();
     render();
   }
 
-  function setupTabs() {
-    const btnHotel = $("tabBtnHotel");
-    const btnPuzzle = $("tabBtnPuzzle");
-    const panelHotel = $("panel-hotel");
-    const panelPuzzle = $("panel-puzzle");
+  btnNew?.addEventListener("click", resetPuzzle);
 
-    if (!btnHotel || !btnPuzzle || !panelHotel || !panelPuzzle) return;
-
-    function show(which) {
-      const isHotel = which === "hotel";
-      panelHotel.classList.toggle("active", isHotel);
-      panelPuzzle.classList.toggle("active", !isHotel);
-      btnHotel.classList.toggle("active", isHotel);
-      btnPuzzle.classList.toggle("active", !isHotel);
-    }
-
-    btnHotel.addEventListener("click", () => show("hotel"));
-    btnPuzzle.addEventListener("click", () => show("puzzle"));
-  }
-
-  function syncCoinsToUI() {
-    // On load, display saved coins in the HUD
-    const coinsEl = $("coins");
-    if (coinsEl) coinsEl.textContent = String(getCoins());
-  }
-
-  document.addEventListener("DOMContentLoaded", () => {
-    syncCoinsToUI();
-    setupTabs();
-
-    const newBtn = $("btnPuzzleNew");
-    if (newBtn) newBtn.addEventListener("click", newBoard);
-
-    // create initial board
-    newBoard();
-  });
+  resetPuzzle();
 })();
