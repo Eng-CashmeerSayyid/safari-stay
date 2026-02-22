@@ -1,288 +1,344 @@
 // ===============================
-// mombasa.js
-// Hotel Mode with 4 rooms + queue + patience
-// Level 1: Don't lose clients (angry <= limit), serve target before time
-// Level 2: Two hands + stations + zero waste (dropping counts as waste)
-// Levels 3-10: wired placeholder
+// mombasa.js (FULL) — Safari Stay: Mombasa Hotel
+// 4 rooms + queue + patience + manual checkout + manual cleaning (detergent required)
+// Level 1: No orders, don't lose too many angry guests
+// Level 2: Orders enabled (snacks/detergent), must deliver before check-in, zero waste
+// Coins shared with puzzle via localStorage "safaristay_coins"
 // ===============================
 
-(function(){
-  // ---------- Config per level ----------
-  function levelConfig(level, upgrades){
-    const patienceBoost = (upgrades.patienceBoost ? 1 : 0);
-    const spawnSlow = (upgrades.spawnSlow ? 1 : 0);
+(() => {
+  // ---------- DOM helpers ----------
+  const $ = (id) => document.getElementById(id);
 
-    if (level === 1){
+  // ---------- Persistent shared data ----------
+  const COINS_KEY = "safaristay_coins";
+  const LEVEL_KEY = "safaristay_mombasa_level";
+
+  function getCoins() {
+    const v = parseInt(localStorage.getItem(COINS_KEY) || "0", 10);
+    return Number.isFinite(v) ? v : 0;
+  }
+  function setCoins(v) {
+    localStorage.setItem(COINS_KEY, String(Math.max(0, Math.floor(v))));
+    syncCoinsUI();
+  }
+  function addCoins(delta) {
+    setCoins(getCoins() + delta);
+  }
+  function syncCoinsUI() {
+    const el = $("coins");
+    if (el) el.textContent = String(getCoins());
+  }
+
+  function getLevel() {
+    const v = parseInt(localStorage.getItem(LEVEL_KEY) || "1", 10);
+    if (!Number.isFinite(v)) return 1;
+    return Math.min(10, Math.max(1, v));
+  }
+  function setLevel(v) {
+    const lvl = Math.min(10, Math.max(1, Math.floor(v)));
+    localStorage.setItem(LEVEL_KEY, String(lvl));
+  }
+
+  // ---------- Game config ----------
+  const ROOM_COUNT = 4;
+  const MAX_QUEUE = 6;
+
+  function levelConfig(level) {
+    if (level === 1) {
       return {
-        name: "Mombasa L1 – No Angry Clients",
+        name: "Mombasa Level 1 — No Angry Guests",
         timeLimitSec: 90,
         serveGoal: 10,
         angryLimit: 2,
-        basePatienceSec: 16 + patienceBoost*4,
-        spawnEveryMs: (2600 + spawnSlow*500),
-        enableHands: false,
-        wasteLimit: 99,
-        ordersEnabled: false
+        basePatienceSec: 18,
+        spawnEveryMs: 2600,
+        ordersEnabled: false,
+        wasteLimit: 999, // not used
+        comingSoon: false,
       };
     }
-
-    if (level === 2){
+    if (level === 2) {
       return {
-        name: "Mombasa L2 – Two Hands (No Waste)",
+        name: "Mombasa Level 2 — Two Hands (No Waste)",
         timeLimitSec: 100,
         serveGoal: 12,
         angryLimit: 2,
-        basePatienceSec: 18 + patienceBoost*4,
-        spawnEveryMs: (2400 + spawnSlow*500),
-        enableHands: true,
+        basePatienceSec: 20,
+        spawnEveryMs: 2400,
+        ordersEnabled: true,
         wasteLimit: 0,
-        ordersEnabled: true // guests have orders to deliver
+        comingSoon: false,
       };
     }
-
     return {
-      name: `Mombasa L${level} – Coming Soon`,
+      name: `Mombasa Level ${level} — Coming Soon`,
       timeLimitSec: 60,
       serveGoal: 5,
       angryLimit: 1,
       basePatienceSec: 16,
       spawnEveryMs: 2800,
-      enableHands: false,
-      wasteLimit: 99,
       ordersEnabled: false,
-      comingSoon: true
+      wasteLimit: 999,
+      comingSoon: true,
     };
   }
 
   // ---------- State ----------
-  const ROOM_COUNT = 4;
-  let rooms = [];
-  let queue = [];
-  let selectedGuestId = null;
+  let cfg = null;
+  let level = 1;
 
   let served = 0;
   let angryLeft = 0;
   let waste = 0;
 
-  let level = 1;
-  let cfg = null;
-
   let timeLeft = 0;
   let tickTimer = null;
   let spawnTimer = null;
 
-  // hands
-  const HANDS = { L: null, R: null }; // {type, readyAtMs}
-  let sandwichBusyUntil = 0;
+  let queue = [];
+  let rooms = [];
 
-  // ---------- Helpers ----------
-  function el(id){ return document.getElementById(id); }
-  function now(){ return Date.now(); }
+  let selectedGuestId = null;
+  let selectedRoomId = null;
 
-  function setResult(msg, good){
-    const bar = el("resultBar");
-    if (!bar) return;
-    bar.textContent = msg || "";
-    bar.classList.remove("good","bad");
-    if (good === true) bar.classList.add("good");
-    if (good === false) bar.classList.add("bad");
+  // Hands
+  const HANDS = { L: null, R: null }; // {type}
+  // type: "coconut"|"soda"|"fries"|"sandwich"|"detergent"
+
+  // ---------- UI helpers ----------
+  function setHint(text) {
+    const h = $("hint");
+    if (h) h.textContent = text;
   }
 
-  function formatTime(sec){
-    sec = Math.max(0, Math.floor(sec));
-    const m = Math.floor(sec/60);
-    const s = sec%60;
-    return `${m}:${String(s).padStart(2,"0")}`;
+  function setSubhint(text) {
+    const s = $("subhint");
+    if (s) s.textContent = text;
   }
 
-  function randFrom(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+  function updateHud() {
+    const s = $("served");
+    const a = $("angry");
+    const q = $("queueCount");
+    if (s) s.textContent = String(served);
+    if (a) a.textContent = String(angryLeft);
+    if (q) q.textContent = String(queue.length);
+    syncCoinsUI();
+  }
 
-  function guestMood(p){
-    if (p > 0.66) return "😊 Patient";
-    if (p > 0.33) return "😤 Impatient";
+  function moodLabel(pct) {
+    if (pct > 0.66) return "😊 Patient";
+    if (pct > 0.33) return "😤 Impatient";
     return "😡 Angry";
   }
 
-  function requiredOrderLabel(order){
+  function orderLabel(order) {
     if (!order) return "—";
+    if (order === "coconut") return "🥥 Coconut";
+    if (order === "soda") return "🥤 Soda";
+    if (order === "fries") return "🍟 Fries";
     if (order === "sandwich") return "🥪 Sandwich";
     if (order === "detergent") return "🧴 Detergent";
     return order;
   }
 
-  function upgradeData(){
-    return ssGetUpgrades();
+  function handsText(type) {
+    if (!type) return "Empty";
+    return orderLabel(type);
   }
 
-  // ---------- UI: Tabs ----------
-  function initTabs(){
-    const tabs = document.querySelectorAll(".tab");
-    tabs.forEach(t => {
-      t.addEventListener("click", () => {
-        tabs.forEach(x => x.classList.remove("active"));
-        t.classList.add("active");
-
-        const name = t.dataset.tab;
-        document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
-        const panel = document.getElementById(`tab-${name}`);
-        if (panel) panel.classList.add("active");
-      });
-    });
+  function updateHandsUI() {
+    const li = $("leftItem");
+    const ri = $("rightItem");
+    if (li) li.textContent = handsText(HANDS.L?.type);
+    if (ri) ri.textContent = handsText(HANDS.R?.type);
   }
 
   // ---------- Rooms ----------
-  function initRooms(){
+  function initRooms() {
     rooms = [];
-    for (let i=0;i<ROOM_COUNT;i++){
+    for (let i = 0; i < ROOM_COUNT; i++) {
       rooms.push({
-        id: i+1,
-        state: "empty", // empty | occupied | dirty | cleaning
+        id: i + 1,
+        state: "empty", // empty | occupied | dirty
         guestId: null,
         stayLeft: 0,
-        cleanLeft: 0,
-        stayTotal: 0
+        stayTotal: 0,
       });
     }
+    selectedRoomId = null;
   }
 
-  function renderRooms(){
-    const wrap = el("rooms");
+  function renderRooms() {
+    const wrap = $("rooms");
     if (!wrap) return;
+
+    // Your HTML currently contains 4 <button class="room" data-room="0..3">...
+    // We'll not rebuild them; we will update their inner text and selected state.
+    // But in case someone changed HTML, we support both styles.
+
+    const roomEls = wrap.querySelectorAll(".room");
+    if (roomEls.length === ROOM_COUNT) {
+      roomEls.forEach((btn) => {
+        const idx = parseInt(btn.dataset.room || "0", 10);
+        const r = rooms[idx];
+        if (!r) return;
+
+        btn.classList.toggle("selected", r.id === selectedRoomId);
+
+        const body = btn.querySelector(`#roomBody${idx}`);
+        const foot = btn.querySelector(`#roomFoot${idx}`);
+
+        if (body) {
+          body.textContent =
+            r.state === "empty" ? "Empty" :
+            r.state === "occupied" ? "Occupied" :
+            "Dirty";
+        }
+        if (foot) {
+          if (r.state === "occupied") {
+            foot.textContent = `⏳ ${Math.ceil(r.stayLeft)}s left`;
+          } else if (r.state === "dirty") {
+            foot.textContent = "🧴 Needs detergent + Clean";
+          } else {
+            foot.textContent = "—";
+          }
+        }
+
+        // click handler
+        btn.onclick = () => onRoomClick(r.id);
+      });
+      return;
+    }
+
+    // fallback: rebuild (if user changed HTML)
     wrap.innerHTML = "";
+    rooms.forEach((r) => {
+      const btn = document.createElement("button");
+      btn.className = "room";
+      btn.dataset.room = String(r.id);
+      btn.classList.toggle("selected", r.id === selectedRoomId);
 
-    rooms.forEach(r => {
-      const d = document.createElement("div");
-      d.className = `room ${r.state}`;
-      d.dataset.room = String(r.id);
-
-      const top = document.createElement("div");
-      top.className = "roomTop";
-
-      const no = document.createElement("div");
-      no.className = "roomNo";
-      no.textContent = `Room ${r.id}`;
-
-      const st = document.createElement("div");
-      st.className = "roomState";
-      st.textContent =
-        r.state === "empty" ? "Empty" :
-        r.state === "occupied" ? "Occupied" :
-        r.state === "dirty" ? "Dirty (click to clean)" :
-        "Cleaning…";
-
-      top.appendChild(no);
-      top.appendChild(st);
-
-      const bar = document.createElement("div");
-      bar.className = "roomBar";
-      const fill = document.createElement("span");
-
-      let pct = 0;
-      if (r.state === "occupied"){
-        pct = r.stayTotal > 0 ? (r.stayLeft / r.stayTotal) * 100 : 0;
-      } else if (r.state === "dirty"){
-        pct = 100;
-      } else if (r.state === "cleaning"){
-        pct = (r.cleanLeft / 5) * 100;
-      }
-      fill.style.width = `${Math.max(0,Math.min(100,pct))}%`;
-      bar.appendChild(fill);
-
-      d.appendChild(top);
-      d.appendChild(bar);
-
-      d.addEventListener("click", () => onRoomClick(r.id));
-      wrap.appendChild(d);
+      btn.innerHTML = `
+        <div class="roomTop">Room ${r.id}</div>
+        <div class="roomBody">${r.state === "empty" ? "Empty" : r.state}</div>
+        <div class="roomFoot">${
+          r.state === "occupied" ? `⏳ ${Math.ceil(r.stayLeft)}s left` :
+          r.state === "dirty" ? "🧴 Needs detergent + Clean" : "—"
+        }</div>
+      `;
+      btn.addEventListener("click", () => onRoomClick(r.id));
+      wrap.appendChild(btn);
     });
   }
 
-  function onRoomClick(roomId){
-    const r = rooms.find(x => x.id === roomId);
-    if (!r) return;
+  function onRoomClick(roomId) {
+    selectedRoomId = roomId;
+    renderRooms();
 
-    // cleaning click
-    if (r.state === "dirty"){
-      r.state = "cleaning";
-      r.cleanLeft = 5;
-      setResult(`🧽 Cleaning Room ${roomId}…`, true);
-      renderRooms();
-      return;
-    }
+    const room = rooms.find((r) => r.id === roomId);
+    if (!room) return;
 
-    // can check-in only if empty and guest selected
-    if (r.state !== "empty") return;
-    if (!selectedGuestId){
-      setResult("Select a guest first.", false);
-      return;
-    }
-
-    const gIndex = queue.findIndex(g => g.id === selectedGuestId);
-    if (gIndex === -1){
-      setResult("That guest is not in queue anymore.", false);
-      selectedGuestId = null;
-      renderQueue();
-      return;
-    }
-
-    // Level 2+: require correct order delivered BEFORE check-in
-    if (cfg.ordersEnabled){
-      const g = queue[gIndex];
-      if (!g.orderDone){
-        setResult(`Deliver: ${requiredOrderLabel(g.order)} before check-in.`, false);
+    // Check-in rule: only empty room + selected guest
+    if (room.state === "empty") {
+      if (!selectedGuestId) {
+        setHint("Select a guest, then click an EMPTY room.");
         return;
       }
+
+      const gi = queue.findIndex((g) => g.id === selectedGuestId);
+      if (gi === -1) {
+        selectedGuestId = null;
+        renderQueue();
+        setHint("That guest is not in the queue anymore.");
+        return;
+      }
+
+      const guest = queue[gi];
+
+      // Level 2: must deliver order before check-in
+      if (cfg.ordersEnabled && !guest.orderDone) {
+        setHint(`Deliver ${orderLabel(guest.order)} before check-in.`);
+        return;
+      }
+
+      // Move guest to room
+      queue.splice(gi, 1);
+      selectedGuestId = null;
+
+      room.state = "occupied";
+      room.guestId = guest.id;
+      room.stayTotal = randFrom([10, 12, 14]);
+      room.stayLeft = room.stayTotal;
+
+      served++;
+      addCoins(2);
+
+      setHint(`✅ Checked in ${guest.name} to Room ${roomId}. (+2 coins)`);
+      updateHud();
+      renderQueue();
+      renderRooms();
+      checkWinLose();
+      return;
     }
 
-    // check-in
-    const guest = queue.splice(gIndex,1)[0];
-    selectedGuestId = null;
-
-    r.state = "occupied";
-    r.guestId = guest.id;
-    r.stayTotal = randFrom([10,12,14]); // seconds
-    r.stayLeft = r.stayTotal;
-
-    served++;
-    ssAddCoins(2); // serving earns coins
-    setResult(`✅ Checked in ${guest.name} to Room ${roomId}. +2 coins`, true);
-
-    renderAll();
-    checkWinLose();
+    // If occupied/dirty, we just select it (actions buttons do work)
+    if (room.state === "occupied") {
+      setHint(`Room ${roomId} is occupied. Wait or Checkout manually.`);
+    }
+    if (room.state === "dirty") {
+      setHint(`Room ${roomId} is dirty. Pick detergent then Clean.`);
+    }
   }
 
   // ---------- Queue ----------
   let guestCounter = 1;
 
-  function spawnGuest(){
-    if (cfg.comingSoon) return;
-    if (queue.length >= 6) return;
+  function randFrom(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
 
-    const avatars = ["🧑🏽","👩🏽","🧑🏾","👩🏾","🧔🏽","👱🏽‍♀️","🧕🏽"];
-    const orders = ["sandwich","detergent"];
+  function spawnGuest(manual = false) {
+    if (!cfg || cfg.comingSoon) return;
+    if (queue.length >= MAX_QUEUE) {
+      if (manual) setHint("Queue is full. Serve/check-in guests first.");
+      return;
+    }
+
+    const avatars = ["🧑🏽", "👩🏽", "🧑🏾", "👩🏾", "🧔🏽", "👱🏽‍♀️", "🧕🏽"];
+    const snackOrders = ["coconut", "soda", "fries", "sandwich"];
+    const allOrders = [...snackOrders, "detergent"];
+
+    const order = cfg.ordersEnabled ? randFrom(allOrders) : null;
 
     const g = {
-      id: `g${guestCounter++}`,
-      name: `Guest ${guestCounter-1}`,
+      id: `g${guestCounter}`,
+      name: `Guest ${guestCounter}`,
       avatar: randFrom(avatars),
-      patience: cfg.basePatienceSec,
       patienceTotal: cfg.basePatienceSec,
-      order: cfg.ordersEnabled ? randFrom(orders) : null,
-      orderDone: !cfg.ordersEnabled
+      patience: cfg.basePatienceSec,
+      order,
+      orderDone: !cfg.ordersEnabled, // auto-done when orders disabled
     };
+    guestCounter++;
 
     queue.push(g);
     renderQueue();
+    updateHud();
   }
 
-  function renderQueue(){
-    const wrap = el("queue");
+  function renderQueue() {
+    const wrap = $("queue");
     if (!wrap) return;
     wrap.innerHTML = "";
 
-    queue.forEach(g => {
+    queue.forEach((g) => {
       const card = document.createElement("div");
       card.className = "guestCard";
       if (g.id === selectedGuestId) card.classList.add("selected");
+
+      const pct = g.patienceTotal > 0 ? (g.patience / g.patienceTotal) : 0;
 
       const left = document.createElement("div");
       left.className = "guestLeft";
@@ -300,8 +356,7 @@
 
       const mood = document.createElement("div");
       mood.className = "mood";
-      const p = g.patienceTotal > 0 ? (g.patience / g.patienceTotal) : 0;
-      mood.textContent = `${guestMood(p)} • ${Math.ceil(g.patience)}s`;
+      mood.textContent = `${moodLabel(pct)} • ${Math.ceil(g.patience)}s`;
 
       meta.appendChild(nm);
       meta.appendChild(mood);
@@ -311,8 +366,8 @@
 
       const badge = document.createElement("div");
       badge.className = "orderBadge";
-      if (cfg.ordersEnabled){
-        badge.textContent = g.orderDone ? "✅ Ready" : requiredOrderLabel(g.order);
+      if (cfg.ordersEnabled) {
+        badge.textContent = g.orderDone ? "✅ Ready" : orderLabel(g.order);
       } else {
         badge.textContent = "Tap to select";
       }
@@ -322,437 +377,320 @@
 
       card.addEventListener("click", () => {
         selectedGuestId = (selectedGuestId === g.id) ? null : g.id;
-        setResult(selectedGuestId ? `Selected ${g.name}.` : "Selection cleared.", true);
+        setHint(selectedGuestId ? `Selected ${g.name}.` : "Selection cleared.");
         renderQueue();
       });
 
       wrap.appendChild(card);
     });
 
-    const qc = el("queueCount");
-    if (qc) qc.textContent = String(queue.length);
+    updateHud();
   }
 
-  // ---------- Hands (Level 2) ----------
-  function handsEnabled(){
-    return !!cfg.enableHands && !cfg.comingSoon;
-  }
-
-  function updateHandsUI(){
-    const hint = el("handsHint");
-    const s = el("sandwichStation");
-    const d = el("detergentStation");
-    const hl = el("handL");
-    const hr = el("handR");
-    const hli = el("handLItem");
-    const hri = el("handRItem");
-
-    const enabled = handsEnabled();
-
-    if (hint) hint.textContent = enabled
-      ? "Hands active. Prepare items, then deliver to selected guest."
-      : "Hands are locked until Level 2.";
-
-    [s,d,hl,hr].forEach(x => {
-      if (!x) return;
-      x.classList.toggle("disabled", !enabled);
-    });
-
-    if (hli) hli.textContent = HANDS.L ? requiredOrderLabel(HANDS.L.type) : "Empty";
-    if (hri) hri.textContent = HANDS.R ? requiredOrderLabel(HANDS.R.type) : "Empty";
-  }
-
-  function firstFreeHand(){
+  // ---------- Hands + Stations ----------
+  function firstFreeHand() {
     if (!HANDS.L) return "L";
     if (!HANDS.R) return "R";
     return null;
   }
 
-  function makeItem(type){
+  function pickIntoHand(type) {
+    if (!cfg || !cfg.ordersEnabled) {
+      setHint("Hands are used in Level 2.");
+      return;
+    }
+
     const slot = firstFreeHand();
-    if (!slot){
-      setResult("Both hands are full. Deliver or drop something.", false);
+    if (!slot) {
+      setHint("Both hands are full. Drop or deliver first.");
       return;
     }
 
-    if (type === "sandwich"){
-      if (now() < sandwichBusyUntil){
-        setResult("🥪 Sandwich station busy… wait.", false);
-        return;
-      }
-      // sandwich takes time
-      sandwichBusyUntil = now() + 1400;
-      setResult("🥪 Preparing sandwich…", true);
-
-      setTimeout(() => {
-        HANDS[slot] = { type: "sandwich", readyAt: now() };
-        setResult(`🥪 Sandwich ready in ${slot === "L" ? "Left" : "Right"} hand.`, true);
-        updateHandsUI();
-      }, 1400);
-      return;
-    }
-
-    if (type === "detergent"){
-      HANDS[slot] = { type: "detergent", readyAt: now() };
-      setResult(`🧴 Detergent grabbed in ${slot === "L" ? "Left" : "Right"} hand.`, true);
-      updateHandsUI();
-      return;
-    }
-  }
-
-  function deliverFromHand(slot){
-    if (!handsEnabled()) return;
-    if (!HANDS[slot]){
-      setResult("That hand is empty.", false);
-      return;
-    }
-    if (!selectedGuestId){
-      setResult("Select a guest first (queue).", false);
-      return;
-    }
-
-    const g = queue.find(x => x.id === selectedGuestId);
-    if (!g){
-      setResult("Guest not found.", false);
-      selectedGuestId = null;
-      renderQueue();
-      return;
-    }
-
-    // must match order
-    if (g.order && HANDS[slot].type !== g.order){
-      setResult("Wrong item for this guest.", false);
-      // little shake effect on queue container
-      const q = el("queue");
-      if (q){ q.classList.remove("shake"); void q.offsetWidth; q.classList.add("shake"); }
-      return;
-    }
-
-    g.orderDone = true;
-    HANDS[slot] = null;
-    ssAddCoins(1);
-    setResult(`✅ Delivered ${requiredOrderLabel(g.order)}. +1 coin`, true);
-
-    renderQueue();
+    HANDS[slot] = { type };
     updateHandsUI();
+    setHint(`Picked ${orderLabel(type)} into ${slot === "L" ? "Left" : "Right"} hand.`);
   }
 
-  function dropFromHand(slot){
-    if (!handsEnabled()) return;
+  function dropHand(slot) {
+    if (!cfg || !cfg.ordersEnabled) return;
     if (!HANDS[slot]) return;
 
     HANDS[slot] = null;
     waste++;
-    setResult(`❌ Dropped item. Waste +1`, false);
-    renderStats();
+
     updateHandsUI();
+    updateHud();
+    setHint(`❌ Dropped item. Waste = ${waste} (Level 2 must stay 0).`);
     checkWinLose();
   }
 
-  function initHands(){
-    const s = el("sandwichStation");
-    const d = el("detergentStation");
-    const hl = el("handL");
-    const hr = el("handR");
-
-    if (s) s.addEventListener("click", () => handsEnabled() && makeItem("sandwich"));
-    if (d) d.addEventListener("click", () => handsEnabled() && makeItem("detergent"));
-
-    if (hl){
-      hl.addEventListener("click", () => deliverFromHand("L"));
-      hl.addEventListener("contextmenu", (e) => { e.preventDefault(); dropFromHand("L"); });
+  function deliverToSelectedGuest() {
+    if (!cfg || !cfg.ordersEnabled) {
+      setHint("Delivery is for Level 2 orders.");
+      return;
     }
-    if (hr){
-      hr.addEventListener("click", () => deliverFromHand("R"));
-      hr.addEventListener("contextmenu", (e) => { e.preventDefault(); dropFromHand("R"); });
-    }
-  }
-
-  // ---------- Shop ----------
-  function buildShop(){
-    const wrap = el("shop");
-    if (!wrap) return;
-    wrap.innerHTML = "";
-
-    const u = upgradeData();
-
-    const items = [
-      {
-        key: "patienceBoost",
-        title: "Patience Boost",
-        desc: "+4 seconds patience for guests (helps Level 1 & 2).",
-        cost: 25
-      },
-      {
-        key: "spawnSlow",
-        title: "Slower Spawn",
-        desc: "Guests spawn a bit slower (easier).",
-        cost: 20
-      },
-      {
-        key: "bonusCoins",
-        title: "Hotel Bonus",
-        desc: "Adds +1 extra coin every check-in.",
-        cost: 30
-      }
-    ];
-
-    items.forEach(it => {
-      const card = document.createElement("div");
-      card.className = "shopItem";
-
-      const left = document.createElement("div");
-      const h = document.createElement("h4");
-      h.textContent = it.title + (u[it.key] ? " ✅" : "");
-      const p = document.createElement("p");
-      p.textContent = it.desc;
-      left.appendChild(h);
-      left.appendChild(p);
-
-      const right = document.createElement("div");
-      right.className = "buyRow";
-
-      const cost = document.createElement("div");
-      cost.className = "costTag";
-      cost.textContent = `Cost: ${it.cost}🪙`;
-
-      const btn = document.createElement("button");
-      btn.className = "btn small";
-      btn.textContent = u[it.key] ? "Owned" : "Buy";
-      btn.disabled = !!u[it.key];
-      btn.addEventListener("click", () => {
-        const coins = ssGetCoins();
-        if (coins < it.cost){
-          setResult("Not enough coins. Play Puzzle to earn more.", false);
-          return;
-        }
-        ssSetCoins(coins - it.cost);
-        u[it.key] = true;
-        ssSetUpgrades(u);
-        setResult(`Purchased: ${it.title}`, true);
-        // reload level config with upgrades
-        startLevel(level);
-      });
-
-      right.appendChild(cost);
-      right.appendChild(btn);
-
-      card.appendChild(left);
-      card.appendChild(right);
-      wrap.appendChild(card);
-    });
-  }
-
-  // ---------- Render ----------
-  function renderStats(){
-    const s = el("served"); if (s) s.textContent = String(served);
-    const a = el("angry"); if (a) a.textContent = String(angryLeft);
-    const w = el("waste"); if (w) w.textContent = String(waste);
-    ssSyncCoinsUI();
-    ssSyncLevelUI();
-  }
-
-  function renderObjective(){
-    const line = el("objectiveLine");
-    if (!line) return;
-
-    if (cfg.comingSoon){
-      line.textContent = `${cfg.name} • Coming soon (wired). Use Level 1 or 2 for now.`;
+    if (!selectedGuestId) {
+      setHint("Select a guest in the queue first.");
       return;
     }
 
-    const extra = cfg.enableHands ? " • Rule: Waste must stay 0." : "";
-    line.textContent =
-      `${cfg.name} • Goal: Serve ${cfg.serveGoal} • Angry limit: ${cfg.angryLimit}${extra}`;
-  }
+    const guest = queue.find((g) => g.id === selectedGuestId);
+    if (!guest) {
+      selectedGuestId = null;
+      renderQueue();
+      setHint("Guest not found.");
+      return;
+    }
 
-  function renderAll(){
-    renderObjective();
-    renderStats();
-    renderQueue();
-    renderRooms();
+    const haveL = HANDS.L?.type;
+    const haveR = HANDS.R?.type;
+
+    // must match order
+    let used = null;
+    if (haveL === guest.order) used = "L";
+    else if (haveR === guest.order) used = "R";
+
+    if (!used) {
+      setHint(`Wrong item. Need ${orderLabel(guest.order)}.`);
+      return;
+    }
+
+    guest.orderDone = true;
+    HANDS[used] = null;
+    addCoins(1);
+
     updateHandsUI();
-    buildShop();
+    renderQueue();
+    updateHud();
+    setHint(`✅ Delivered ${orderLabel(guest.order)}. (+1 coin) Now check-in.`);
   }
 
-  // ---------- Game Loop ----------
-  function stopTimers(){
+  // ---------- Checkout + Clean ----------
+  function checkoutSelectedRoom() {
+    const room = rooms.find((r) => r.id === selectedRoomId);
+    if (!room) {
+      setHint("Select a room first.");
+      return;
+    }
+    if (room.state !== "occupied") {
+      setHint("Checkout works only on an occupied room.");
+      return;
+    }
+
+    room.state = "dirty";
+    room.guestId = null;
+    room.stayLeft = 0;
+    room.stayTotal = 0;
+
+    setHint(`🧾 Checked out Room ${room.id}. Now it is DIRTY.`);
+    renderRooms();
+  }
+
+  function hasDetergentInHand() {
+    return HANDS.L?.type === "detergent" || HANDS.R?.type === "detergent";
+  }
+
+  function consumeDetergent() {
+    if (HANDS.L?.type === "detergent") HANDS.L = null;
+    else if (HANDS.R?.type === "detergent") HANDS.R = null;
+    updateHandsUI();
+  }
+
+  function cleanSelectedRoom() {
+    const room = rooms.find((r) => r.id === selectedRoomId);
+    if (!room) {
+      setHint("Select a room first.");
+      return;
+    }
+    if (room.state !== "dirty") {
+      setHint("Clean works only on a DIRTY room.");
+      return;
+    }
+    if (!hasDetergentInHand()) {
+      setHint("Pick detergent into a hand first (🧴).");
+      return;
+    }
+
+    // consume detergent and clean
+    consumeDetergent();
+    room.state = "empty";
+    setHint(`✅ Cleaned Room ${room.id}. Ready for next guest.`);
+    renderRooms();
+  }
+
+  // ---------- Timers / Loop ----------
+  function stopTimers() {
     if (tickTimer) clearInterval(tickTimer);
     if (spawnTimer) clearInterval(spawnTimer);
     tickTimer = null;
     spawnTimer = null;
   }
 
-  function startLevel(lvl){
+  function startLevel(lvl) {
     stopTimers();
 
     level = lvl;
-    ssSetMombasaLevel(level);
+    setLevel(level);
+    cfg = levelConfig(level);
 
     served = 0;
     angryLeft = 0;
     waste = 0;
-    selectedGuestId = null;
+
     queue = [];
+    selectedGuestId = null;
+
     HANDS.L = null;
     HANDS.R = null;
-    sandwichBusyUntil = 0;
+    updateHandsUI();
 
     initRooms();
 
-    const u = upgradeData();
-    cfg = levelConfig(level, u);
-
     timeLeft = cfg.timeLimitSec;
 
-    const hint = el("hint");
-    if (hint){
-      hint.textContent = cfg.ordersEnabled
-        ? "Level 2: Deliver the order (hands) THEN click guest → empty room."
-        : "Click a guest, then click an EMPTY room.";
+    setHint(cfg.ordersEnabled
+      ? "Level 2: Deliver the order (hands) THEN click guest → empty room."
+      : "Click a guest, then click an EMPTY room."
+    );
+    setSubhint("Tip: Snacks are delivered by the bellboy. Cleaning needs detergent in a hand.");
+
+    updateHud();
+    renderQueue();
+    renderRooms();
+
+    // Coming soon: no timers
+    if (cfg.comingSoon) {
+      setHint(`${cfg.name} — coming soon. Play Level 1 or 2 for now.`);
+      return;
     }
 
-    const top = el("levelTop");
-    if (top) top.textContent = String(level);
+    // initial guests
+    spawnGuest(false);
+    spawnGuest(false);
 
-    setResult(`Started ${cfg.name}`, true);
-
-    renderAll();
-
-    // If coming soon, do not run timers
-    if (cfg.comingSoon) return;
-
-    // tick (1s)
+    // tick each second
     tickTimer = setInterval(() => {
       timeLeft--;
-      if (el("timeLeft")) el("timeLeft").textContent = formatTime(timeLeft);
 
-      // decrease patience
-      for (let i=queue.length-1;i>=0;i--){
+      // queue patience
+      for (let i = queue.length - 1; i >= 0; i--) {
         queue[i].patience -= 1;
-        if (queue[i].patience <= 0){
-          // angry leaves
-          queue.splice(i,1);
+        if (queue[i].patience <= 0) {
+          queue.splice(i, 1);
           angryLeft++;
-          setResult("😡 A guest left angry!", false);
-          renderStats();
-          renderQueue();
-          checkWinLose();
+          setHint("😡 A guest left angry!");
         }
       }
 
-      // rooms progress
-      rooms.forEach(r => {
-        if (r.state === "occupied"){
+      // rooms stay countdown
+      rooms.forEach((r) => {
+        if (r.state === "occupied") {
           r.stayLeft -= 1;
-          if (r.stayLeft <= 0){
+          if (r.stayLeft <= 0) {
+            // stay ended -> make room dirty (manual checkout still possible earlier)
             r.state = "dirty";
             r.guestId = null;
             r.stayLeft = 0;
             r.stayTotal = 0;
           }
         }
-        if (r.state === "cleaning"){
-          r.cleanLeft -= 1;
-          if (r.cleanLeft <= 0){
-            r.state = "empty";
-            r.cleanLeft = 0;
-            setResult("✅ Room cleaned.", true);
-          }
-        }
       });
 
+      renderQueue();
       renderRooms();
+      updateHud();
 
-      if (timeLeft <= 0){
+      // time end
+      if (timeLeft <= 0) {
         checkWinLose(true);
+      } else {
+        checkWinLose(false);
       }
     }, 1000);
 
-    // spawn
-    spawnTimer = setInterval(() => {
-      spawnGuest();
-      renderQueue();
-    }, cfg.spawnEveryMs);
-
-    // initial guests
-    spawnGuest();
-    spawnGuest();
-    renderQueue();
-
-    // time UI
-    if (el("timeLeft")) el("timeLeft").textContent = formatTime(timeLeft);
+    // auto spawn
+    spawnTimer = setInterval(() => spawnGuest(false), cfg.spawnEveryMs);
   }
 
-  function checkWinLose(forceTimeEnd=false){
-    if (cfg.comingSoon) return;
+  function checkWinLose(forceTimeEnd = false) {
+    if (!cfg || cfg.comingSoon) return;
 
-    // lose conditions
-    if (angryLeft > cfg.angryLimit){
+    // lose
+    if (angryLeft > cfg.angryLimit) {
       stopTimers();
-      setResult(`❌ Failed: too many angry guests (${angryLeft}). Restart Level.`, false);
+      setHint(`❌ Failed: too many angry guests (${angryLeft}). Press Reset.`);
       return;
     }
-    if (waste > cfg.wasteLimit){
+    if (cfg.ordersEnabled && waste > cfg.wasteLimit) {
       stopTimers();
-      setResult(`❌ Failed: you wasted items (${waste}). Restart Level 2.`, false);
+      setHint(`❌ Failed: you wasted an item. (Waste ${waste}) Press Reset.`);
       return;
     }
 
     // win
-    if (served >= cfg.serveGoal){
+    if (served >= cfg.serveGoal) {
       stopTimers();
-      setResult(`🏆 Level ${level} complete! You can go Next Level.`, true);
-      // reward
-      ssAddCoins(10);
+      addCoins(10);
+      setHint(`🏆 Level ${level} complete! +10 coins. (Next levels coming soon)`);
       return;
     }
 
-    if (forceTimeEnd){
+    if (forceTimeEnd) {
       stopTimers();
-      setResult(`⏰ Time up! Served ${served}/${cfg.serveGoal}. Try again.`, false);
+      setHint(`⏰ Time up! Served ${served}/${cfg.serveGoal}. Press Reset.`);
     }
   }
 
-  // ---------- Next Level Button ----------
-  function initNextLevelBtn(){
-    const btn = el("nextLevelBtn");
-    if (!btn) return;
-    btn.addEventListener("click", () => {
-      const next = Math.min(10, ssGetMombasaLevel() + 1);
-      startLevel(next);
-    });
+  // ---------- Wiring / Events ----------
+  function wireButtons() {
+    const btnSpawn = $("btnSpawn");
+    if (btnSpawn) btnSpawn.addEventListener("click", () => spawnGuest(true));
+
+    const btnReset = $("btnReset");
+    if (btnReset) btnReset.addEventListener("click", () => startLevel(getLevel()));
+
+    const btnDeliver = $("btnDeliver");
+    if (btnDeliver) btnDeliver.addEventListener("click", deliverToSelectedGuest);
+
+    const btnCheckout = $("btnCheckout");
+    if (btnCheckout) btnCheckout.addEventListener("click", checkoutSelectedRoom);
+
+    const btnClean = $("btnClean");
+    if (btnClean) btnClean.addEventListener("click", cleanSelectedRoom);
+
+    const btnDetergent = $("btnDetergent");
+    if (btnDetergent) btnDetergent.addEventListener("click", () => pickIntoHand("detergent"));
+
+    // Drop buttons
+    const dropL = $("dropL");
+    if (dropL) dropL.addEventListener("click", () => dropHand("L"));
+
+    const dropR = $("dropR");
+    if (dropR) dropR.addEventListener("click", () => dropHand("R"));
+
+    // Snack buttons (they all share class itemBtn and have data-item)
+    const snackWrap = $("snacks");
+    if (snackWrap) {
+      snackWrap.addEventListener("click", (e) => {
+        const btn = e.target.closest(".itemBtn");
+        if (!btn) return;
+        const type = btn.dataset.item;
+        if (!type) return;
+        pickIntoHand(type);
+      });
+    }
   }
 
   // ---------- Boot ----------
   document.addEventListener("DOMContentLoaded", () => {
-    // only run on mombasa page
-    if (!document.getElementById("tab-hotel")) return;
+    // Run only on Mombasa page with your new layout
+    if (!$("panel-hotel")) return;
 
-    initTabs();
-    initHands();
-    initNextLevelBtn();
+    syncCoinsUI();
+    wireButtons();
 
-    // start current saved level, but if it's >2 show coming soon with ability to go back
-    const saved = ssGetMombasaLevel();
+    // Start saved level (default 1)
+    const saved = getLevel();
     startLevel(saved);
-
-    // If user is on coming soon level, help them quickly jump back
-    if (saved > 2){
-      setResult("Levels 3–10 are wired but not built yet. Click Next Level to cycle, or Reset on map.", false);
-    }
-
-    // bonus coins upgrade on check-in
-    // (applied in onRoomClick via ssAddCoins(2), adjust here by upgrade)
-    const _onRoomClick = onRoomClick;
-    // not overriding due to closure; instead we apply bonus in check-in moment:
-    // handled below by monkey patching ssAddCoins after check-in? keep simple:
-    // We'll apply bonus via upgrade check inside onRoomClick:
   });
-
-  // Patch: add bonus coin if upgrade owned (without rewriting onRoomClick)
-  // Easiest: override ssAddCoins? No.
-  // We'll instead adjust check-in reward by listening to storage? Not worth.
-  // If you want it: tell me and I'll add it cleanly.
-
 })();
