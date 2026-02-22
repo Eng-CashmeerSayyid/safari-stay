@@ -4,8 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Safari Stay – Mombasa Hotel</title>
+
   <link rel="stylesheet" href="style.css" />
+
+  <!-- Hotel logic -->
   <script src="Mombasa.js" defer></script>
+
+  <!-- Puzzle logic (NEW) -->
+  <script src="puzzle.js" defer></script>
 </head>
 
 <body>
@@ -27,6 +33,8 @@
   </header>
 
   <main class="wrap">
+
+    <!-- NEW: TABS -->
     <section class="card sceneHeader">
       <div class="rowBetween">
         <div>
@@ -37,111 +45,152 @@
         </div>
 
         <div class="controls">
+          <div class="tabs">
+            <button class="tabBtn active" data-tab="hotel" id="tabBtnHotel">🏨 Hotel</button>
+            <button class="tabBtn" data-tab="puzzle" id="tabBtnPuzzle">🧩 Puzzle</button>
+          </div>
+
           <button class="btn" id="btnSpawn">+ Add Guest</button>
           <button class="btnGhost" id="btnReset">Reset</button>
         </div>
       </div>
     </section>
 
-    <div class="grid2">
-      <!-- LEFT: HOTEL -->
-      <section class="card">
-        <div class="sectionTitle">Hotel</div>
+    <!-- =========================
+         PANEL: HOTEL (DEFAULT)
+    ========================== -->
+    <section class="panel active" id="panel-hotel">
+      <div class="grid2">
+        <!-- LEFT: HOTEL -->
+        <section class="card">
+          <div class="sectionTitle">Hotel</div>
 
-        <div class="lane">
-          <div class="laneTitle">Queue</div>
-          <div id="queue" class="queue"></div>
-        </div>
-
-        <div class="lane">
-          <div class="laneTitle">Rooms</div>
-          <div class="rooms" id="rooms">
-            <button class="room" data-room="0">
-              <div class="roomTop">Room 1</div>
-              <div class="roomBody" id="roomBody0">Empty</div>
-              <div class="roomFoot" id="roomFoot0">—</div>
-            </button>
-            <button class="room" data-room="1">
-              <div class="roomTop">Room 2</div>
-              <div class="roomBody" id="roomBody1">Empty</div>
-              <div class="roomFoot" id="roomFoot1">—</div>
-            </button>
-            <button class="room" data-room="2">
-              <div class="roomTop">Room 3</div>
-              <div class="roomBody" id="roomBody2">Empty</div>
-              <div class="roomFoot" id="roomFoot2">—</div>
-            </button>
-            <button class="room" data-room="3">
-              <div class="roomTop">Room 4</div>
-              <div class="roomBody" id="roomBody3">Empty</div>
-              <div class="roomFoot" id="roomFoot3">—</div>
-            </button>
+          <div class="lane">
+            <div class="laneTitle">Queue</div>
+            <div id="queue" class="queue"></div>
           </div>
-        </div>
 
-        <div class="lane">
-          <div class="laneTitle">Stations</div>
-          <div class="stations">
-            <div class="station">
-              <div class="stationHead">Snack Station</div>
-              <div class="stationGrid" id="snacks">
-                <button class="itemBtn" data-item="coconut">🥥 Coconut</button>
-                <button class="itemBtn" data-item="soda">🥤 Soda</button>
-                <button class="itemBtn" data-item="fries">🍟 Fries</button>
-                <button class="itemBtn" data-item="sandwich">🥪 Sandwich</button>
+          <div class="lane">
+            <div class="laneTitle">Rooms</div>
+            <div class="rooms" id="rooms">
+              <button class="room" data-room="0">
+                <div class="roomTop">Room 1</div>
+                <div class="roomBody" id="roomBody0">Empty</div>
+                <div class="roomFoot" id="roomFoot0">—</div>
+              </button>
+              <button class="room" data-room="1">
+                <div class="roomTop">Room 2</div>
+                <div class="roomBody" id="roomBody1">Empty</div>
+                <div class="roomFoot" id="roomFoot1">—</div>
+              </button>
+              <button class="room" data-room="2">
+                <div class="roomTop">Room 3</div>
+                <div class="roomBody" id="roomBody2">Empty</div>
+                <div class="roomFoot" id="roomFoot2">—</div>
+              </button>
+              <button class="room" data-room="3">
+                <div class="roomTop">Room 4</div>
+                <div class="roomBody" id="roomBody3">Empty</div>
+                <div class="roomFoot" id="roomFoot3">—</div>
+              </button>
+            </div>
+          </div>
+
+          <div class="lane">
+            <div class="laneTitle">Stations</div>
+            <div class="stations">
+              <div class="station">
+                <div class="stationHead">Snack Station</div>
+                <div class="stationGrid" id="snacks">
+                  <button class="itemBtn" data-item="coconut">🥥 Coconut</button>
+                  <button class="itemBtn" data-item="soda">🥤 Soda</button>
+                  <button class="itemBtn" data-item="fries">🍟 Fries</button>
+                  <button class="itemBtn" data-item="sandwich">🥪 Sandwich</button>
+                </div>
+                <div class="smallMuted">Pick a snack into a hand, then deliver to a guest who ordered.</div>
               </div>
-              <div class="smallMuted">Pick a snack into a hand, then deliver to a guest who ordered.</div>
-            </div>
 
-            <div class="station">
-              <div class="stationHead">Detergent Station</div>
-              <button class="itemBtn wide" id="btnDetergent">🧴 Pick Detergent</button>
-              <div class="smallMuted">Needed to clean rooms (manual).</div>
+              <div class="station">
+                <div class="stationHead">Detergent Station</div>
+                <button class="itemBtn wide" id="btnDetergent">🧴 Pick Detergent</button>
+                <div class="smallMuted">Needed to clean rooms (manual).</div>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <!-- RIGHT: BELLBOY -->
+        <!-- RIGHT: BELLBOY -->
+        <section class="card">
+          <div class="sectionTitle">Bellboy</div>
+
+          <div class="bellboy">
+            <div class="boyAvatar">🧑🏽‍🍳</div>
+
+            <div class="hands">
+              <div class="handCard" id="handL">
+                <div class="handTitle">Left Hand</div>
+                <div class="handItem" id="leftItem">Empty</div>
+                <button class="btnTiny" data-hand="L" id="dropL">Drop</button>
+              </div>
+
+              <div class="handCard" id="handR">
+                <div class="handTitle">Right Hand</div>
+                <div class="handItem" id="rightItem">Empty</div>
+                <button class="btnTiny" data-hand="R" id="dropR">Drop</button>
+              </div>
+            </div>
+
+            <div class="actions">
+              <button class="btn" id="btnDeliver">Deliver to Selected Guest</button>
+              <button class="btnGhost" id="btnCheckout">Checkout Room (selected)</button>
+              <button class="btnGhost" id="btnClean">Clean Room (selected)</button>
+            </div>
+
+            <div class="smallMuted">
+              Flow:
+              <ol class="miniList">
+                <li>Select a guest (queue or in room)</li>
+                <li>Pick an item into a hand</li>
+                <li>Deliver (if they ordered)</li>
+                <li>Checkout when stay ends</li>
+                <li>Pick detergent then Clean</li>
+              </ol>
+            </div>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <!-- =========================
+         PANEL: PUZZLE (NEW)
+    ========================== -->
+    <section class="panel" id="panel-puzzle">
       <section class="card">
-        <div class="sectionTitle">Bellboy</div>
-
-        <div class="bellboy">
-          <div class="boyAvatar">🧑🏽‍🍳</div>
-
-          <div class="hands">
-            <div class="handCard" id="handL">
-              <div class="handTitle">Left Hand</div>
-              <div class="handItem" id="leftItem">Empty</div>
-              <button class="btnTiny" data-hand="L" id="dropL">Drop</button>
-            </div>
-
-            <div class="handCard" id="handR">
-              <div class="handTitle">Right Hand</div>
-              <div class="handItem" id="rightItem">Empty</div>
-              <button class="btnTiny" data-hand="R" id="dropR">Drop</button>
+        <div class="rowBetween" style="gap:12px; flex-wrap:wrap;">
+          <div>
+            <div class="sectionTitle">Puzzle</div>
+            <div class="smallMuted">
+              Match 3+ to earn coins. Coins sync to the hotel.
             </div>
           </div>
 
-          <div class="actions">
-            <button class="btn" id="btnDeliver">Deliver to Selected Guest</button>
-            <button class="btnGhost" id="btnCheckout">Checkout Room (selected)</button>
-            <button class="btnGhost" id="btnClean">Clean Room (selected)</button>
-          </div>
-
-          <div class="smallMuted">
-            Flow:
-            <ol class="miniList">
-              <li>Select a guest (queue or in room)</li>
-              <li>Pick an item into a hand</li>
-              <li>Deliver (if they ordered)</li>
-              <li>Checkout when stay ends</li>
-              <li>Pick detergent then Clean</li>
-            </ol>
+          <div class="controls" style="gap:10px;">
+            <div class="pill">Moves: <span id="movesLeft">20</span></div>
+            <div class="pill">Earned: <span id="puzzleEarned">0</span></div>
+            <button class="btn" id="btnPuzzleNew">New Board</button>
           </div>
         </div>
+
+        <div class="puzzleWrap">
+          <div id="board" class="board"></div>
+        </div>
+
+        <div class="smallMuted" style="margin-top:10px;">
+          How it works: click 1 tile then click a neighbor to swap. Matching tiles pop and refill.
+        </div>
       </section>
-    </div>
+    </section>
+
   </main>
 </body>
 </html>
