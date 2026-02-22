@@ -19,8 +19,8 @@
     </div>
 
     <div class="hud">
-      <div class="pill">🪙 Coins <b id="coinsTop">0</b></div>
-      <button class="btn ghost" id="resetBtn" title="Reset progress">Reset</button>
+      <div class="pill">🪙 Coins: <span id="coinsTop">0</span></div>
+      <button class="btnGhost" id="resetBtn" title="Reset progress">Reset</button>
     </div>
   </header>
 
@@ -28,7 +28,7 @@
     <section class="card">
       <div class="cardTitleRow">
         <div>
-          <h2 class="h2">Choose a Destination</h2>
+          <div class="h2">Choose a Destination</div>
           <p class="muted">Mombasa is playable. Amboseli & Nairobi are coming next.</p>
         </div>
         <div class="badge">Prototype</div>
@@ -56,11 +56,13 @@
     </section>
 
     <section class="card">
-      <h2 class="h2">Your Progress</h2>
+      <div class="h2">Your Progress</div>
+
       <div class="progressRow">
-        <div class="pill">Mombasa Level: <b id="mombasaLevel">1</b>/10</div>
-        <div class="pill">Upgrades: <b id="upgradesCount">0</b></div>
+        <div class="pill">Mombasa Level: <span id="mombasaLevel">1</span>/10</div>
+        <div class="pill">Upgrades: <span id="upgradesCount">0</span></div>
       </div>
+
       <p class="muted small">Tip: Play the Puzzle tab to earn coins, then buy upgrades in the Hotel tab.</p>
     </section>
   </main>
