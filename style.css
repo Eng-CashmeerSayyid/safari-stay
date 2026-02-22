@@ -194,6 +194,13 @@ a{ color:inherit; text-decoration:none; }
   grid-template-columns: repeat(2, 1fr);
   gap:10px;
 }
+
+.room.priority{
+  outline: 2px solid rgba(255,255,255,.8);
+  box-shadow: 0 0 0 4px rgba(255,255,255,.15);
+  transform: translateY(-1px);
+}
+
 .room{
   border-radius:16px;
   padding:10px;
