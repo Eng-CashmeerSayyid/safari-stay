@@ -600,3 +600,85 @@ body::before{
   background:
     radial-gradient(800px 400px at 20% 10%, rgba(120,170,255,.12), transparent 60%),
     radial-gradient(700px 500px at 85% 20%, rgba(40,240,220
+/* =====================================================
+   SAFARI STAY — CINEMATIC LIGHT + DEPTH (FINAL)
+   Paste at VERY bottom of style.css
+   ===================================================== */
+
+/* ---------- Ambient moving light (luxury feel) ---------- */
+body::before{
+  content:"";
+  position: fixed;
+  inset:0;
+  background:
+    radial-gradient(800px 400px at 20% 10%, rgba(120,170,255,.12), transparent 60%),
+    radial-gradient(700px 500px at 85% 20%, rgba(40,240,220
+
+   /* =====================================================
+   SAFARI STAY — MICRO ANIMATIONS PACK (Paste at bottom)
+   ===================================================== */
+
+@keyframes floatSoft {
+  0%,100% { transform: translateY(0); }
+  50%     { transform: translateY(-2px); }
+}
+
+@keyframes glowPulse {
+  0%,100% { filter: brightness(1); }
+  50%     { filter: brightness(1.08); }
+}
+
+@keyframes pop {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+@keyframes slideIn {
+  from { transform: translateY(10px); opacity:0; }
+  to   { transform: translateY(0); opacity:1; }
+}
+
+@keyframes tilePop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.10); }
+  100% { transform: scale(1); }
+}
+
+/* Smooth global transitions */
+.room, .guestCard, .tile, .btn, .btnGhost, .itemBtn, .tabBtn{
+  transition: transform .15s ease, filter .15s ease, box-shadow .15s ease, opacity .15s ease;
+}
+
+/* Rooms gently float (game feel) */
+.room{
+  animation: floatSoft 2.8s ease-in-out infinite;
+}
+.room:nth-child(2){ animation-delay: .2s; }
+.room:nth-child(3){ animation-delay: .4s; }
+.room:nth-child(4){ animation-delay: .6s; }
+
+/* Priority room pulses */
+.room.priority{
+  animation: floatSoft 2.6s ease-in-out infinite, glowPulse 1.2s ease-in-out infinite;
+}
+
+/* Guest cards slide in */
+.guestCard{
+  animation: slideIn .25s ease both;
+}
+
+/* Coin / pill pop helper class */
+.pill.pop{
+  animation: pop .25s ease;
+}
+
+/* Puzzle tiles pop when matched */
+.tile.pop{
+  animation: tilePop .22s ease;
+}
+
+/* Reduced motion accessibility */
+@media (prefers-reduced-motion: reduce){
+  .room, .guestCard{ animation: none !important; }
+}
