@@ -1,11 +1,12 @@
-/* =========================
-Safari Stay – style.css (FULL FINAL)
-Works for: index.html + mombasa.html
-========================= */
+/* =========================================================
+   SAFARI STAY — style.css (FULL FINAL • LUXURY 3D)
+   Works for: index.html + mombasa.html
+   ========================================================= */
 
+/* ---------- Theme Tokens ---------- */
 :root{
   --bg0:#050913;
-  --bg1:#0b1220;
+  --bg1:#0a1020;
 
   --card: rgba(255,255,255,.06);
   --stroke: rgba(255,255,255,.10);
@@ -14,17 +15,17 @@ Works for: index.html + mombasa.html
   --text:#eef2ff;
   --muted: rgba(238,242,255,.72);
 
-  --aqua:#2ee7d2;
-  --ocean:#4da3ff;
+  --aqua:#23dcc8;
+  --ocean:#5a8cff;
   --sand:#ffd08a;
-  --coral:#ff6b88;
+  --gold:#ffb020;
 
   --good:#52ffb8;
-  --warn:#ffb020;
   --bad:#ff4d6d;
 
-  --shadow: 0 18px 40px rgba(0,0,0,.35);
-  --shadow2: 0 10px 24px rgba(0,0,0,.25);
+  --shadowA: 0 26px 70px rgba(0,0,0,.55);
+  --shadowB: 0 10px 28px rgba(0,0,0,.25);
+  --shadowC: 0 16px 28px rgba(0,0,0,.24);
 
   --r-xl: 22px;
   --r-lg: 16px;
@@ -33,24 +34,42 @@ Works for: index.html + mombasa.html
   --blur: 10px;
 }
 
+/* ---------- Base Reset ---------- */
 *{ box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
 html,body{ height:100%; }
 body{
   margin:0;
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
   color: var(--text);
+  perspective: 1200px;
   background:
-    radial-gradient(1200px 700px at 30% -20%, rgba(77,163,255,.20), transparent 55%),
-    radial-gradient(900px 600px at 85% 10%, rgba(46,231,210,.16), transparent 55%),
-    radial-gradient(900px 700px at 20% 120%, rgba(255,107,136,.10), transparent 60%),
+    radial-gradient(900px 600px at 18% -10%, rgba(90,140,255,.16), transparent 60%),
+    radial-gradient(900px 650px at 88% 0%, rgba(35,220,200,.10), transparent 62%),
+    radial-gradient(900px 650px at 50% 120%, rgba(255,200,140,.06), transparent 65%),
     linear-gradient(180deg, var(--bg1) 0%, var(--bg0) 100%);
   overflow-x:hidden;
 }
 a{ color:inherit; text-decoration:none; }
 
-.wrap{ max-width:1120px; margin:18px auto; padding:0 14px; }
+.wrap{
+  max-width:1120px;
+  margin:18px auto;
+  padding:0 14px;
+  position: relative;
+}
+.wrap::before{
+  content:"";
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(900px 520px at 20% 18%, rgba(90,140,255,.10), transparent 60%),
+    radial-gradient(900px 520px at 88% 10%, rgba(35,220,200,.08), transparent 65%),
+    radial-gradient(900px 740px at 50% 120%, rgba(255,200,140,.06), transparent 65%);
+  pointer-events:none;
+  z-index:-1;
+}
 
-/* ---------- Topbar ---------- */
+/* ---------- Topbar / HUD ---------- */
 .topbar{
   position:sticky; top:0; z-index:50;
   display:flex; align-items:center; justify-content:space-between;
@@ -58,6 +77,7 @@ a{ color:inherit; text-decoration:none; }
   background: linear-gradient(180deg, rgba(10,16,30,.95), rgba(10,16,30,.65));
   backdrop-filter: blur(var(--blur));
   border-bottom: 1px solid rgba(255,255,255,.10);
+  box-shadow: 0 22px 55px rgba(0,0,0,.45);
 }
 .brand{ display:flex; align-items:center; gap:12px; }
 .logoLink{ display:inline-flex; }
@@ -67,50 +87,71 @@ a{ color:inherit; text-decoration:none; }
   border-radius:14px;
   background:
     radial-gradient(circle at 30% 30%, rgba(255,255,255,.18), transparent 55%),
-    linear-gradient(135deg, rgba(46,231,210,.26), rgba(77,163,255,.22));
+    linear-gradient(135deg, rgba(35,220,200,.22), rgba(90,140,255,.20));
   border: 1px solid rgba(255,255,255,.14);
-  box-shadow: var(--shadow2);
+  box-shadow: 0 12px 28px rgba(0,0,0,.28);
   font-size:20px;
 }
-.title{ font-weight:900; letter-spacing:.2px; font-size:18px; }
+.title{ font-weight:950; letter-spacing:.2px; font-size:18px; }
 .subtitle{ color: var(--muted); font-size:12px; margin-top:2px; }
 
-.hud{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
+.hud{
+  display:flex; align-items:center; gap:10px;
+  flex-wrap:wrap; justify-content:flex-end;
+}
 .pill{
   display:inline-flex; align-items:center; gap:8px;
   padding:8px 12px;
   border-radius:999px;
   background: rgba(255,255,255,.06);
   border: 1px solid rgba(255,255,255,.10);
-  box-shadow: 0 6px 18px rgba(0,0,0,.18);
-  font-weight:900;
+  box-shadow: 0 8px 18px rgba(0,0,0,.18);
+  font-weight:950;
 }
 
-/* ---------- Typography helpers (Index uses these) ---------- */
+/* ---------- Typography helpers ---------- */
 .h2{ margin:0 0 6px 0; font-size:20px; font-weight:950; }
+.h3{ margin:0 0 8px 0; font-size:16px; font-weight:950; }
 .muted{ opacity:.75; margin:0; }
 .small{ font-size:13px; }
+.smallMuted{ color: var(--muted); font-size:13px; margin-top:4px; line-height:1.35; }
 
-/* ---------- Card ---------- */
+.rowBetween{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+
+/* ---------- Card (Luxury 3D) ---------- */
 .card{
+  position: relative;
   background:
-    radial-gradient(circle at 20% 10%, rgba(255,255,255,.08), transparent 45%),
+    radial-gradient(700px 240px at 22% 0%, rgba(255,255,255,.10), transparent 60%),
+    radial-gradient(700px 220px at 90% 10%, rgba(90,140,255,.08), transparent 60%),
     linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.04));
-  border: 1px solid var(--stroke);
+  border: 1px solid rgba(255,255,255,.10);
   border-radius: var(--r-xl);
   padding:14px;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadowA), var(--shadowB);
   margin-bottom:14px;
   backdrop-filter: blur(var(--blur));
+  overflow:hidden;
 }
+.card::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius: inherit;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.14),
+    inset 0 -1px 0 rgba(0,0,0,.35);
+  pointer-events:none;
+}
+
 .cardTitleRow{ display:flex; justify-content:space-between; gap:14px; align-items:flex-start; }
 
 .badge{
   font-size:12px;
   padding:6px 10px;
   border-radius:999px;
-  background: rgba(46,231,210,.12);
-  border: 1px solid rgba(46,231,210,.20);
+  background: rgba(35,220,200,.12);
+  border: 1px solid rgba(35,220,200,.18);
   color: rgba(255,255,255,.92);
   font-weight:950;
 }
@@ -122,9 +163,7 @@ a{ color:inherit; text-decoration:none; }
   margin-bottom:12px;
 }
 
-.rowBetween{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
-.smallMuted{ color: var(--muted); font-size:13px; margin-top:4px; line-height:1.35; }
-
+/* ---------- Hint ---------- */
 .hint{
   display:inline-block;
   padding:8px 10px;
@@ -145,12 +184,19 @@ a{ color:inherit; text-decoration:none; }
   border: 1px solid rgba(255,255,255,.14);
   background:
     radial-gradient(circle at 30% 25%, rgba(255,255,255,.18), transparent 60%),
-    linear-gradient(135deg, rgba(46,231,210,.35), rgba(77,163,255,.24));
-  box-shadow: 0 10px 24px rgba(0,0,0,.20);
+    linear-gradient(135deg, rgba(35,220,200,.28), rgba(90,140,255,.22));
+  box-shadow:
+    0 18px 34px rgba(0,0,0,.30),
+    inset 0 1px 0 rgba(255,255,255,.18);
   transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
 }
-.btn:hover{ transform: translateY(-1px); box-shadow: 0 14px 34px rgba(0,0,0,.26); filter: brightness(1.05); }
-.btn:active{ transform: translateY(0) scale(.99); }
+.btn:hover{ transform: translateY(-1px); filter: brightness(1.06); }
+.btn:active{
+  transform: translateY(1px) scale(.99);
+  box-shadow:
+    0 12px 22px rgba(0,0,0,.26),
+    inset 0 1px 0 rgba(255,255,255,.14);
+}
 
 .btnGhost{
   appearance:none; border:none; cursor:pointer;
@@ -160,10 +206,13 @@ a{ color:inherit; text-decoration:none; }
   color: rgba(238,242,255,.92);
   background: rgba(255,255,255,.06);
   border: 1px solid rgba(255,255,255,.12);
-  transition: transform .12s ease, filter .12s ease, box-shadow .12s ease;
+  box-shadow:
+    0 14px 24px rgba(0,0,0,.22),
+    inset 0 1px 0 rgba(255,255,255,.12);
+  transition: transform .12s ease, filter .12s ease;
 }
-.btnGhost:hover{ transform: translateY(-1px); filter: brightness(1.05); box-shadow: 0 12px 26px rgba(0,0,0,.18); }
-.btnGhost:active{ transform: translateY(0) scale(.99); }
+.btnGhost:hover{ transform: translateY(-1px); filter: brightness(1.05); }
+.btnGhost:active{ transform: translateY(1px) scale(.99); }
 
 .btnTiny{
   appearance:none; border:none; cursor:pointer;
@@ -173,12 +222,15 @@ a{ color:inherit; text-decoration:none; }
   color: rgba(238,242,255,.92);
   background: rgba(255,255,255,.06);
   border: 1px solid rgba(255,255,255,.12);
+  box-shadow:
+    0 14px 24px rgba(0,0,0,.22),
+    inset 0 1px 0 rgba(255,255,255,.12);
   transition: transform .12s ease, filter .12s ease;
 }
 .btnTiny:hover{ transform: translateY(-1px); filter: brightness(1.05); }
-.btnTiny:active{ transform: translateY(0) scale(.99); }
+.btnTiny:active{ transform: translateY(1px) scale(.99); }
 
-/* ---------- Index destination cards ---------- */
+/* ---------- Destination Cards (index.html) ---------- */
 .destGrid{
   display:grid;
   grid-template-columns: repeat(3, 1fr);
@@ -194,14 +246,18 @@ a{ color:inherit; text-decoration:none; }
   border: 1px solid rgba(255,255,255,.10);
   display:flex; flex-direction:column; gap:6px;
   transition: transform .12s ease, border-color .12s ease, filter .12s ease;
+  box-shadow: var(--shadowC), inset 0 1px 0 rgba(255,255,255,.10);
 }
-.destCard.active:hover{ transform: translateY(-1px); border-color: rgba(46,231,210,.30); filter: brightness(1.03); }
+.destCard.active:hover{
+  transform: translateY(-2px);
+  border-color: rgba(35,220,200,.28);
+  filter: brightness(1.03);
+}
 .destCard.locked{ opacity:.55; filter: grayscale(.2); cursor:not-allowed; }
 .destEmoji{ font-size:26px; }
 .destName{ font-weight:950; font-size:16px; }
 .destMeta{ color: var(--muted); font-size:12px; }
 
-/* Progress row on index */
 .progressRow{
   display:flex;
   gap:10px;
@@ -209,7 +265,7 @@ a{ color:inherit; text-decoration:none; }
   margin-top:10px;
 }
 
-/* ---------- Tabs / Panels (Mombasa) ---------- */
+/* ---------- Tabs / Panels ---------- */
 .controls{
   display:flex;
   align-items:center;
@@ -217,7 +273,6 @@ a{ color:inherit; text-decoration:none; }
   flex-wrap:wrap;
   justify-content:flex-end;
 }
-
 .tabs{
   display:flex; gap:8px; align-items:center;
   padding:6px;
@@ -238,8 +293,8 @@ a{ color:inherit; text-decoration:none; }
 .tabBtn:hover{ transform: translateY(-1px); }
 .tabBtn.active{
   background:
-    radial-gradient(circle at 30% 20%, rgba(255,255,255,.18), transparent 55%),
-    linear-gradient(135deg, rgba(46,231,210,.28), rgba(77,163,255,.22));
+    radial-gradient(circle at 30% 20%, rgba(255,255,255,.16), transparent 55%),
+    linear-gradient(135deg, rgba(35,220,200,.22), rgba(90,140,255,.18));
   color: rgba(255,255,255,.95);
   border: 1px solid rgba(255,255,255,.12);
 }
@@ -247,19 +302,7 @@ a{ color:inherit; text-decoration:none; }
 .panel{ display:none; }
 .panel.active{ display:block; }
 
-/* Scene background wrapper */
-.hotelScene{
-  padding:14px;
-  border-radius: 26px;
-  border: 1px solid rgba(255,255,255,.10);
-  background:
-    linear-gradient(180deg, rgba(5,9,19,.35), rgba(5,9,19,.60)),
-    radial-gradient(800px 500px at 30% 0%, rgba(77,163,255,.25), transparent 60%),
-    radial-gradient(900px 600px at 90% 10%, rgba(46,231,210,.18), transparent 60%);
-  box-shadow: 0 20px 55px rgba(0,0,0,.35);
-}
-
-/* Grid layout */
+/* ---------- Layout: Hotel + Bellboy ---------- */
 .grid2{
   display:grid;
   grid-template-columns: 1.15fr .85fr;
@@ -269,15 +312,13 @@ a{ color:inherit; text-decoration:none; }
   .grid2{ grid-template-columns: 1fr; }
 }
 
-/* Lane blocks */
+/* Lanes */
 .lane{
   margin-top:12px;
   padding:12px;
   border-radius: 18px;
   border: 1px solid rgba(255,255,255,.10);
-  background:
-    radial-gradient(circle at 20% 10%, rgba(255,255,255,.08), transparent 55%),
-    rgba(255,255,255,.04);
+  background: rgba(255,255,255,.04);
 }
 .laneTitle{
   font-weight: 950;
@@ -285,7 +326,7 @@ a{ color:inherit; text-decoration:none; }
   opacity:.95;
 }
 
-/* Queue + guest cards */
+/* ---------- Queue / Guests ---------- */
 .queue{
   display:flex;
   flex-direction:column;
@@ -303,15 +344,20 @@ a{ color:inherit; text-decoration:none; }
     radial-gradient(circle at 20% 10%, rgba(255,255,255,.10), transparent 55%),
     linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.04));
   border: 1px solid rgba(255,255,255,.10);
-  box-shadow: 0 10px 18px rgba(0,0,0,.18);
+  box-shadow:
+    0 16px 28px rgba(0,0,0,.24),
+    inset 0 1px 0 rgba(255,255,255,.12);
   cursor:pointer;
   transition: transform .12s ease, border-color .12s ease;
 }
-.guestCard:hover{ transform: translateY(-1px); border-color: rgba(255,255,255,.18); }
+.guestCard:hover{ transform: translateY(-2px); border-color: rgba(255,255,255,.16); }
 .guestCard.selected{
-  border-color: rgba(46,231,210,.55);
-  box-shadow: 0 0 0 4px rgba(46,231,210,.12), 0 14px 32px rgba(0,0,0,.22);
+  border-color: rgba(35,220,200,.35);
+  box-shadow:
+    0 0 0 2px rgba(35,220,200,.40),
+    0 22px 44px rgba(0,0,0,.30);
 }
+
 .guestLeft{ display:flex; align-items:center; gap:10px; }
 .avatar{
   width:40px; height:40px;
@@ -319,7 +365,7 @@ a{ color:inherit; text-decoration:none; }
   border-radius:14px;
   background:
     radial-gradient(circle at 30% 30%, rgba(255,255,255,.18), transparent 55%),
-    linear-gradient(135deg, rgba(255,208,138,.20), rgba(255,107,136,.14));
+    linear-gradient(135deg, rgba(255,208,138,.16), rgba(90,140,255,.10));
   border: 1px solid rgba(255,255,255,.12);
 }
 .guestMeta{ display:flex; flex-direction:column; gap:2px; }
@@ -335,7 +381,7 @@ a{ color:inherit; text-decoration:none; }
   white-space:nowrap;
 }
 
-/* Rooms */
+/* ---------- Rooms (3D tiles) ---------- */
 .rooms{
   display:grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -344,76 +390,88 @@ a{ color:inherit; text-decoration:none; }
 @media (max-width: 820px){ .rooms{ grid-template-columns: 1fr; } }
 
 .room{
+  position: relative;
   border-radius: var(--r-xl);
   padding:12px;
   background:
-    radial-gradient(circle at 20% 12%, rgba(255,255,255,.14), transparent 55%),
+    radial-gradient(circle at 20% 12%, rgba(255,255,255,.12), transparent 55%),
     linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.04));
   border: 1px solid rgba(255,255,255,.12);
-  box-shadow: 0 14px 28px rgba(0,0,0,.18);
+  box-shadow:
+    0 22px 42px rgba(0,0,0,.28),
+    inset 0 1px 0 rgba(255,255,255,.14);
   cursor:pointer;
   display:flex; flex-direction:column;
   gap:8px;
-  transition: transform .12s ease, border-color .12s ease, filter .12s ease;
+  transition: transform .12s ease, border-color .12s ease, filter .12s ease, box-shadow .12s ease;
   text-align:left;
+  transform-style: preserve-3d;
 }
-.room:hover{ transform: translateY(-1px); border-color: rgba(255,255,255,.18); }
+.room::after{
+  content:"";
+  position:absolute;
+  left:12px; right:12px;
+  bottom:-12px;
+  height:18px;
+  border-radius: 999px;
+  background: radial-gradient(closest-side, rgba(0,0,0,.55), transparent 72%);
+  filter: blur(7px);
+  opacity:.55;
+  pointer-events:none;
+}
+.room:hover{
+  transform: translateY(-2px) rotateX(1deg);
+  box-shadow:
+    0 28px 54px rgba(0,0,0,.32),
+    inset 0 1px 0 rgba(255,255,255,.16);
+  border-color: rgba(255,255,255,.16);
+}
 .room:active{ transform: translateY(0) scale(.995); }
+
 .roomTop{ display:flex; align-items:center; justify-content:space-between; gap:10px; font-weight:950; }
 .roomState{ font-size:12px; color: rgba(238,242,255,.78); }
 .roomBody{ font-weight:950; }
 .roomFoot{ font-size:12px; color: rgba(238,242,255,.72); }
-.roomBar{ height:10px; border-radius:999px; background: rgba(255,255,255,.10); overflow:hidden; }
-.roomBar > span{ display:block; height:100%; width:0%; background: linear-gradient(90deg, rgba(46,231,210,.55), rgba(77,163,255,.45)); }
 
-.room.empty{ background: linear-gradient(180deg, rgba(77,163,255,.10), rgba(255,255,255,.04)); }
-.room.occupied{ border-color: rgba(46,231,210,.22); }
-.room.dirty{ border-color: rgba(255,107,136,.25); }
-.room.cleaning{ border-color: rgba(255,176,32,.25); }
+.roomBar{ height:10px; border-radius:999px; background: rgba(255,255,255,.10); overflow:hidden; }
+.roomBar > span{
+  display:block; height:100%; width:0%;
+  background: linear-gradient(90deg, rgba(35,220,200,.50), rgba(90,140,255,.40));
+}
+
+.room.occupied{ border-color: rgba(35,220,200,.20); }
+.room.dirty{ border-color: rgba(255,77,109,.22); }
+.room.cleaning{ border-color: rgba(255,176,32,.22); }
 
 .room.selected{
-  border-color: rgba(77,163,255,.55);
-  box-shadow: 0 0 0 4px rgba(77,163,255,.12), 0 18px 38px rgba(0,0,0,.22);
-}
-
-@keyframes ssPulse {
-  0%,100%{ transform: translateY(0); filter: brightness(1); }
-  50%{ transform: translateY(-1px); filter: brightness(1.08); }
+  transform: translateY(-3px) rotateX(1.2deg);
+  box-shadow:
+    0 0 0 2px rgba(90,140,255,.55),
+    0 30px 60px rgba(0,0,0,.35),
+    inset 0 1px 0 rgba(255,255,255,.16);
 }
 .room.priority{
-  border-color: rgba(255,176,32,.70);
   box-shadow:
-    0 0 0 4px rgba(255,176,32,.12),
-    0 0 18px rgba(255,176,32,.18),
-    0 20px 46px rgba(0,0,0,.22);
-  animation: ssPulse .8s ease-in-out infinite;
+    0 0 0 2px rgba(255,176,32,.55),
+    0 34px 70px rgba(0,0,0,.40),
+    0 0 22px rgba(255,176,32,.16);
 }
 
-/* Stations */
+/* ---------- Stations ---------- */
 .stations{ display:flex; flex-direction:column; gap:12px; }
-.stationCard{
+.station{
   border-radius: var(--r-xl);
   padding:12px;
   border: 1px solid rgba(255,255,255,.10);
   background: rgba(255,255,255,.05);
 }
-.stationHeadRow{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
-.stationHead{ font-weight:950; }
-.chip{
-  font-size:12px;
-  padding:6px 10px;
-  border-radius:999px;
-  background: rgba(255,255,255,.06);
-  border: 1px solid rgba(255,255,255,.10);
-  font-weight:950;
-}
+.stationHead{ font-weight:950; margin-bottom:10px; }
 .stationGrid{
   display:grid;
   grid-template-columns: repeat(2, minmax(0,1fr));
   gap:10px;
 }
 
-/* Item buttons */
 .itemBtn{
   appearance:none; border:none; cursor:pointer;
   padding:10px 12px;
@@ -424,13 +482,16 @@ a{ color:inherit; text-decoration:none; }
     rgba(255,255,255,.06);
   color: rgba(255,255,255,.92);
   font-weight:950;
+  box-shadow:
+    0 14px 24px rgba(0,0,0,.22),
+    inset 0 1px 0 rgba(255,255,255,.12);
   transition: transform .12s ease, filter .12s ease, box-shadow .12s ease;
 }
-.itemBtn:hover{ transform: translateY(-1px); filter: brightness(1.06); box-shadow: 0 12px 26px rgba(0,0,0,.18); }
-.itemBtn:active{ transform: translateY(0) scale(.99); }
+.itemBtn:hover{ transform: translateY(-1px); filter: brightness(1.06); }
+.itemBtn:active{ transform: translateY(1px) scale(.99); }
 .itemBtn.wide{ width:100%; }
 
-/* Bellboy */
+/* ---------- Bellboy ---------- */
 .bellboy{ display:flex; flex-direction:column; gap:12px; }
 .boyAvatar{
   width:56px; height:56px;
@@ -438,9 +499,9 @@ a{ color:inherit; text-decoration:none; }
   border-radius: 18px;
   background:
     radial-gradient(circle at 30% 30%, rgba(255,255,255,.18), transparent 55%),
-    linear-gradient(135deg, rgba(46,231,210,.22), rgba(255,208,138,.16));
+    linear-gradient(135deg, rgba(35,220,200,.18), rgba(255,208,138,.12));
   border: 1px solid rgba(255,255,255,.14);
-  box-shadow: var(--shadow2);
+  box-shadow: 0 12px 28px rgba(0,0,0,.26);
 }
 
 .hands{
@@ -452,10 +513,12 @@ a{ color:inherit; text-decoration:none; }
   border-radius: var(--r-xl);
   border: 1px solid rgba(255,255,255,.12);
   background:
-    radial-gradient(circle at 20% 12%, rgba(255,255,255,.14), transparent 55%),
+    radial-gradient(circle at 20% 12%, rgba(255,255,255,.12), transparent 55%),
     linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.04));
   padding: 12px;
-  box-shadow: 0 12px 28px rgba(0,0,0,.18);
+  box-shadow:
+    0 16px 28px rgba(0,0,0,.22),
+    inset 0 1px 0 rgba(255,255,255,.12);
 }
 .handTitle{ font-weight:950; margin-bottom:8px; color: rgba(238,242,255,.88); }
 .handItem{
@@ -467,23 +530,8 @@ a{ color:inherit; text-decoration:none; }
   background: rgba(0,0,0,.14);
   margin-bottom:10px;
 }
-
 .actions{ display:flex; flex-wrap:wrap; gap:10px; }
 
-/* Result bar */
-.resultBar{
-  min-height:34px;
-  padding:10px 12px;
-  border-radius: var(--r-lg);
-  background: rgba(255,255,255,.05);
-  border: 1px solid rgba(255,255,255,.10);
-  font-size:13px;
-  opacity:.95;
-}
-.resultBar.good{ border-color: rgba(82,255,184,.22); }
-.resultBar.bad{ border-color: rgba(255,77,109,.25); }
-
-/* List */
 .miniList{
   margin:8px 0 0;
   padding-left:18px;
@@ -492,7 +540,7 @@ a{ color:inherit; text-decoration:none; }
 }
 .miniList li{ margin:6px 0; }
 
-/* Puzzle */
+/* ---------- Puzzle (Luxury 3D) ---------- */
 .puzzleWrap{ display:grid; place-items:center; padding:10px; }
 .board{
   width:min(420px, 92vw);
@@ -506,7 +554,7 @@ a{ color:inherit; text-decoration:none; }
   background:
     radial-gradient(circle at 30% 20%, rgba(255,255,255,.10), transparent 55%),
     linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.03));
-  box-shadow: var(--shadow2);
+  box-shadow: 0 18px 36px rgba(0,0,0,.28);
 }
 .tile{
   border-radius:16px;
@@ -514,181 +562,28 @@ a{ color:inherit; text-decoration:none; }
   background:
     radial-gradient(circle at 30% 25%, rgba(255,255,255,.20), transparent 60%),
     rgba(255,255,255,.06);
-  box-shadow: 0 10px 18px rgba(0,0,0,.18);
+  box-shadow:
+    0 16px 26px rgba(0,0,0,.26),
+    inset 0 1px 0 rgba(255,255,255,.22),
+    inset 0 -8px 16px rgba(0,0,0,.18);
   display:grid; place-items:center;
   font-size:30px;
   cursor:pointer;
   user-select:none;
   transition: transform .12s ease, filter .12s ease, opacity .12s ease;
 }
-.tile:hover{ transform: translateY(-1px); filter: brightness(1.06); }
+.tile:hover{ transform: translateY(-2px); filter: brightness(1.06); }
 .tile:active{ transform: translateY(0) scale(.99); }
 .tile.selected{
-  outline: 2px solid rgba(46,231,210,.85);
-  box-shadow: 0 0 0 4px rgba(46,231,210,.14), 0 12px 26px rgba(0,0,0,.24);
-}
-.tile.crush{ transform: scale(.35); opacity:0; filter: blur(1px); }
-/* =========================================
-   SAFARI STAY — 3D LOOK PACK (Paste at bottom)
-   ========================================= */
-
-/* More depth + perspective */
-body{
-  perspective: 1200px;
-}
-
-/* Floating glass panels */
-.card{
-  position: relative;
-  transform: translateZ(0);
+  outline: 2px solid rgba(35,220,200,.65);
   box-shadow:
-    0 22px 60px rgba(0,0,0,.45),
-    0 6px 18px rgba(0,0,0,.25);
-  overflow: hidden;
-}
-
-/* Shine / highlight sweep (makes it feel like a game panel) */
-.card::before{
-  content:"";
-  position:absolute;
-  inset:-2px;
-  background:
-    radial-gradient(700px 200px at 20% 0%, rgba(255,255,255,.12), transparent 55%),
-    radial-gradient(500px 200px at 85% 10%, rgba(46,231,210,.10), transparent 60%),
-    linear-gradient(120deg, rgba(255,255,255,.10), transparent 35%, rgba(255,255,255,.06));
-  pointer-events:none;
-  opacity:.8;
-}
-
-/* Border bevel (fake edge depth) */
-.card::after{
-  content:"";
-  position:absolute;
-  inset:0;
-  border-radius: inherit;
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.16),
-    inset 0 -1px 0 rgba(0,0,0,.25);
-  pointer-events:none;
-}
-
-/* Make topbar feel like a real HUD layer */
-.topbar{
-  box-shadow: 0 18px 40px rgba(0,0,0,.35);
-}
-
-/* --- 3D Buttons --- */
-.btn, .btnGhost, .itemBtn, .tabBtn{
-  position: relative;
-  transform: translateZ(0);
-}
-
-.btn{
-  box-shadow:
-    0 14px 26px rgba(0,0,0,.28),
+    0 0 0 4px rgba(35,220,200,.14),
+    0 18px 30px rgba(0,0,0,.28),
     inset 0 1px 0 rgba(255,255,255,.22);
 }
-.btn:active{
-  transform: translateY(1px) scale(.99);
-  box-shadow:
-    0 10px 18px rgba(0,0,0,.24),
-    inset 0 1px 0 rgba(255,255,255,.18);
-}
+.tile.crush{ transform: scale(.35); opacity:0; filter: blur(1px); }
 
-/* Ghost buttons look like raised chips */
-.btnGhost{
-  box-shadow:
-    0 10px 18px rgba(0,0,0,.18),
-    inset 0 1px 0 rgba(255,255,255,.14);
-}
-.btnGhost:active{ transform: translateY(1px) scale(.99); }
-
-/* --- 3D Rooms (big impact) --- */
-.room{
-  position: relative;
-  transform-style: preserve-3d;
-  box-shadow:
-    0 18px 34px rgba(0,0,0,.26),
-    inset 0 1px 0 rgba(255,255,255,.16);
-}
-
-/* Room “base” shadow under it (fake thickness) */
-.room::after{
-  content:"";
-  position:absolute;
-  left:10px; right:10px;
-  bottom:-10px;
-  height:16px;
-  border-radius: 999px;
-  background: radial-gradient(closest-side, rgba(0,0,0,.45), transparent 70%);
-  filter: blur(6px);
-  opacity:.55;
-  pointer-events:none;
-}
-
-/* Room hover = lift up */
-.room:hover{
-  transform: translateY(-2px) rotateX(1deg);
-  box-shadow:
-    0 22px 44px rgba(0,0,0,.30),
-    inset 0 1px 0 rgba(255,255,255,.18);
-}
-
-/* Selected room glow + deeper lift */
-.room.selected{
-  transform: translateY(-3px) rotateX(1.2deg);
-}
-
-/* Priority room = “neon edge” */
-.room.priority{
-  box-shadow:
-    0 0 0 2px rgba(255,176,32,.55),
-    0 24px 48px rgba(0,0,0,.34),
-    0 0 20px rgba(255,176,32,.18);
-}
-
-/* --- 3D Guest cards --- */
-.guestCard{
-  position: relative;
-  box-shadow:
-    0 12px 22px rgba(0,0,0,.22),
-    inset 0 1px 0 rgba(255,255,255,.12);
-}
-.guestCard:hover{
-  transform: translateY(-2px);
-}
-.guestCard.selected{
-  box-shadow:
-    0 0 0 2px rgba(46,231,210,.45),
-    0 18px 34px rgba(0,0,0,.30);
-}
-
-/* --- Puzzle tiles look like candy pieces --- */
-.tile{
-  box-shadow:
-    0 12px 20px rgba(0,0,0,.25),
-    inset 0 1px 0 rgba(255,255,255,.22),
-    inset 0 -6px 14px rgba(0,0,0,.18);
-}
-.tile:hover{
-  transform: translateY(-2px);
-}
-.tile:active{
-  transform: translateY(0px) scale(.99);
-}
-
-/* --- Subtle background “scene” layers (makes it feel like a game) --- */
-.wrap{
-  position: relative;
-}
-.wrap::before{
-  content:"";
-  position: fixed;
-  inset: 0;
-  background:
-    radial-gradient(900px 500px at 20% 20%, rgba(77,163,255,.12), transparent 60%),
-    radial-gradient(900px 500px at 85% 10%, rgba(46,231,210,.10), transparent 65%),
-    radial-gradient(900px 700px at 50% 120%, rgba(255,208,138,.08), transparent 65%);
-  pointer-events:none;
-  z-index:-1;
+/* ---------- Responsive ---------- */
+@media (max-width: 820px){
+  .grid2{ display:block; }
 }
