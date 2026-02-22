@@ -528,3 +528,167 @@ a{ color:inherit; text-decoration:none; }
   box-shadow: 0 0 0 4px rgba(46,231,210,.14), 0 12px 26px rgba(0,0,0,.24);
 }
 .tile.crush{ transform: scale(.35); opacity:0; filter: blur(1px); }
+/* =========================================
+   SAFARI STAY — 3D LOOK PACK (Paste at bottom)
+   ========================================= */
+
+/* More depth + perspective */
+body{
+  perspective: 1200px;
+}
+
+/* Floating glass panels */
+.card{
+  position: relative;
+  transform: translateZ(0);
+  box-shadow:
+    0 22px 60px rgba(0,0,0,.45),
+    0 6px 18px rgba(0,0,0,.25);
+  overflow: hidden;
+}
+
+/* Shine / highlight sweep (makes it feel like a game panel) */
+.card::before{
+  content:"";
+  position:absolute;
+  inset:-2px;
+  background:
+    radial-gradient(700px 200px at 20% 0%, rgba(255,255,255,.12), transparent 55%),
+    radial-gradient(500px 200px at 85% 10%, rgba(46,231,210,.10), transparent 60%),
+    linear-gradient(120deg, rgba(255,255,255,.10), transparent 35%, rgba(255,255,255,.06));
+  pointer-events:none;
+  opacity:.8;
+}
+
+/* Border bevel (fake edge depth) */
+.card::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius: inherit;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.16),
+    inset 0 -1px 0 rgba(0,0,0,.25);
+  pointer-events:none;
+}
+
+/* Make topbar feel like a real HUD layer */
+.topbar{
+  box-shadow: 0 18px 40px rgba(0,0,0,.35);
+}
+
+/* --- 3D Buttons --- */
+.btn, .btnGhost, .itemBtn, .tabBtn{
+  position: relative;
+  transform: translateZ(0);
+}
+
+.btn{
+  box-shadow:
+    0 14px 26px rgba(0,0,0,.28),
+    inset 0 1px 0 rgba(255,255,255,.22);
+}
+.btn:active{
+  transform: translateY(1px) scale(.99);
+  box-shadow:
+    0 10px 18px rgba(0,0,0,.24),
+    inset 0 1px 0 rgba(255,255,255,.18);
+}
+
+/* Ghost buttons look like raised chips */
+.btnGhost{
+  box-shadow:
+    0 10px 18px rgba(0,0,0,.18),
+    inset 0 1px 0 rgba(255,255,255,.14);
+}
+.btnGhost:active{ transform: translateY(1px) scale(.99); }
+
+/* --- 3D Rooms (big impact) --- */
+.room{
+  position: relative;
+  transform-style: preserve-3d;
+  box-shadow:
+    0 18px 34px rgba(0,0,0,.26),
+    inset 0 1px 0 rgba(255,255,255,.16);
+}
+
+/* Room “base” shadow under it (fake thickness) */
+.room::after{
+  content:"";
+  position:absolute;
+  left:10px; right:10px;
+  bottom:-10px;
+  height:16px;
+  border-radius: 999px;
+  background: radial-gradient(closest-side, rgba(0,0,0,.45), transparent 70%);
+  filter: blur(6px);
+  opacity:.55;
+  pointer-events:none;
+}
+
+/* Room hover = lift up */
+.room:hover{
+  transform: translateY(-2px) rotateX(1deg);
+  box-shadow:
+    0 22px 44px rgba(0,0,0,.30),
+    inset 0 1px 0 rgba(255,255,255,.18);
+}
+
+/* Selected room glow + deeper lift */
+.room.selected{
+  transform: translateY(-3px) rotateX(1.2deg);
+}
+
+/* Priority room = “neon edge” */
+.room.priority{
+  box-shadow:
+    0 0 0 2px rgba(255,176,32,.55),
+    0 24px 48px rgba(0,0,0,.34),
+    0 0 20px rgba(255,176,32,.18);
+}
+
+/* --- 3D Guest cards --- */
+.guestCard{
+  position: relative;
+  box-shadow:
+    0 12px 22px rgba(0,0,0,.22),
+    inset 0 1px 0 rgba(255,255,255,.12);
+}
+.guestCard:hover{
+  transform: translateY(-2px);
+}
+.guestCard.selected{
+  box-shadow:
+    0 0 0 2px rgba(46,231,210,.45),
+    0 18px 34px rgba(0,0,0,.30);
+}
+
+/* --- Puzzle tiles look like candy pieces --- */
+.tile{
+  box-shadow:
+    0 12px 20px rgba(0,0,0,.25),
+    inset 0 1px 0 rgba(255,255,255,.22),
+    inset 0 -6px 14px rgba(0,0,0,.18);
+}
+.tile:hover{
+  transform: translateY(-2px);
+}
+.tile:active{
+  transform: translateY(0px) scale(.99);
+}
+
+/* --- Subtle background “scene” layers (makes it feel like a game) --- */
+.wrap{
+  position: relative;
+}
+.wrap::before{
+  content:"";
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(900px 500px at 20% 20%, rgba(77,163,255,.12), transparent 60%),
+    radial-gradient(900px 500px at 85% 10%, rgba(46,231,210,.10), transparent 65%),
+    radial-gradient(900px 700px at 50% 120%, rgba(255,208,138,.08), transparent 65%);
+  pointer-events:none;
+  z-index:-1;
+}
