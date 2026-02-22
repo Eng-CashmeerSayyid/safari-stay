@@ -222,19 +222,15 @@
           "Dirty";
       }
 
-      if (foot) {
-        if (r.state === "occupied") {
-          if (r.request) {
-            foot.textContent = `🔔 Needs ${labelItem(r.request.type)} (${Math.ceil(r.request.timeLeft)}s)`;
-          } else {
-            foot.textContent = `⏳ Stay: ${Math.ceil(r.stayLeft)}s`;
-          }
-        } else if (r.state === "dirty") {
-          foot.textContent = "🧴 Needs detergent + Clean";
-        } else {
-          foot.textContent = "—";
-        }
-      }
+      if (r.state === "occupied") {
+  if (r.request) {
+    foot.textContent =
+      `🔔 ${labelItem(r.request.type)} (${Math.ceil(r.request.timeLeft)}s) • ` +
+      `Stay: ${Math.ceil(r.stayLeft)}s`;
+  } else {
+    foot.textContent = `⏳ Stay: ${Math.ceil(r.stayLeft)}s`;
+  }
+}
 
       // click handler
       btn.onclick = () => onRoomClick(r.id);
