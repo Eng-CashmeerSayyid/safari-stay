@@ -24,11 +24,14 @@ Safari Stay – puzzle.js
     const v = localStorage.getItem("ss_coins");
     return v==null ? 0 : (Number(v)||0);
   }
-  function addCoins(x){
+function addCoins(x){
+  if (typeof ssAddCoins === "function") {
+    ssAddCoins(x);
+  } else {
     const c = loadCoins() + x;
     localStorage.setItem("ss_coins", String(c));
   }
-
+}
   function randTile(){ return TILES[Math.floor(Math.random()*TILES.length)]; }
   function inb(r,c){ return r>=0 && r<N && c>=0 && c<N; }
   function neigh(a,b){ return Math.abs(a.r-b.r)+Math.abs(a.c-b.c)===1; }
