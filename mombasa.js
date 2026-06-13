@@ -10,7 +10,7 @@ Safari Stay – mombasa.js
 
 (() => {
   // ---------- DOM ----------
-  const elCoins = document.getElementById("coins");
+  const elCoins = document.getElementById("coinsTop");
   const elServed = document.getElementById("served");
   const elAngry = document.getElementById("angry");
   const elQueueCount = document.getElementById("queueCount");
