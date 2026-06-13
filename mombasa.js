@@ -1,5 +1,6 @@
 /* =========================
 Safari Stay – mombasa.js
+Auto checkout version
 ========================= */
 
 (() => {
@@ -52,13 +53,13 @@ Safari Stay – mombasa.js
 
   const EMOJI_GUESTS = ["🧑🏽‍🦱", "👩🏽‍🦱", "🧑🏿‍🦰", "👩🏾‍🦳", "🧑🏾", "👩🏿", "👩🏾‍🦱"];
 
-  const TICK_MS = 600;
-  const PATIENCE_DEC_QUEUE = 3;
-  const PATIENCE_DEC_ROOM = 2;
-  const ORDER_CHANCE_QUEUE = 0.35;
-  const ORDER_CHANCE_ROOM = 0.25;
-  const STAY_MIN = 16;
-  const STAY_MAX = 26;
+  const TICK_MS = 1000;
+  const PATIENCE_DEC_QUEUE = 1;
+  const PATIENCE_DEC_ROOM = 1;
+  const ORDER_CHANCE_QUEUE = 0.18;
+  const ORDER_CHANCE_ROOM = 0.15;
+  const STAY_MIN = 18;
+  const STAY_MAX = 30;
 
   let coins = getCoins();
   let served = loadNum("ss_served", 0);
@@ -98,6 +99,14 @@ Safari Stay – mombasa.js
       coins += amount;
       localStorage.setItem("ss_coins", String(coins));
     }
+    popCoins();
+  }
+
+  function popCoins() {
+    const pill = elCoins?.parentElement;
+    if (!pill) return;
+    pill.classList.add("pop");
+    setTimeout(() => pill.classList.remove("pop"), 250);
   }
 
   function saveAll() {
@@ -177,6 +186,7 @@ Safari Stay – mombasa.js
 
   function renderHUD() {
     coins = getCoins();
+
     elCoins.textContent = coins;
     elServed.textContent = served;
     elAngry.textContent = angry;
@@ -196,7 +206,6 @@ Safari Stay – mombasa.js
     queue.forEach((g) => {
       const card = document.createElement("div");
       card.className = "guestCard" + (selectedGuestId === g.id ? " selected" : "");
-      card.dataset.id = g.id;
 
       card.innerHTML = `
         <div class="guestLeft">
@@ -228,7 +237,7 @@ Safari Stay – mombasa.js
       const btn = roomButtons[i];
 
       if (selectedRoom === i) btn.classList.add("selected");
-      btn.classList.add(r.state === "ready" ? "occupied" : r.state);
+      btn.classList.add(r.state);
       if (r.state === "empty") btn.classList.add("empty");
 
       const g = getGuestById(r.guestId);
@@ -248,12 +257,6 @@ Safari Stay – mombasa.js
         roomBodyEl(i).textContent = "In progress";
         roomFootEl(i).textContent = "Wait…";
         roomBarEl(i).style.width = "60%";
-      } else if (r.state === "ready") {
-        roomStateEl(i).textContent = "Ready to checkout";
-        roomBodyEl(i).textContent = g ? `${g.avatar} ${g.name}` : "Guest";
-        roomFootEl(i).textContent = "Click Checkout";
-        roomBarEl(i).style.width = "100%";
-        btn.classList.add("priority");
       } else {
         const pct = r.stayMax ? 1 - r.stayLeft / r.stayMax : 0;
 
@@ -264,9 +267,7 @@ Safari Stay – mombasa.js
           : "—";
         roomBarEl(i).style.width = `${Math.round(pct * 100)}%`;
 
-        if (g && g.orderKey && g.patience / g.maxPatience <= 0.33) {
-          btn.classList.add("priority");
-        }
+        if (g && g.orderKey) btn.classList.add("priority");
       }
     });
   }
@@ -281,7 +282,7 @@ Safari Stay – mombasa.js
     const id = uid();
     const avatar = pick(EMOJI_GUESTS);
     const name = `Guest ${id.slice(-4).toUpperCase()}`;
-    const maxPat = randInt(60, 90);
+    const maxPat = randInt(70, 100);
     const orderKey = Math.random() < ORDER_CHANCE_QUEUE ? pick(ORDERS).key : null;
 
     const g = {
@@ -345,7 +346,7 @@ Safari Stay – mombasa.js
     selectedRoom = roomIndex;
     selectedGuestId = g.id;
 
-    setHint("Guest checked in. Watch mood and fulfill orders.");
+    setHint("Guest checked in. They will checkout automatically.");
     setResult(`${g.name} checked into Room ${roomIndex + 1}. (+1 coin)`, "good");
 
     renderAll();
@@ -429,37 +430,7 @@ Safari Stay – mombasa.js
   }
 
   function checkoutSelectedRoom() {
-    if (selectedRoom == null) {
-      setResult("Select a room first.", "bad");
-      return;
-    }
-
-    const room = rooms[selectedRoom];
-
-    if (room.state !== "ready") {
-      setResult("Room is not ready to checkout yet.", "bad");
-      return;
-    }
-
-    const g = getGuestById(room.guestId);
-
-    addCoins(4);
-
-    if (g) {
-      setResult(`${g.name} checked out. Room is now DIRTY. (+4 coins)`, "good");
-      guestMap.delete(g.id);
-    } else {
-      setResult("Checked out. Room is now DIRTY. (+4 coins)", "good");
-    }
-
-    room.state = "dirty";
-    room.guestId = null;
-    room.stayLeft = 0;
-    room.stayMax = 0;
-
-    if (g && selectedGuestId === g.id) selectedGuestId = null;
-
-    renderAll();
+    setResult("Guests now checkout automatically. Just clean dirty rooms.", "good");
   }
 
   function cleanSelectedRoom() {
@@ -510,7 +481,7 @@ Safari Stay – mombasa.js
     if (g.location === "room" && typeof g.roomIndex === "number") {
       const r = rooms[g.roomIndex];
 
-      if (r.state === "occupied" || r.state === "ready") {
+      if (r.state === "occupied") {
         r.state = "dirty";
         r.guestId = null;
         r.stayLeft = 0;
@@ -526,6 +497,20 @@ Safari Stay – mombasa.js
     setResult(`${g.name} left 😡 (${reason})`, "bad");
   }
 
+  function autoCheckoutRoom(room, guest, roomIndex) {
+    addCoins(4);
+    setResult(`${guest.name} checked out from Room ${roomIndex + 1}. Room is now DIRTY. (+4 coins)`, "good");
+
+    guestMap.delete(guest.id);
+
+    room.state = "dirty";
+    room.guestId = null;
+    room.stayLeft = 0;
+    room.stayMax = 0;
+
+    if (selectedGuestId === guest.id) selectedGuestId = null;
+  }
+
   function tick() {
     coins = getCoins();
 
@@ -538,7 +523,7 @@ Safari Stay – mombasa.js
       }
     }
 
-    rooms.forEach((r) => {
+    rooms.forEach((r, index) => {
       if (r.state === "occupied" && r.guestId) {
         const g = getGuestById(r.guestId);
 
@@ -550,17 +535,17 @@ Safari Stay – mombasa.js
             guestLeaves(g, "got too angry in room");
             return;
           }
-        }
 
-        r.stayLeft = Math.max(0, r.stayLeft - 1);
+          r.stayLeft = Math.max(0, r.stayLeft - 1);
 
-        if (r.stayLeft === 0) {
-          r.state = "ready";
+          if (r.stayLeft === 0) {
+            autoCheckoutRoom(r, g, index);
+          }
         }
       }
     });
 
-    if (queue.length < 3 && Math.random() < 0.22) {
+    if (queue.length < 3 && Math.random() < 0.16) {
       addGuest();
     }
 
@@ -615,7 +600,7 @@ Safari Stay – mombasa.js
       return;
     }
 
-    if ((room.state === "occupied" || room.state === "ready") && room.guestId) {
+    if (room.state === "occupied" && room.guestId) {
       selectedGuestId = room.guestId;
       const g2 = getGuestById(selectedGuestId);
 
