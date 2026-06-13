@@ -922,3 +922,59 @@ a{ color:inherit; text-decoration:none; }
     padding:10px 8px;
   }
 }
+/* FIX VISUAL HOTEL MOBILE LAYOUT */
+
+.visualHotel .hotelFloor{
+  display:grid !important;
+  grid-template-columns:repeat(2, 1fr) !important;
+  gap:10px !important;
+}
+
+.visualHotel .room.door{
+  min-height:96px !important;
+  width:100% !important;
+  padding:10px !important;
+}
+
+.visualHotel .room.door::after{
+  display:none !important;
+}
+
+.visualHotel .roomBar{
+  width:100%;
+}
+
+.lobby{
+  margin-top:10px;
+}
+
+.guestLine{
+  min-height:86px;
+}
+
+.bellboyDock{
+  grid-template-columns:54px 1fr 1fr !important;
+}
+
+@media (max-width:700px){
+  .visualHotel .hotelFloor{
+    grid-template-columns:repeat(2, 1fr) !important;
+  }
+
+  .visualHotel .room.door{
+    min-height:92px !important;
+  }
+
+  .serviceRow{
+    grid-template-columns:1fr !important;
+  }
+
+  .bellboyDock{
+    grid-template-columns:1fr 1fr !important;
+  }
+
+  .bellboyDock .boyAvatar{
+    grid-column:1 / -1;
+    height:54px;
+  }
+}
