@@ -978,3 +978,346 @@ a{ color:inherit; text-decoration:none; }
     height:54px;
   }
 }
+/* ========== MOMBASA VISUAL HOTEL ========== */
+
+.hotelStage{
+  position:relative;
+  overflow:hidden;
+  padding:18px;
+}
+
+.stageTop{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:14px;
+}
+
+.stageLabel{
+  font-size:20px;
+  font-weight:900;
+}
+
+.stageMini{
+  color:var(--muted);
+  font-size:13px;
+}
+
+.visualHotel{
+  position:relative;
+  min-height:620px;
+  border-radius:28px;
+  padding:18px;
+  background:
+    radial-gradient(circle at 20% 10%, rgba(35,220,200,.22), transparent 35%),
+    radial-gradient(circle at 85% 20%, rgba(255,176,32,.22), transparent 35%),
+    linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
+  border:1px solid var(--stroke2);
+  box-shadow:inset 0 0 40px rgba(0,0,0,.25);
+}
+
+.hotelFloor{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+  margin-bottom:14px;
+}
+
+.room{
+  min-height:135px;
+  border:1px solid rgba(255,255,255,.16);
+  border-radius:22px;
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.14), rgba(255,255,255,.04));
+  color:var(--text);
+  box-shadow:0 18px 35px rgba(0,0,0,.28);
+  cursor:pointer;
+  position:relative;
+  overflow:hidden;
+  transition:.2s ease;
+}
+
+.room:hover{
+  transform:translateY(-3px) scale(1.01);
+}
+
+.room.selected{
+  outline:3px solid var(--sand);
+}
+
+.room.empty{
+  background:linear-gradient(145deg, rgba(90,140,255,.15), rgba(255,255,255,.04));
+}
+
+.room.occupied{
+  background:linear-gradient(145deg, rgba(82,255,184,.18), rgba(255,255,255,.05));
+}
+
+.room.dirty{
+  background:linear-gradient(145deg, rgba(255,77,109,.22), rgba(255,255,255,.04));
+}
+
+.doorNo{
+  position:absolute;
+  top:10px;
+  left:12px;
+  font-weight:900;
+  color:var(--sand);
+}
+
+.roomState{
+  position:absolute;
+  top:10px;
+  right:12px;
+  font-size:12px;
+  color:var(--muted);
+}
+
+.roomBody{
+  display:block;
+  font-size:44px;
+  margin-top:35px;
+}
+
+.roomFoot{
+  display:block;
+  margin-top:8px;
+  font-size:13px;
+  color:var(--muted);
+}
+
+.roomBar{
+  position:absolute;
+  left:14px;
+  right:14px;
+  bottom:12px;
+  height:7px;
+  border-radius:99px;
+  background:rgba(255,255,255,.12);
+  overflow:hidden;
+}
+
+.roomBar span{
+  display:block;
+  height:100%;
+  width:0%;
+  border-radius:99px;
+  background:linear-gradient(90deg,var(--good),var(--sand),var(--bad));
+}
+
+.lobby{
+  margin-top:18px;
+  padding:16px;
+  border-radius:26px;
+  background:
+    linear-gradient(180deg, rgba(255,208,138,.13), rgba(255,255,255,.04));
+  border:1px solid var(--stroke);
+}
+
+.receptionDesk{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  min-height:78px;
+  border-radius:22px;
+  background:
+    linear-gradient(145deg, rgba(255,176,32,.25), rgba(255,255,255,.05));
+  border:1px solid rgba(255,208,138,.22);
+  box-shadow:0 15px 30px rgba(0,0,0,.24);
+}
+
+.deskIcon{
+  font-size:36px;
+}
+
+.deskText{
+  font-weight:900;
+  font-size:18px;
+}
+
+.guestLine{
+  min-height:95px;
+  display:flex;
+  gap:12px;
+  align-items:center;
+  overflow-x:auto;
+  padding:14px 4px;
+}
+
+.guest{
+  min-width:90px;
+  border:1px solid rgba(255,255,255,.15);
+  border-radius:20px;
+  padding:10px;
+  background:rgba(255,255,255,.08);
+  color:var(--text);
+  cursor:pointer;
+  box-shadow:0 12px 25px rgba(0,0,0,.22);
+}
+
+.guest.selected{
+  outline:3px solid var(--aqua);
+}
+
+.guestFace{
+  font-size:34px;
+  display:block;
+}
+
+.guestNeed{
+  display:block;
+  font-size:12px;
+  color:var(--muted);
+  margin-top:5px;
+}
+
+.serviceRow{
+  display:grid;
+  grid-template-columns:1.3fr .7fr;
+  gap:14px;
+}
+
+.stationCard{
+  padding:14px;
+  border-radius:22px;
+  background:rgba(255,255,255,.07);
+  border:1px solid var(--stroke);
+}
+
+.stationHeadRow{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:12px;
+}
+
+.stationHead{
+  font-weight:900;
+}
+
+.chip{
+  font-size:12px;
+  padding:6px 10px;
+  border-radius:99px;
+  background:rgba(255,255,255,.10);
+  color:var(--muted);
+}
+
+.stationGrid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:10px;
+}
+
+.itemBtn{
+  border:0;
+  min-height:52px;
+  border-radius:16px;
+  background:linear-gradient(145deg, rgba(255,255,255,.16), rgba(255,255,255,.06));
+  color:var(--text);
+  font-size:25px;
+  cursor:pointer;
+  box-shadow:0 10px 22px rgba(0,0,0,.2);
+}
+
+.itemBtn:hover{
+  transform:translateY(-2px);
+}
+
+.itemBtn.wide{
+  width:100%;
+  font-size:18px;
+  font-weight:800;
+}
+
+.bellboyDock{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  margin-top:14px;
+  padding:12px;
+  border-radius:24px;
+  background:rgba(255,255,255,.06);
+  border:1px solid var(--stroke);
+}
+
+.boyAvatar{
+  font-size:46px;
+  filter:drop-shadow(0 10px 15px rgba(0,0,0,.4));
+}
+
+.handCard{
+  min-width:110px;
+  padding:10px;
+  border-radius:18px;
+  background:rgba(255,255,255,.08);
+  border:1px solid var(--stroke);
+  text-align:center;
+}
+
+.handTitle{
+  font-size:12px;
+  color:var(--muted);
+}
+
+.handItem{
+  margin:7px 0;
+  font-weight:900;
+}
+
+.btnTiny{
+  border:0;
+  border-radius:12px;
+  padding:7px 10px;
+  background:rgba(255,255,255,.12);
+  color:var(--text);
+  cursor:pointer;
+}
+
+.actionDock{
+  justify-content:center;
+  margin-top:14px;
+}
+
+.resultBar{
+  margin-top:12px;
+  padding:12px 14px;
+  border-radius:18px;
+  background:rgba(0,0,0,.22);
+  color:var(--muted);
+  border:1px solid var(--stroke);
+}
+
+.panel{
+  display:none;
+}
+
+.panel.active{
+  display:block;
+}
+
+@media(max-width:720px){
+  .visualHotel{
+    min-height:auto;
+    padding:12px;
+  }
+
+  .hotelFloor,
+  .serviceRow{
+    grid-template-columns:1fr;
+  }
+
+  .stationGrid{
+    grid-template-columns:repeat(2,1fr);
+  }
+
+  .bellboyDock{
+    flex-wrap:wrap;
+  }
+
+  .room{
+    min-height:125px;
+  }
+}
